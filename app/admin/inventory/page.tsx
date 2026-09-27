@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { addInventory, getAllInventory, deleteInventory, updateInventory, restoreAutoDeductedStock, Inventory, InventorySubdivision } from '@/services/inventory';
 import { materialTransactionService } from '@/services/registers';
 import { MaterialTransaction } from '@/types/registers';
-import { PlusCircle, X, Trash2, Search, ArrowUp, ArrowDown, Package, Pill, RefreshCw, Edit, ArrowDownLeft, ArrowUpRight, History, Layers, ExternalLink } from 'lucide-react';
+import { PlusCircle, X, Trash2, Search, ArrowUp, ArrowDown, Package, Pill, RefreshCw, Edit, ArrowDownLeft, ArrowUpRight, History, Layers, ExternalLink, Link2 } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 import { ConvexHttpClient } from "convex/browser";
 // @ts-ignore
@@ -467,6 +467,14 @@ export default function AddInventoryPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/admin/treatment-links"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition shadow-sm"
+              title="Configure auto-deductions linking prescription treatments to inventory materials"
+            >
+              <Link2 size={14} />
+              Auto-Link Treatments
+            </Link>
             <button
               onClick={handleRestoreStock}
               disabled={isRestoring}

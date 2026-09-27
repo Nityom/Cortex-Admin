@@ -7,10 +7,12 @@ import { addPrescription, Prescription, getPrescriptionById, updatePrescription 
 import { getOrCreatePatient, getPatientByPhoneNumber, getPatientByReference } from '@/services/patients';
 import { Patient } from '@/types/patient';
 import { ToothData as TeethChartToothData } from '@/components/TeethChart';
+import DentalArchOdontogram from '@/components/DentalArchOdontogram';
 import { getCurrentUser } from '@/services/adminuser';
 import { createBill, Bill, getBillByPrescriptionId, updateBill } from '@/services/bills';
 import { deductInventoryStock } from '@/services/inventory';
 import { getEnabledConsumablesForDeduction } from '@/services/consumables';
+import { deductStockForTreatments } from '@/services/treatmentLinks';
 import { materialTransactionService } from '@/services/registers';
 import { doctorService } from '@/services/doctors';
 import { Doctor } from '@/types/doctor';
@@ -112,12 +114,23 @@ interface TreatmentPlanItem {
   notes?: string;
 }
 
+// Helper to format tooth identification consistently as in the diagnosis dropdown list (e.g. "16 - Tooth 6", "1A - Tooth A")
+const getToothDropdownFormat = (id: string | number): string => {
+  const str = String(id).trim();
+  if (!str || str.toLowerCase().startsWith('general') || str.startsWith('-')) return 'General';
+  const quad = str[0];
+  const tooth = str.slice(1);
+  if (!tooth) return str;
+  return `${str} - Tooth ${tooth}`;
+};
+
 // Define ToothData interface to match the prescription service
 interface ToothData {
-  id: number;  // Changed to number only
+  id: number | string;
   type: string;
   category: string;
   disease: string;
+  name?: string;
 }
 
 interface FormData {
@@ -203,6 +216,7 @@ const PrescriptionPage = () => {
   const [selectedTeethNumbers, setSelectedTeethNumbers] = useState<string[]>([]);
   const [selectedDisease, setSelectedDisease] = useState<string>('');
   const [selectedTeeth, setSelectedTeeth] = useState<ToothData[]>([]);
+  const [toothSelectionMode, setToothSelectionMode] = useState<'ARCH' | 'DROPDOWN'>('ARCH');
 
   // State for oral examination notes
   const [oralExamNotes, setOralExamNotes] = useState<string>('');
@@ -521,14 +535,16 @@ const PrescriptionPage = () => {
     if (selectedTeethNumbers?.length) {
       const newTeeth = selectedTeethNumbers.map(toothId => {
         const quadrant = parseInt(toothId[0]);
-        const number = parseInt(toothId.slice(1));
-        const quadrantName = DENTAL_QUADRANTS.find(q => q.id === quadrant)?.name || '';
+        const toothPart = toothId.slice(1);
+        const isDeciduous = isNaN(Number(toothPart));
+        const quadrantName = DENTAL_QUADRANTS.find(q => q.id === quadrant)?.name || `Quadrant ${quadrant}`;
 
         return {
-          id: parseInt(toothId),
-          type: number >= 9 ? 'Permanent' : 'Deciduous',
+          id: toothId,
+          type: isDeciduous ? 'Deciduous' : 'Permanent',
           category: quadrantName,
-          disease: selectedDisease
+          disease: selectedDisease,
+          name: `${toothId} - Tooth ${toothPart}`
         };
       });
 
@@ -537,10 +553,11 @@ const PrescriptionPage = () => {
     } else {
       // Not tied to a specific tooth (e.g. Braces treatment, general diagnosis)
       setSelectedTeeth([...selectedTeeth, {
-        id: -Date.now(),
+        id: `General-${Date.now()}`,
         type: 'N/A',
         category: 'General',
-        disease: selectedDisease
+        disease: selectedDisease,
+        name: 'General'
       }]);
     }
 
@@ -548,7 +565,7 @@ const PrescriptionPage = () => {
   };
 
   // Handler for removing a tooth from selection
-  const handleRemoveTooth = (toothId: number) => {
+  const handleRemoveTooth = (toothId: number | string) => {
     setSelectedTeeth(teeth => teeth.filter(tooth => tooth.id !== toothId));
   };
 
@@ -921,6 +938,42 @@ const PrescriptionPage = () => {
         }
       }
 
+      // Auto-deduct inventory materials linked to treatments done (e.g. Tooth Extraction -> Syringe, Lignox)
+      if (!isEditMode && savedPrescription?.id && treatmentItems.length > 0) {
+        try {
+          const treatmentsToDeduct = treatmentItems
+            .filter((t) => t.description && t.description.trim())
+            .map((t) => ({
+              name: t.description.trim(),
+              quantity: Number(t.quantity) || 1,
+            }));
+
+          if (treatmentsToDeduct.length > 0) {
+            console.log('📦 Auto-deducting treatment-linked materials from inventory...', treatmentsToDeduct);
+            const deductionRes = await deductStockForTreatments(
+              treatmentsToDeduct,
+              formData.patientName,
+              savedPrescription.id,
+              formData.date || undefined
+            );
+
+            if (deductionRes?.results && deductionRes.results.length > 0) {
+              const warnings = deductionRes.results.filter((r) => r.status === 'warning');
+              const errors = deductionRes.results.filter((r) => r.status === 'error');
+
+              if (warnings.length > 0 || errors.length > 0) {
+                const warningMsg = warnings.map((w) => `⚠️ ${w.treatmentName}: ${w.itemName} (${w.message})`).join('\n');
+                const errorMsg = errors.map((e) => `❌ ${e.treatmentName}: ${e.itemName} (${e.message})`).join('\n');
+                const combinedMsg = [warningMsg, errorMsg].filter(Boolean).join('\n\n');
+                alert(`Prescription saved, but inventory stock alerts for treatments performed:\n\n${combinedMsg}`);
+              }
+            }
+          }
+        } catch (treatmentDeductError) {
+          console.error('Error auto-deducting treatment-linked inventory materials:', treatmentDeductError);
+        }
+      }
+
       // Always ensure a bill exists for the prescription
       if (savedPrescription?.id && patient?.id) {
         try {
@@ -1038,7 +1091,8 @@ const PrescriptionPage = () => {
       // Format teeth information for prescription in a more technical, concise way
       const teethInfo = selectedTeeth.length > 0
         ? selectedTeeth.reduce((acc, tooth) => {
-          const label = tooth.category === 'General' ? tooth.disease : `#${tooth.id} (${tooth.disease})`;
+          const isGeneral = tooth.category === 'General' || String(tooth.id).startsWith('General');
+          const label = isGeneral ? tooth.disease : `#${getToothDropdownFormat(tooth.id)} (${tooth.disease})`;
           return `${acc}${acc ? ', ' : ''}${label}`;
         }, '')
         : '';
@@ -1792,79 +1846,256 @@ const PrescriptionPage = () => {
                   />
                 </div>
 
-            {/* Diagnosis Section with Dropdown Selection */}
-            <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-100">
-              <div className="flex items-center justify-between mb-4 gap-3">
-                <h3 className="text-xl font-semibold text-indigo-800">Diagnosis</h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddDiseaseForm(prev => !prev);
-                    if (showAddDiseaseForm) {
-                      setNewDiseaseName('');
-                    }
-                  }}
-                  className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition border border-indigo-300 font-medium whitespace-nowrap"
-                >
-                  {showAddDiseaseForm ? 'Close' : '+ Add New Disease'}
-                </button>
-              </div>
-
-              {/* Dropdown Selection for Teeth */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Diagnosis Section with Interactive Anatomical Arch Odontogram */}
+            <div className="bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Multiple Teeth</label>
-                  <select
-                    multiple
-                    value={selectedTeethNumbers}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions).map(option => option.value);
-                      setSelectedTeethNumbers(selected);
-                    }}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                    size={8}
-                  >
-                    {[1, 2, 3, 4].map(quadrant => (
-                      <optgroup key={quadrant} label={DENTAL_QUADRANTS.find(q => q.id === quadrant)?.name || `Quadrant ${quadrant}`}>
-                        {TEETH_BY_QUADRANT[quadrant as 1 | 2 | 3 | 4].map((tooth) => (
-                          <option key={`${quadrant}${tooth.number}`} value={`${quadrant}${tooth.number}`}>
-                            {`${quadrant}${tooth.number} - ${tooth.name}`}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd key to select multiple teeth</p>
+                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <span className="p-1.5 bg-blue-100 text-blue-700 rounded-lg">🦷</span>
+                    Diagnosis &amp; Teeth Chart
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Click teeth directly on the dental arch below to assign conditions or treatments
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dental Disease</label>
-                  <select
-                    value={selectedDisease}
-                    onChange={(e) => setSelectedDisease(e.target.value)}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                  >
-                    <option value="">Select Disease</option>
-                    {dentalDiseases.map((disease) => (
-                      <option key={disease} value={disease}>
-                        {disease}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Leave teeth unselected for treatments not specific to a tooth (e.g. Braces).
-                  </p>
+                <div className="flex items-center gap-2">
+                  {/* View Mode Toggle */}
+                  <div className="flex bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setToothSelectionMode('ARCH')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        toothSelectionMode === 'ARCH'
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🦷 Anatomical Arch
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setToothSelectionMode('DROPDOWN')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        toothSelectionMode === 'DROPDOWN'
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      📋 Dropdown List
+                    </button>
+                  </div>
 
                   <button
                     type="button"
-                    onClick={handleAddTeeth}
-                    disabled={!selectedDisease}
-                    className="mt-4 w-full p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      setShowAddDiseaseForm(prev => !prev);
+                      if (showAddDiseaseForm) {
+                        setNewDiseaseName('');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-white text-slate-700 rounded-xl hover:bg-slate-100 transition border border-slate-300 text-xs font-semibold whitespace-nowrap"
                   >
-                    {selectedTeethNumbers?.length ? 'Add Selected Teeth' : 'Add Diagnosis (No Specific Tooth)'}
+                    {showAddDiseaseForm ? 'Close' : '+ Add New Disease'}
                   </button>
                 </div>
               </div>
+
+              {/* Add New Disease Form (Conditional) */}
+              {showAddDiseaseForm && (
+                <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      New Dental Condition / Disease Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newDiseaseName}
+                      onChange={(e) => setNewDiseaseName(e.target.value)}
+                      placeholder="e.g. Periapical Abscess, Severe Attrition..."
+                      className="w-full p-2.5 border border-slate-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddNewDisease}
+                    disabled={!newDiseaseName.trim()}
+                    className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    Save Disease
+                  </button>
+                </div>
+              )}
+
+              {/* Interactive Anatomical Arch View */}
+              {toothSelectionMode === 'ARCH' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left / Main Column: SVG Odontogram Model */}
+                  <div className="lg:col-span-7 flex justify-center">
+                    <DentalArchOdontogram
+                      selectedTeethNumbers={selectedTeethNumbers}
+                      onToggleTooth={(toothId) => {
+                        if (selectedTeethNumbers.includes(toothId)) {
+                          setSelectedTeethNumbers(selectedTeethNumbers.filter(id => id !== toothId));
+                        } else {
+                          setSelectedTeethNumbers([...selectedTeethNumbers, toothId]);
+                        }
+                      }}
+                      onSelectMultiple={(teethIds) => setSelectedTeethNumbers(teethIds)}
+                      onClearSelection={() => setSelectedTeethNumbers([])}
+                      diagnosedTeeth={selectedTeeth}
+                      onRemoveDiagnosedTooth={handleRemoveTooth}
+                    />
+                  </div>
+
+                  {/* Right Column: Disease Selector & Quick Pills */}
+                  <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                        Step 1: Selected Teeth
+                      </span>
+                      {selectedTeethNumbers.length === 0 ? (
+                        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                          Click teeth on the arch model to the left, or proceed without specific teeth for general diagnosis.
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 flex flex-wrap gap-1.5 items-center">
+                          <span className="text-xs font-bold text-blue-900 mr-1">Teeth:</span>
+                          {selectedTeethNumbers.map((id) => (
+                            <span
+                              key={id}
+                              className="px-2.5 py-1 rounded-md bg-blue-600 text-white text-xs font-bold shadow-sm"
+                            >
+                              {getToothDropdownFormat(id)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                        Step 2: Pick Condition / Disease
+                      </span>
+
+                      {/* Quick Common Disease Pills */}
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {[
+                          'Dental Caries',
+                          'Pulpitis',
+                          'Root Canal Infection',
+                          'Dental Abscess',
+                          'Tooth Fracture',
+                          'Gingivitis',
+                          'Periodontitis',
+                          'Tooth Discoloration'
+                        ].map((d) => {
+                          const isSelected = selectedDisease === d;
+                          return (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => setSelectedDisease(d)}
+                              className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border transition ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              {d}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Full Dropdown for all other diseases */}
+                      <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Or select from all conditions:
+                      </label>
+                      <select
+                        value={selectedDisease}
+                        onChange={(e) => setSelectedDisease(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-medium bg-white"
+                      >
+                        <option value="">Select Condition / Disease...</option>
+                        {dentalDiseases.map((disease) => (
+                          <option key={disease} value={disease}>
+                            {disease}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Step 3: Add Button */}
+                    <button
+                      type="button"
+                      onClick={handleAddTeeth}
+                      disabled={!selectedDisease}
+                      className="w-full p-3 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                    >
+                      {selectedTeethNumbers?.length
+                        ? `✓ Add Diagnosis for ${selectedTeethNumbers.length} Selected Tooth/Teeth`
+                        : 'Add Diagnosis (General / Non-Tooth Specific)'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Classic Dropdown Mode */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Multiple Teeth</label>
+                    <select
+                      multiple
+                      value={selectedTeethNumbers}
+                      onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions).map(option => option.value);
+                        setSelectedTeethNumbers(selected);
+                      }}
+                      className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                      size={8}
+                    >
+                      {[1, 2, 3, 4].map(quadrant => (
+                        <optgroup key={quadrant} label={DENTAL_QUADRANTS.find(q => q.id === quadrant)?.name || `Quadrant ${quadrant}`}>
+                          {TEETH_BY_QUADRANT[quadrant as 1 | 2 | 3 | 4].map((tooth) => (
+                            <option key={`${quadrant}${tooth.number}`} value={`${quadrant}${tooth.number}`}>
+                              {`${quadrant}${tooth.number} - ${tooth.name}`}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd key to select multiple teeth</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Dental Disease</label>
+                    <select
+                      value={selectedDisease}
+                      onChange={(e) => setSelectedDisease(e.target.value)}
+                      className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    >
+                      <option value="">Select Disease</option>
+                      {dentalDiseases.map((disease) => (
+                        <option key={disease} value={disease}>
+                          {disease}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Leave teeth unselected for treatments not specific to a tooth (e.g. Braces).
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={handleAddTeeth}
+                      disabled={!selectedDisease}
+                      className="mt-4 w-full p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {selectedTeethNumbers?.length ? 'Add Selected Teeth' : 'Add Diagnosis (No Specific Tooth)'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Oral Examination Notes */}
               <div className="mt-6">
@@ -1894,27 +2125,25 @@ const PrescriptionPage = () => {
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {selectedTeeth.map((tooth) => {
-                          // Convert numeric ID back to quadrant+letter format for display
-                          const isGeneral = tooth.category === 'General';
-                          const toothId = tooth.id.toString();
-                          const quadrant = toothId[0];
-                          const number = parseInt(toothId.slice(1));
+                          const isGeneral = tooth.category === 'General' || String(tooth.id).startsWith('General');
                           const displayId = isGeneral
                             ? 'General'
-                            : (number >= 9
-                              ? `${quadrant}${String.fromCharCode(65 + (number - 9))}` // Convert 9->A, 10->B, etc.
-                              : tooth.id);
+                            : getToothDropdownFormat(tooth.id);
 
                           return (
-                            <tr key={tooth.id}>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{displayId}</td>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{tooth.category}</td>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{tooth.disease}</td>
+                            <tr key={String(tooth.id)}>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900">{displayId}</td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">{tooth.category}</td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                  {tooth.disease}
+                                </span>
+                              </td>
                               <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveTooth(tooth.id)}
-                                  className="text-red-600 hover:text-red-800 transition"
+                                  className="text-red-600 hover:text-red-800 transition font-medium"
                                 >
                                   Remove
                                 </button>
@@ -1927,23 +2156,16 @@ const PrescriptionPage = () => {
                   </div>
 
                   {/* Preview of dental notation that will appear on prescription */}
-                  <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                  <div className="mt-3 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-sm text-gray-700">
-                      <span className="font-medium">Dental Notation for Prescription:</span> {
-                        selectedTeeth.map((tooth, index) => {
-                          if (tooth.category === 'General') {
-                            return `${index > 0 ? ', ' : ''}${tooth.disease}`;
-                          }
-                          const toothId = tooth.id.toString();
-                          const quadrant = toothId[0];
-                          const number = parseInt(toothId.slice(1));
-                          const displayId = number >= 9
-                            ? `${quadrant}${String.fromCharCode(65 + (number - 9))}` // Convert 9->A, 10->B, etc.
-                            : tooth.id;
-
-                          return `${index > 0 ? ', ' : ''}#${displayId} (${tooth.disease})`;
-                        }).join('')
-                      }
+                      <span className="font-semibold text-gray-900">Dental Notation for Prescription:</span>{' '}
+                      {selectedTeeth.map((tooth, index) => {
+                        if (tooth.category === 'General' || String(tooth.id).startsWith('General')) {
+                          return `${index > 0 ? ', ' : ''}${tooth.disease}`;
+                        }
+                        const displayId = getToothDropdownFormat(tooth.id);
+                        return `${index > 0 ? ', ' : ''}#${displayId} (${tooth.disease})`;
+                      }).join('')}
                     </p>
                   </div>
                 </div>
@@ -2790,7 +3012,7 @@ const PrescriptionPage = () => {
                         <td className="border border-gray-300 px-4 py-2 font-medium">Diagnosis</td>
                         <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">
                           {selectedTeeth.length > 0 && (
-                            <div>{selectedTeeth.map(tooth => tooth.category === 'General' ? tooth.disease : `#${tooth.id} (${tooth.disease})`).join(', ')}</div>
+                            <div>{selectedTeeth.map(tooth => tooth.category === 'General' || String(tooth.id).startsWith('General') ? tooth.disease : `#${getToothDropdownFormat(tooth.id)} (${tooth.disease})`).join(', ')}</div>
                           )}
                           {oralExamNotes && <div>{oralExamNotes}</div>}
                         </td>

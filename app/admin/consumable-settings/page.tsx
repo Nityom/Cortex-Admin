@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import {
   Consumable
 } from '@/services/consumables';
 import { getAllInventory, Inventory } from '@/services/inventory';
-import { Trash2, Edit, Plus, Save, X, Search, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
+import { Trash2, Edit, Plus, Save, X, Search, AlertTriangle, CheckCircle, AlertCircle, Link2, ArrowRight } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 
 /**
@@ -208,11 +209,41 @@ const ConsumableSettingsPage = () => {
 
   return (
     <div className="w-full min-h-screen p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Consumable Items Settings</h1>
-        <p className="text-gray-600">
-          Manage items automatically deducted from inventory when creating new prescriptions
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Consumable Items Settings</h1>
+          <p className="text-gray-600">
+            Manage general clinic items or switch to treatment-specific auto-linking.
+          </p>
+        </div>
+        <Link
+          href="/admin/treatment-links"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md shadow-blue-500/20 transition self-start sm:self-auto"
+        >
+          <Link2 size={16} />
+          Go to Treatment Auto-Link
+          <ArrowRight size={14} />
+        </Link>
+      </div>
+
+      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-sm">
+            <Link2 size={20} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900">Want to deduct items based on treatment done?</h4>
+            <p className="text-xs text-slate-600">
+              For example: when &quot;Extraction&quot; is performed, deduct 1 syringe &amp; 1 Lignox; when &quot;RCT&quot; is performed, deduct cotton &amp; files.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/admin/treatment-links"
+          className="text-xs font-bold text-blue-700 hover:text-blue-900 whitespace-nowrap flex items-center gap-1 hover:underline"
+        >
+          Configure Treatment Rules &rarr;
+        </Link>
       </div>
 
       {loading ? (

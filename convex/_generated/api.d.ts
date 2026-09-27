@@ -24,6 +24,7 @@ import type * as prescriptions from "../prescriptions.js";
 import type * as registers from "../registers.js";
 import type * as staff from "../staff.js";
 import type * as stockists from "../stockists.js";
+import type * as treatment_links from "../treatment_links.js";
 
 import type {
   ApiFromModules,
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   registers: typeof registers;
   staff: typeof staff;
   stockists: typeof stockists;
+  treatment_links: typeof treatment_links;
 }>;
 
 /**

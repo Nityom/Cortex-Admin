@@ -17,10 +17,11 @@ export interface MedicineEntry {
 }
 
 export interface ToothData {
-  id: number;
+  id: number | string;
   type: string;
   category: string;
   disease?: string;
+  name?: string;
 }
 
 export interface Bill {

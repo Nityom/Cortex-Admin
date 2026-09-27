@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Inbox, Menu, ChevronRight, Pill, FileText, LogOut, Wrench, TrendingUp, CreditCard, Package, Calendar, ClipboardList, Activity, UserCheck, Crown, ReceiptText } from "lucide-react";
+import { Inbox, Menu, ChevronRight, Pill, FileText, LogOut, Wrench, TrendingUp, CreditCard, Package, Calendar, ClipboardList, Activity, UserCheck, Crown, ReceiptText, Link2 } from "lucide-react";
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from "@/services/adminuser";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -11,13 +11,20 @@ interface CustomSidebarProps {
 }
 
 const CustomSidebar: React.FC<CustomSidebarProps> = ({ children, className }) => (
-  <aside className={`${className} transition-all duration-300 ease-in-out`}>
+  <aside className={`${className} transition-all duration-300 ease-in-out overflow-hidden`}>
     {children}
     <style jsx>{`
       aside {
         animation: slideIn 0.3s ease forwards;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
       }
-      
+      aside::-webkit-scrollbar,
+      aside :global(*::-webkit-scrollbar) {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
       @keyframes slideIn {
         from { transform: translateX(-20px); opacity: 0.8; }
         to { transform: translateX(0); opacity: 1; }
@@ -142,6 +149,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
     { id: "medicine-management", title: "Medicine Management", url: "/admin/medicines", icon: Pill },
     { id: "stockist-bills", title: "Stockist Bills & Dues", url: "/admin/stockists", icon: ReceiptText },
     { id: "Inventory-management", title: "Inventory Management", url: "/admin/inventory", icon: Wrench },
+    { id: "treatment-links", title: "Treatment Auto-Link", url: "/admin/treatment-links", icon: Link2 },
     ...(isAdmin ? [{ id: "sales-report", title: "Sales Report", url: "/admin/medicines/sales", icon: TrendingUp }] : []),
     { id: "installments", title: "Payment Installments", url: "/admin/installments", icon: CreditCard },
     { id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText },
@@ -234,7 +242,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
         </div>
 
         {/* Nav items */}
-        <div className="flex-1 overflow-y-auto py-3 px-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-3 px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <MenuGroup label={showExpanded ? "MENU" : ""}>
             <ul>
               {items.map((item, index) => (

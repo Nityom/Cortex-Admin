@@ -538,5 +538,21 @@ export default defineSchema({
     .index("by_bill", ["stockist_bill_id"])
     .index("by_date", ["payment_date"])
     .index("by_stockist", ["stockist_name"]),
+
+  treatment_inventory_links: defineTable({
+    treatment_name: v.string(),
+    items: v.array(v.object({
+      inventory_id: v.optional(v.string()),
+      inventory_name: v.string(),
+      quantity: v.number(),
+      unit: v.optional(v.string()),
+    })),
+    enabled: v.boolean(),
+    notes: v.optional(v.string()),
+    created_at: v.optional(v.number()),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_treatment_name", ["treatment_name"])
+    .index("by_enabled", ["enabled"]),
 });
 
