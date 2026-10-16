@@ -246,6 +246,8 @@ export const create = mutation({
         advice: v.optional(v.string()),
         followup_date: v.optional(v.string()),
         doctor_name: v.optional(v.string()),
+        vitals: v.optional(v.any()),
+        opd_visit_id: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const newPrescriptionId = await ctx.db.insert("prescriptions", args);
@@ -337,6 +339,8 @@ export const update = mutation({
         advice: v.optional(v.string()),
         followup_date: v.optional(v.string()),
         doctor_name: v.optional(v.string()),
+        vitals: v.optional(v.any()),
+        opd_visit_id: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...updates } = args;

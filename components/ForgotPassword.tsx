@@ -59,8 +59,8 @@ export default function ForgotPassword() {
             className="mb-8 flex justify-center"
           >
             <Image
-              src="/dental_logo.webp"
-              alt="Shahi Dental Clinic Logo"
+              src="/cortex_logo.png"
+              alt="Cortex Hospital Logo"
               width={190}
               height={95}
               className="object-contain drop-shadow-lg"
@@ -219,7 +219,7 @@ export default function ForgotPassword() {
                   transition={{ delay: 0.7, duration: 0.5 }}
                   className="text-gray-400"
                 >
-                  © 2025 Shahi Dental Clinic
+                  © 2025 Cortex Hospital
                 </motion.p>
               </CardFooter>
             </div>

@@ -60,7 +60,7 @@ export const PrintableExtractionDues: React.FC<PrintableExtractionDuesProps> = (
   termsAndConditions = '1. Post-extraction instructions must be followed strictly for 24-48 hours. 2. Remaining balance must be settled during the follow-up/review appointment.',
   showPrintButton = true,
   signature = 'sign.png',
-  doctorName = 'Dr. Kautilya Swaroop',
+  doctorName = 'Dr. Vipeen Raut',
   paymentTransactions = [],
   clinicalNotes,
 }) => {
@@ -213,15 +213,15 @@ export const PrintableExtractionDues: React.FC<PrintableExtractionDuesProps> = (
           <div className="mt-4 text-center">
             <div className="flex items-center justify-center mb-1">
               <img
-                src="/dental_logo.webp"
-                alt="Shahi Dental Logo"
+                src="/cortex_logo.png"
+                alt="Cortex Hospital Logo"
                 className="h-14 mr-3 object-contain"
               />
             </div>
             <p className="text-xs text-gray-700 font-medium">
-              Juran Chhapra Main Rd, in front of Road Number 2, Juran Chapra, Brahmapura, Muzaffarpur, Bihar 842001
+              Beside Urich Mall, Aarti Square, Mohini Nagar, Nagpur Road, Wardha (M.S) - 442001
             </p>
-            <p className="text-xs text-gray-600 mt-0.5">Mobile: 9525048993 &nbsp;|&nbsp; Reg. No. 7329/A</p>
+            <p className="text-xs text-gray-600 mt-0.5">Mobile: +91 9373280505 &nbsp;|&nbsp; +91 7184273030</p>
           </div>
         </div>
 

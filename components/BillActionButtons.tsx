@@ -1,23 +1,42 @@
-'use client';
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import {
+  convertBillRecordToBillData,
+  viewBillPdf,
+  downloadBillPdf,
+  printBillPdf,
+  BillData,
+} from "@/lib/generate-bill-client";
 
 interface BillActionButtonsProps {
   billId: string;
+  billData?: any;
   onDownload?: () => void;
   onPrint?: () => void;
 }
 
 export const BillActionButtons: React.FC<BillActionButtonsProps> = ({
   billId,
+  billData,
   onDownload,
   onPrint
 }) => {
-  const generateBillPDF = async () => {
+  const getClientData = (): BillData => {
+    if (billData) {
+      return convertBillRecordToBillData(billData);
+    }
+    return convertBillRecordToBillData({
+      id: billId,
+      bill_number: billId,
+      total_amount: 0,
+      paid_amount: 0,
+      payment_status: 'PENDING',
+    });
+  };
+
+  const generateBillPDF = () => {
     try {
-      // Open in new tab
-      window.open(`/api/generate-bill?billId=${billId}`, '_blank');
+      viewBillPdf(getClientData());
     } catch (error) {
       console.error('Error generating bill PDF:', error);
     }
@@ -27,12 +46,7 @@ export const BillActionButtons: React.FC<BillActionButtonsProps> = ({
     if (onDownload) {
       onDownload();
     } else {
-      const link = document.createElement('a');
-      link.href = `/api/generate-bill?billId=${billId}&download=true`;
-      link.download = `bill-${billId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      downloadBillPdf(getClientData(), `bill-${billId}.pdf`);
     }
   };
 
@@ -40,10 +54,7 @@ export const BillActionButtons: React.FC<BillActionButtonsProps> = ({
     if (onPrint) {
       onPrint();
     } else {
-      const printWindow = window.open(`/api/generate-bill?billId=${billId}`, '_blank');
-      printWindow?.addEventListener('load', () => {
-        printWindow.print();
-      });
+      printBillPdf(getClientData());
     }
   };
 

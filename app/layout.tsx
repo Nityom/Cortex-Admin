@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shahi Dental Clinic",
+  title: "Cortex Hospital - Admin",
   icons: {
-    icon: "/dental_logo.webp",
+    icon: "/cortex_logo.png",
   },
 };
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ToothData } from '@/components/TeethChart';
 import { createBill, updateBill, getBillByPrescriptionId, getPatientByReferenceNumber } from '@/services/bills';
 import { getPatientByReference } from '@/services/patients';
+import { generateBillPdfBlob, downloadBillPdf, printBillPdf, BillData as ClientBillData } from '@/lib/generate-bill-client';
 
 
 interface PatientData {
@@ -58,7 +59,7 @@ const defaultDentalProcedures = [
 // Temporary bill number shown before saving; real sequential number is assigned by the server
 const generateBillNumber = () => {
   const year = new Date().getFullYear();
-  return `SDC-INV-${year}-???`;
+  return `CRX-INV-${year}-???`;
 };
 
 interface StockUpdateResult {
@@ -157,7 +158,7 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
       setGeneratedPdf(false);
       const fullBillData = {
         clinic: {
-          name: "Shahi Dental Clinic",
+          name: "Cortex Hospital",
         },
         patient: {
           ...patientData,
@@ -186,20 +187,8 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
         diagnosis,
       };
 
-      // Call the API to generate the PDF
-      const response = await fetch('/api/generate-bill', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(fullBillData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate bill: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
+      // Generate the PDF client-side
+      const blob = generateBillPdfBlob(fullBillData as any);
       setPdfUrl(URL.createObjectURL(blob));
       setGeneratedPdf(true);
     } catch (error) {
@@ -467,19 +456,15 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
 
 
   const handlePrint = useCallback(() => {
-    if (savedBillId) {
-      const queryParams = new URLSearchParams({
-        billId: savedBillId,
-        print: 'true'
-      }).toString();
-      const printWindow = window.open(`/api/generate-bill?${queryParams}`, '_blank');
+    if (pdfUrl) {
+      const printWindow = window.open(pdfUrl, '_blank');
       if (printWindow) {
         printWindow.addEventListener('load', () => {
           printWindow.print();
         });
       }
     }
-  }, [savedBillId]);
+  }, [pdfUrl]);
 
   const handlePrintableBill = useCallback(() => {
     if (savedBillId) {
@@ -488,14 +473,15 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
   }, [savedBillId]);
 
   const handleDownload = useCallback(() => {
-    if (savedBillId) {
-      const queryParams = new URLSearchParams({
-        billId: savedBillId,
-        download: 'true'
-      }).toString();
-      window.open(`/api/generate-bill?${queryParams}`, '_blank');
+    if (pdfUrl) {
+      const a = document.createElement('a');
+      a.href = pdfUrl;
+      a.download = `bill-${(patientData.name || 'patient').replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
-  }, [savedBillId]);
+  }, [pdfUrl, patientData.name]);
 
   // UI rendering code
   return (
@@ -543,7 +529,7 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
       <div className="grid grid-cols-1 gap-8">
         {/* Clinic Information */}
         <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
-          <div className="flex justify-between items-center">            <div>              <h3 className="text-2xl font-bold text-blue-800">Shahi Dental Clinic</h3>
+          <div className="flex justify-between items-center">            <div>              <h3 className="text-2xl font-bold text-blue-800">Cortex Hospital</h3>
             <p className="text-gray-600">Professional Dental Care Services</p>
           </div>
             <div className="text-right">
@@ -901,6 +887,14 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
                 </svg>
                 Download Bill
               </button>
+
+              {/* Hospital Billing Suite Link */}
+              <a
+                href={`/admin/billing?tab=opd&prescriptionId=${prescriptionId}&patientName=${encodeURIComponent(patientData.name)}&phoneNumber=${encodeURIComponent(patientData.phoneNumber || '')}&uhid=${encodeURIComponent(patientData.reference_number || '')}&age=${patientData.age}&sex=${patientData.sex}`}
+                className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-sm shadow transition flex items-center gap-2"
+              >
+                <span>Hospital Billing Suite →</span>
+              </a>
 
               {/* Back Button */}
               <button
