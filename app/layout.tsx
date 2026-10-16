@@ -14,9 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cortex Hospital - Admin",
+  title: "Svasth- HMS",
+  description: "Hospital Management System",
   icons: {
-    icon: "/cortex_logo.png",
+    icon: "/Svasth_favicon.png",
+    shortcut: "/Svasth_favicon.png",
+    apple: "/Svasth_favicon.png",
   },
 };
 
@@ -27,6 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/Svasth_favicon.png" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
