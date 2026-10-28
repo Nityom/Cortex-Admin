@@ -18,6 +18,7 @@ import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
 import { generatePrescriptionPdfBlob } from '@/lib/generate-prescription-client';
+import MedicineSearchInput from '@/components/MedicineSearchInput';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -342,7 +343,7 @@ const PrescriptionPage = () => {
         }
         try {
           localStorage.setItem('cortex_active_doctor', qDoc);
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const qName = params.get('patientName') || params.get('name');
@@ -1877,22 +1878,20 @@ const PrescriptionPage = () => {
               <button
                 type="button"
                 onClick={() => handleDoctorSelect('Dr. Vipeen Raut')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedDoctorName === 'Dr. Vipeen Raut'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${selectedDoctorName === 'Dr. Vipeen Raut'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white'
-                }`}
+                  }`}
               >
                 Dr. Vipeen Raut (Ortho)
               </button>
               <button
                 type="button"
                 onClick={() => handleDoctorSelect('Dr. Shillpa Raut')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                  selectedDoctorName === 'Dr. Shillpa Raut'
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${selectedDoctorName === 'Dr. Shillpa Raut'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white'
-                }`}
+                  }`}
               >
                 Dr. Shillpa Raut (Gynae)
               </button>
@@ -1984,7 +1983,7 @@ const PrescriptionPage = () => {
                     <label className="text-sm font-bold text-blue-900">
                       Vital Signs (BP, SpO₂, Height, Weight, Pulse)
                     </label>
-                   
+
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div>
@@ -2387,27 +2386,19 @@ const PrescriptionPage = () => {
                           <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
                             Medicine Name #{index + 1}
                           </label>
-                          <div className="flex gap-2">
-                            <select
-                              value={medicine.name}
-                              onChange={(e) => handleMedicineChange(index, 'name', e.target.value)}
-                              className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition bg-white"
-                            >
-                              <option value="">-- Select from Registered Medicines --</option>
-                              {filteredMedicineOptions.map((med) => (
-                                <option key={med.id} value={med.name}>
-                                  {med.name} {med.doctor_name && med.doctor_name !== 'Both Doctors' ? `[${med.doctor_name}]` : ''} {med.company ? `(${med.company})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              type="text"
-                              value={medicine.name}
-                              onChange={(e) => handleMedicineChange(index, 'name', e.target.value)}
-                              placeholder="Or type custom name"
-                              className="w-1/2 p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                            />
-                          </div>
+                          <MedicineSearchInput
+                            index={index}
+                            value={medicine.name}
+                            options={filteredMedicineOptions}
+                            onChangeName={(name) => handleMedicineChange(index, 'name', name)}
+                            onSelectMedicine={(med) => {
+                              handleMedicineChange(index, 'name', med.name);
+                              if (med.composition) {
+                                handleMedicineChange(index, 'composition', med.composition);
+                              }
+                            }}
+                            placeholder="Search or enter medicine name..."
+                          />
                         </div>
 
                         <div>
@@ -2607,8 +2598,8 @@ const PrescriptionPage = () => {
                         handleDoctorSelect(doc.name);
                       }}
                       className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${isSelected
-                          ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-1 ring-blue-600'
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-1 ring-blue-600'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                         }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -2657,22 +2648,20 @@ const PrescriptionPage = () => {
                   <button
                     type="button"
                     onClick={() => setIncludeSignature(true)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${
-                      includeSignature
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${includeSignature
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                      }`}
                   >
                     <span>✓ With Signature</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setIncludeSignature(false)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${
-                      !includeSignature
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${!includeSignature
                         ? 'bg-blue-600 text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
+                      }`}
                   >
                     <span>Without Sign (Name Only)</span>
                   </button>
@@ -2958,30 +2947,7 @@ const PrescriptionPage = () => {
               </div>
 
               {/* Signature Mode Quick Toggle */}
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl text-xs shadow-2xs">
-                <span className="font-bold text-gray-700">Signature on Print:</span>
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <input
-                    type="radio"
-                    name="include_signature_quick"
-                    checked={includeSignature}
-                    onChange={() => setIncludeSignature(true)}
-                    className="h-3.5 w-3.5 text-blue-600"
-                  />
-                  <span className={includeSignature ? "font-bold text-blue-700" : "text-gray-600"}>With Sign</span>
-                </label>
-                <span className="text-gray-300">|</span>
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <input
-                    type="radio"
-                    name="include_signature_quick"
-                    checked={!includeSignature}
-                    onChange={() => setIncludeSignature(false)}
-                    className="h-3.5 w-3.5 text-blue-600"
-                  />
-                  <span className={!includeSignature ? "font-bold text-blue-700" : "text-gray-600"}>Without Sign (Name Only)</span>
-                </label>
-              </div>
+
             </div>
           </form>
 

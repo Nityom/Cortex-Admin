@@ -1484,17 +1484,17 @@ export default function IPDManagementPage() {
   return (
     <div className="space-y-6 pb-16">
       {/* HEADER BANNER */}
-      <header className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <header className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
-                <Bed className="w-6 h-6" />
+            <div className="flex items-center gap-3">
+              <span className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <Bed className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">IPD Management Module</h1>
-                <p className="text-xs text-slate-500 font-medium">
-                  Cortex Hospital & Research Centre • Inpatient Care, Bed Allocation & Running Billing
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">IPD Management</h1>
+                <p className="text-xs text-slate-500">
+                  Inpatient Care, Bed Allocation & Running Billing
                 </p>
               </div>
             </div>
@@ -1503,43 +1503,43 @@ export default function IPDManagementPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`px-4 py-2 font-semibold text-xs rounded-xl transition flex items-center gap-2 ${
+              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
                 activeTab === "dashboard"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               }`}
             >
               <Activity className="w-4 h-4" />
-              Inpatient Day Board ({stats.admittedCount})
+              Inpatient Board ({stats.admittedCount})
             </button>
 
             {/* Select from OPD by Date Button */}
             <button
               onClick={() => setShowOpdModal(true)}
-              className="px-4 py-2 font-bold text-xs rounded-xl transition flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm"
+              className="px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-2xs"
             >
-              <Users className="w-4 h-4 text-emerald-600" />
-              Select from OPD as per Date
+              <Users className="w-4 h-4 text-slate-500" />
+              Import from OPD
             </button>
 
             <button
               onClick={() => setActiveTab("admit")}
-              className={`px-4 py-2 font-semibold text-xs rounded-xl transition flex items-center gap-2 ${
+              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
                 activeTab === "admit"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               }`}
             >
               <UserPlus className="w-4 h-4" />
-              + New IPD Admission
+              + New Admission
             </button>
 
             <button
               onClick={() => setActiveTab("history")}
-              className={`px-4 py-2 font-semibold text-xs rounded-xl transition flex items-center gap-2 ${
+              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
                 activeTab === "history"
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               }`}
             >
               <ClipboardCheck className="w-4 h-4" />
@@ -1551,19 +1551,19 @@ export default function IPDManagementPage() {
 
       {/* TOAST BANNER */}
       {successToast && (
-        <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 flex items-center justify-between text-emerald-900 shadow-sm animate-in fade-in duration-200">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between text-emerald-900 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-5 h-5" />
+            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-sm font-bold">{successToast}</p>
+              <p className="text-sm font-semibold">{successToast}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setSuccessToast(null)}
-            className="text-xs font-semibold px-3 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition"
+            className="text-xs font-medium px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg transition"
           >
             Dismiss
           </button>
@@ -1572,48 +1572,48 @@ export default function IPDManagementPage() {
 
       {/* STATS OVERVIEW CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Admitted Patients</span>
-            <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Admitted Patients</span>
+            <span className="p-1 bg-slate-100 text-slate-600 rounded">
               <Users className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-black text-slate-900 mt-2">{stats.admittedCount}</p>
-          <span className="text-[11px] text-slate-400 font-medium">Occupancy: {stats.occupancyPercent}%</span>
+          <p className="text-2xl font-bold text-slate-900 mt-2">{stats.admittedCount}</p>
+          <span className="text-[11px] text-slate-400">Occupancy: {stats.occupancyPercent}%</span>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Available Beds</span>
-            <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Available Beds</span>
+            <span className="p-1 bg-slate-100 text-slate-600 rounded">
               <Bed className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-black text-emerald-700 mt-2">{stats.availableBeds} / {stats.totalBeds}</p>
-          <span className="text-[11px] text-slate-400 font-medium">Vacant for allocation</span>
+          <p className="text-2xl font-bold text-slate-900 mt-2">{stats.availableBeds} / {stats.totalBeds}</p>
+          <span className="text-[11px] text-slate-400">Vacant for allocation</span>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Stay Charges</span>
-            <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Stay Charges</span>
+            <span className="p-1 bg-slate-100 text-slate-600 rounded">
               <IndianRupee className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-black text-indigo-700 mt-2">₹{stats.totalActiveRevenue.toLocaleString("en-IN")}</p>
-          <span className="text-[11px] text-slate-400 font-medium">Total accumulated running bill</span>
+          <p className="text-2xl font-bold text-slate-900 mt-2">₹{stats.totalActiveRevenue.toLocaleString("en-IN")}</p>
+          <span className="text-[11px] text-slate-400">Total running bill</span>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Advances Collected</span>
-            <span className="p-1.5 bg-teal-50 text-teal-600 rounded-lg">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Advances Collected</span>
+            <span className="p-1 bg-slate-100 text-slate-600 rounded">
               <ShieldCheck className="w-4 h-4" />
             </span>
           </div>
-          <p className="text-2xl font-black text-teal-700 mt-2">₹{stats.totalAdvances.toLocaleString("en-IN")}</p>
-          <span className="text-[11px] text-slate-400 font-medium">Adjustable in final settlement</span>
+          <p className="text-2xl font-bold text-slate-900 mt-2">₹{stats.totalAdvances.toLocaleString("en-IN")}</p>
+          <span className="text-[11px] text-slate-400">Adjustable in settlement</span>
         </div>
       </div>
 
@@ -1623,35 +1623,35 @@ export default function IPDManagementPage() {
       {activeTab === "dashboard" && (
         <div className="space-y-6">
           {/* WARD & BED OCCUPANCY VISUAL MATRIX (EDITABLE) */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-indigo-600" />
+                <Building2 className="w-5 h-5 text-slate-600" />
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                    Real-time Ward & Bed Occupancy Matrix
-                    <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-full border border-indigo-200 normal-case">
+                  <h2 className="text-sm font-bold text-slate-900 tracking-wide flex items-center gap-2">
+                    Ward & Bed Occupancy
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-semibold rounded border border-slate-200">
                       Editable Matrix
                     </span>
                   </h2>
-                  <p className="text-[11px] text-slate-500">
-                    Click an occupied bed to view clinical sheet, or vacant bed to assign. You can customize beds, daily rates & transfer patients.
+                  <p className="text-xs text-slate-500">
+                    Click an occupied bed to view clinical sheet, or vacant bed to assign.
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-slate-600">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Vacant
                 </span>
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-slate-600">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Occupied
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowBedConfigModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition shadow-sm ml-2"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-slate-300 transition shadow-2xs ml-2"
                 >
-                  <Settings className="w-3.5 h-3.5 text-indigo-600" />
+                  <Settings className="w-3.5 h-3.5 text-slate-500" />
                   Edit Beds & Rates
                 </button>
               </div>
@@ -1659,10 +1659,10 @@ export default function IPDManagementPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {wardBedConfig.map((wConfig) => (
-                <div key={wConfig.ward} className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2">
+                <div key={wConfig.ward} className="bg-slate-50/60 border border-slate-200 rounded-xl p-3.5 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800">{wConfig.ward}</span>
-                    <span className="text-[10px] font-mono font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    <span className="text-[10px] font-mono text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
                       ₹{wConfig.dailyRate}/day
                     </span>
                   </div>
@@ -1687,10 +1687,10 @@ export default function IPDManagementPage() {
                               setActiveTab("admit");
                             }
                           }}
-                          className={`p-2 rounded-lg border cursor-pointer transition text-left relative overflow-hidden group ${
+                          className={`p-2.5 rounded-lg border cursor-pointer transition text-left relative overflow-hidden ${
                             isOccupied
-                              ? "bg-amber-50/80 border-amber-300 hover:bg-amber-100/80"
-                              : "bg-white border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/40"
+                              ? "bg-slate-50 border-slate-300 hover:bg-slate-100"
+                              : "bg-white border-slate-200 hover:border-blue-400 hover:bg-slate-50/50"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -1703,8 +1703,8 @@ export default function IPDManagementPage() {
                           </div>
                           {isOccupied ? (
                             <div>
-                              <p className="text-[11px] font-bold text-amber-900 truncate">{occ.name}</p>
-                              <p className="text-[10px] text-amber-700 font-medium">
+                              <p className="text-xs font-semibold text-slate-900 truncate">{occ.name}</p>
+                              <p className="text-[11px] text-slate-500">
                                 Day {calculateStayDays(occ.admissionDate)} • {occ.uhid}
                               </p>
                               <button
@@ -1719,14 +1719,14 @@ export default function IPDManagementPage() {
                                     targetBed: "",
                                   });
                                 }}
-                                className="mt-1.5 w-full py-0.5 text-[10px] font-bold text-amber-900 bg-amber-200/70 hover:bg-amber-300 rounded flex items-center justify-center gap-1 transition"
+                                className="mt-1.5 w-full py-0.5 text-[10px] font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded flex items-center justify-center gap-1 transition"
                               >
-                                <ArrowLeftRight className="w-2.5 h-2.5" />
+                                <ArrowLeftRight className="w-2.5 h-2.5 text-slate-500" />
                                 Transfer Bed
                               </button>
                             </div>
                           ) : (
-                            <p className="text-[10px] font-semibold text-emerald-700">Vacant +</p>
+                            <p className="text-xs font-medium text-slate-400">Vacant +</p>
                           )}
                         </div>
                       );
@@ -1738,11 +1738,11 @@ export default function IPDManagementPage() {
           </div>
 
           {/* ACTIVE INPATIENTS LIST */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             {/* List Controls */}
             <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div className="flex items-center gap-2">
-                <HeartPulse className="w-5 h-5 text-rose-600" />
+                <HeartPulse className="w-5 h-5 text-blue-600" />
                 <h2 className="text-base font-bold text-slate-900">
                   Currently Admitted Inpatients ({activeAdmissions.length})
                 </h2>
@@ -1756,7 +1756,7 @@ export default function IPDManagementPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search name, UHID, IPD No..."
-                    className="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none w-56"
+                    className="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-56"
                   />
                 </div>
 
@@ -1794,7 +1794,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("admit")}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
                 >
                   + Admit First Patient
                 </button>
@@ -1807,9 +1807,9 @@ export default function IPDManagementPage() {
                     <div key={adm.id} className="p-4 hover:bg-slate-50/60 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       {/* Left: Patient Details */}
                       <div className="flex items-start gap-3.5">
-                        <div className="text-center min-w-[62px] bg-indigo-900 text-white rounded-xl p-2 shadow-sm">
-                          <span className="text-[9px] font-bold block uppercase tracking-wider text-indigo-300">BED</span>
-                          <span className="text-lg font-black">{adm.bedNumber}</span>
+                        <div className="text-center min-w-[56px] bg-slate-100 border border-slate-200 text-slate-800 rounded-lg p-2 shadow-2xs">
+                          <span className="text-[9px] font-bold block uppercase tracking-wider text-slate-500">BED</span>
+                          <span className="text-base font-black text-slate-900">{adm.bedNumber}</span>
                         </div>
 
                         <div>
@@ -1818,10 +1818,10 @@ export default function IPDManagementPage() {
                             <span className="text-xs font-mono font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 rounded">
                               {adm.uhid}
                             </span>
-                            <span className="text-xs font-mono font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-200">
+                            <span className="text-xs font-mono font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
                               {adm.ipdNumber}
                             </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                               {adm.ward}
                             </span>
                           </div>
@@ -1832,11 +1832,11 @@ export default function IPDManagementPage() {
                               <Phone className="w-3 h-3 text-slate-400" />
                               {adm.phone}
                             </span>
-                            <span>Doctor: <strong className="text-slate-800">{adm.consultantDoctor}</strong></span>
-                            <span>Admitted: <strong className="text-slate-800">{adm.admissionDate}</strong> ({bill.days} {bill.days === 1 ? "day" : "days"})</span>
+                            <span>Doctor: <strong className="text-slate-800 font-medium">{adm.consultantDoctor}</strong></span>
+                            <span>Admitted: <strong className="text-slate-800 font-medium">{adm.admissionDate}</strong> ({bill.days} {bill.days === 1 ? "day" : "days"})</span>
                           </div>
 
-                          <div className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-lg w-fit">
+                          <div className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded w-fit">
                             <span className="font-semibold text-slate-500 uppercase text-[10px]">Diagnosis: </span>
                             <span className="font-medium text-slate-900">{adm.provisionalDiagnosis}</span>
                           </div>
@@ -1844,12 +1844,12 @@ export default function IPDManagementPage() {
                       </div>
 
                       {/* Right: Running Bill & Action Buttons */}
-                      <div className="flex flex-wrap items-center gap-4 lg:justify-end">
+                      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                         {/* Running Bill Badge */}
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-right">
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-right">
                           <div className="text-[10px] font-semibold text-slate-500 uppercase">Running Balance</div>
-                          <div className="flex items-center justify-end gap-1 font-black text-sm">
-                            <span className={bill.balanceDue > 0 ? "text-rose-700" : "text-emerald-700"}>
+                          <div className="flex items-center justify-end gap-1 font-bold text-sm">
+                            <span className={bill.balanceDue > 0 ? "text-slate-900" : "text-emerald-700"}>
                               ₹{bill.balanceDue.toLocaleString("en-IN")}
                             </span>
                             <span className="text-[10px] font-normal text-slate-400">
@@ -1866,11 +1866,24 @@ export default function IPDManagementPage() {
                               setActiveAdmission(adm);
                               setActiveModal("profile");
                             }}
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
                             title="Clinical Stay Sheet (Vitals, Notes, Meds)"
                           >
                             <Stethoscope className="w-3.5 h-3.5" />
                             Clinical Sheet
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveAdmission(adm);
+                              setActiveModal("billing");
+                            }}
+                            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
+                            title="Running Bill & Advances"
+                          >
+                            <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                            Running Bill
                           </button>
 
                           <button
@@ -1904,24 +1917,11 @@ export default function IPDManagementPage() {
                               });
                               setActiveModal("editAdmission");
                             }}
-                            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-indigo-200 shadow-xs transition"
+                            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
                             title="Edit Inpatient Details, Ward, Bed & Rates"
                           >
-                            <Pencil className="w-3.5 h-3.5 text-indigo-600" />
-                            Edit Details
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveAdmission(adm);
-                              setActiveModal("billing");
-                            }}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
-                            title="Running Bill & Advances"
-                          >
-                            <Receipt className="w-3.5 h-3.5" />
-                            Running Bill
+                            <Pencil className="w-3.5 h-3.5 text-slate-500" />
+                            Edit
                           </button>
 
                           <button
@@ -1931,10 +1931,10 @@ export default function IPDManagementPage() {
                               initDischargeFormForAdmission(adm);
                               setActiveModal("discharge");
                             }}
-                            className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
                             title="Discharge & Final Settlement"
                           >
-                            <LogOut className="w-3.5 h-3.5" />
+                            <LogOut className="w-3.5 h-3.5 text-slate-500" />
                             Discharge
                           </button>
 
@@ -1944,7 +1944,7 @@ export default function IPDManagementPage() {
                               setActiveAdmission(adm);
                               setActiveModal("printTicket");
                             }}
-                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition"
+                            className="p-1.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-300 rounded-lg text-xs transition"
                             title="Print Admission Bed Ticket"
                           >
                             <Printer className="w-4 h-4" />
@@ -1973,19 +1973,19 @@ export default function IPDManagementPage() {
                   Lookup existing patient by mobile/UHID or register new. Assign consultant doctor, ward, and bed.
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200">
+              <span className="text-xs font-mono font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-lg border border-slate-200">
                 Next IPD No: IPD-{new Date().getFullYear()}-{String(admissions.length + 1).padStart(3, "0")}
               </span>
             </div>
 
             {/* OPD Patient Import Banner & Selector */}
             {importedFromOpd ? (
-              <div className="bg-emerald-50 border border-emerald-300 p-3.5 rounded-xl flex items-center justify-between text-xs text-emerald-900 shadow-sm">
+              <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-xl flex items-center justify-between text-xs text-blue-900 shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-600" />
                   <div>
                     <span className="font-bold text-sm block">Selected from OPD: {importedFromOpd.name}</span>
-                    <span className="text-[11px] text-emerald-700">
+                    <span className="text-[11px] text-blue-700">
                       Token #{importedFromOpd.token} • Date: {importedFromOpd.date} • Demographics & vitals imported automatically.
                     </span>
                   </div>
@@ -1993,7 +1993,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setImportedFromOpd(null)}
-                  className="px-2.5 py-1 text-xs font-bold text-emerald-800 hover:text-emerald-950 underline"
+                  className="px-2.5 py-1 text-xs font-semibold text-blue-800 hover:text-blue-950 underline"
                 >
                   Clear OPD Selection
                 </button>
@@ -2002,7 +2002,7 @@ export default function IPDManagementPage() {
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg">
+                    <span className="p-1.5 bg-slate-100 text-slate-700 rounded-lg">
                       <Users className="w-4 h-4" />
                     </span>
                     <div>
@@ -2025,9 +2025,9 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedOpdDate(new Date().toISOString().split("T")[0])}
-                      className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition ${
+                      className={`px-2 py-1 text-[11px] font-semibold rounded-lg border transition ${
                         selectedOpdDate === new Date().toISOString().split("T")[0]
-                          ? "bg-emerald-600 text-white border-emerald-600"
+                          ? "bg-blue-600 text-white border-blue-600"
                           : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
                       }`}
                     >
@@ -2067,14 +2067,14 @@ export default function IPDManagementPage() {
                       {matchingOpd.map((opdPt) => (
                         <div
                           key={opdPt.id}
-                          className="bg-white border border-slate-200 hover:border-emerald-400 rounded-xl p-3 shadow-xs flex flex-col justify-between gap-2 transition hover:shadow-sm"
+                          className="bg-white border border-slate-200 hover:border-blue-400 rounded-xl p-3 shadow-2xs flex flex-col justify-between gap-2 transition hover:shadow-xs"
                         >
                           <div>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                              <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
                                 Token #{opdPt.token} • {opdPt.uhid || "CRX..."}
                               </span>
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
                                 {opdPt.doctor ? opdPt.doctor.replace("Dr. ", "") : "OPD"}
                               </span>
                             </div>
@@ -2083,7 +2083,7 @@ export default function IPDManagementPage() {
                               {opdPt.age}y • {opdPt.sex} • Ph: {opdPt.phone}
                             </p>
                             {opdPt.vitals?.bp && (
-                              <p className="text-[10px] text-indigo-700 font-medium mt-1">
+                              <p className="text-[10px] text-slate-600 font-medium mt-1">
                                 Vitals: BP {opdPt.vitals.bp} | SpO₂ {opdPt.vitals.spo2 || "—"}%
                               </p>
                             )}
@@ -2092,7 +2092,7 @@ export default function IPDManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleSelectOpdPatient(opdPt)}
-                            className="w-full py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-1 transition shadow-xs"
+                            className="w-full py-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-1 transition shadow-2xs"
                           >
                             <UserPlus className="w-3.5 h-3.5" />
                             Select for IPD Admission
@@ -2147,7 +2147,7 @@ export default function IPDManagementPage() {
                         handlePhoneLookup(e.target.value);
                       }}
                       placeholder="e.g. 9823012345"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     />
                   </div>
                   <span className="text-[10px] text-slate-400 mt-0.5 block">Type 10 digits to auto-lookup UHID</span>
@@ -2176,7 +2176,7 @@ export default function IPDManagementPage() {
                     value={newAdmissionForm.name}
                     onChange={(e) => setNewAdmissionForm({ ...newAdmissionForm, name: e.target.value })}
                     placeholder="Enter patient full name"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   />
                 </div>
 
@@ -2223,7 +2223,7 @@ export default function IPDManagementPage() {
             {/* SECTION 2: Clinical Details on Admission */}
             <div className="pt-2 border-t border-slate-100">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <Stethoscope className="w-4 h-4 text-indigo-600" />
+                <Stethoscope className="w-4 h-4 text-blue-600" />
                 2. Clinical Diagnosis & Reason for Admission
               </h3>
 
@@ -2280,7 +2280,7 @@ export default function IPDManagementPage() {
             {/* SECTION 3: Ward & Bed Allocation */}
             <div className="pt-2 border-t border-slate-100">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <Bed className="w-4 h-4 text-emerald-600" />
+                <Bed className="w-4 h-4 text-blue-600" />
                 3. Doctor, Ward & Bed Allocation
               </h3>
 
@@ -2324,7 +2324,7 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setNewAdmissionForm((prev) => ({ ...prev, isCustomWard: !prev.isCustomWard }))}
-                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold underline cursor-pointer"
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
                     >
                       {newAdmissionForm.isCustomWard ? "Choose Standard" : "+ Custom Ward"}
                     </button>
@@ -2335,7 +2335,7 @@ export default function IPDManagementPage() {
                       value={newAdmissionForm.customWardName}
                       onChange={(e) => setNewAdmissionForm({ ...newAdmissionForm, customWardName: e.target.value })}
                       placeholder="e.g. Special Deluxe, HDU, NICU..."
-                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50/30 focus:outline-none font-medium"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none font-medium"
                     />
                   ) : (
                     <select
@@ -2368,7 +2368,7 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setNewAdmissionForm((prev) => ({ ...prev, isCustomBed: !prev.isCustomBed }))}
-                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold underline cursor-pointer"
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
                     >
                       {newAdmissionForm.isCustomBed ? "Choose Standard" : "+ Custom Bed"}
                     </button>
@@ -2379,7 +2379,7 @@ export default function IPDManagementPage() {
                       value={newAdmissionForm.customBedNumber}
                       onChange={(e) => setNewAdmissionForm({ ...newAdmissionForm, customBedNumber: e.target.value })}
                       placeholder="e.g. Bed #204, ICU-05, Extra-1..."
-                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-sm bg-indigo-50/30 font-mono font-bold focus:outline-none"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white font-mono font-bold focus:outline-none"
                     />
                   ) : (
                     <select
@@ -2506,7 +2506,7 @@ export default function IPDManagementPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("dashboard")}
-                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
               >
                 Cancel
               </button>
@@ -2514,7 +2514,7 @@ export default function IPDManagementPage() {
               <button
                 type="submit"
                 disabled={submittingAdmission}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-sm transition disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition disabled:opacity-50 flex items-center gap-2"
               >
                 {submittingAdmission ? (
                   <>
@@ -2609,7 +2609,7 @@ export default function IPDManagementPage() {
                             setActiveAdmission(adm);
                             setActiveModal("profile");
                           }}
-                          className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg font-semibold text-[11px]"
+                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-semibold text-[11px]"
                         >
                           Stay Chart
                         </button>
@@ -2633,13 +2633,13 @@ export default function IPDManagementPage() {
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-mono font-bold text-xs">
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-mono font-bold text-xs border border-slate-200">
                     {editAdmissionForm.ipdNumber || "IPD"}
                   </span>
-                  <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded font-mono text-xs">
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded font-mono text-xs border border-slate-200">
                     {editAdmissionForm.uhid}
                   </span>
-                  <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                  <span className="text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
                     Admin Editing Mode
                   </span>
                 </div>
@@ -2724,17 +2724,17 @@ export default function IPDManagementPage() {
               {/* 2. Ward Category & Bed Selection (Editable) */}
               <div>
                 <h3 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
-                  <Bed className="w-3.5 h-3.5 text-emerald-600" />
+                  <Bed className="w-3.5 h-3.5 text-blue-600" />
                   2. Ward Category & Bed Allocation (Editable)
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-emerald-50/40 p-3 rounded-xl border border-emerald-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-[11px] font-bold text-slate-700">Ward Category</label>
                       <button
                         type="button"
                         onClick={() => setEditAdmissionForm((prev) => ({ ...prev, isCustomWard: !prev.isCustomWard }))}
-                        className="text-[10px] text-indigo-700 hover:text-indigo-900 font-bold underline cursor-pointer"
+                        className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
                       >
                         {editAdmissionForm.isCustomWard ? "Choose Standard" : "+ Custom Ward"}
                       </button>
@@ -2745,7 +2745,7 @@ export default function IPDManagementPage() {
                         value={editAdmissionForm.ward}
                         onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, ward: e.target.value })}
                         placeholder="e.g. Special Deluxe, HDU, NICU..."
-                        className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-xs bg-white font-bold text-slate-900"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-bold text-slate-900"
                       />
                     ) : (
                       <select
@@ -2774,7 +2774,7 @@ export default function IPDManagementPage() {
                       <button
                         type="button"
                         onClick={() => setEditAdmissionForm((prev) => ({ ...prev, isCustomBed: !prev.isCustomBed }))}
-                        className="text-[10px] text-indigo-700 hover:text-indigo-900 font-bold underline cursor-pointer"
+                        className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
                       >
                         {editAdmissionForm.isCustomBed ? "Choose Standard" : "+ Custom Bed ID"}
                       </button>
@@ -2785,7 +2785,7 @@ export default function IPDManagementPage() {
                         value={editAdmissionForm.bedNumber}
                         onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, bedNumber: e.target.value })}
                         placeholder="e.g. Bed #204, ICU-05, Extra-1..."
-                        className="w-full px-3 py-2 border border-indigo-300 rounded-lg text-xs bg-white font-mono font-bold text-slate-900"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-mono font-bold text-slate-900"
                       />
                     ) : (
                       <select
@@ -2862,7 +2862,7 @@ export default function IPDManagementPage() {
               {/* 4. Doctor, Department & Diagnosis */}
               <div>
                 <h3 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
-                  <Stethoscope className="w-3.5 h-3.5 text-indigo-600" />
+                  <Stethoscope className="w-3.5 h-3.5 text-blue-600" />
                   4. Doctor, Clinical Diagnosis & Dates
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
@@ -2958,10 +2958,10 @@ export default function IPDManagementPage() {
               <button
                 type="button"
                 onClick={handleSaveEditAdmission}
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1.5"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
               >
                 <Save className="w-4 h-4" />
-                Save Inpatient Details & Rates
+                Save Changes
               </button>
             </div>
           </div>
@@ -3021,7 +3021,7 @@ export default function IPDManagementPage() {
                   onClick={() => setProfileTab(tab.id as any)}
                   className={`pb-2.5 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
                     profileTab === tab.id
-                      ? "border-indigo-600 text-indigo-700 font-black"
+                      ? "border-blue-600 text-blue-700 font-bold"
                       : "border-transparent text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -3505,18 +3505,18 @@ export default function IPDManagementPage() {
               {/* Body */}
               <div className="p-5 overflow-y-auto flex-1 space-y-6">
                 {/* Balance Summary Card */}
-                <div className="bg-gradient-to-r from-indigo-50 via-blue-50 to-emerald-50 border border-indigo-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <span className="text-xs text-slate-500 font-semibold uppercase">Total Accumulated Charges</span>
-                    <p className="text-2xl font-black text-slate-900">₹{bill.grossTotal.toLocaleString("en-IN")}</p>
+                    <span className="text-xs text-slate-500 font-medium uppercase">Total Accumulated Charges</span>
+                    <p className="text-2xl font-bold text-slate-900">₹{bill.grossTotal.toLocaleString("en-IN")}</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs text-slate-500 font-semibold uppercase">Total Advances Deposited</span>
-                    <p className="text-xl font-bold text-teal-700">− ₹{bill.totalAdvances.toLocaleString("en-IN")}</p>
+                    <span className="text-xs text-slate-500 font-medium uppercase">Total Advances Deposited</span>
+                    <p className="text-xl font-bold text-slate-700">− ₹{bill.totalAdvances.toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="text-right pl-4 border-l border-indigo-200">
-                    <span className="text-xs font-bold uppercase text-rose-700">Net Outstanding Due</span>
-                    <p className="text-2xl font-black text-rose-700">₹{bill.balanceDue.toLocaleString("en-IN")}</p>
+                  <div className="text-right pl-4 border-l border-slate-200">
+                    <span className="text-xs font-semibold uppercase text-slate-600">Net Outstanding Due</span>
+                    <p className="text-2xl font-bold text-slate-900">₹{bill.balanceDue.toLocaleString("en-IN")}</p>
                   </div>
                 </div>
 
@@ -3525,7 +3525,7 @@ export default function IPDManagementPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-2 border-b border-slate-100 gap-2">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
                         1. Itemized Charge Accumulation (All Charges Editable)
                       </h3>
                       <p className="text-[11px] text-slate-500">
