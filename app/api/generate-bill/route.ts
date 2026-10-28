@@ -301,7 +301,7 @@ function generatePDF(doc: jsPDF, billData: BillData): void {
   yPos += 4;
   centerText('Maharashtra, India - 442001', yPos, 8);
   yPos += 4;
-  centerText('Phone: +91 9373280505 | +91 7184273030 | Email: drvipeenraut@cortexhospital.com', yPos, 8);
+  centerText('Phone: +91 9373280505 | Email: drvipeenraut@cortexhospital.com', yPos, 8);
   yPos += 8;
 
   // Add invoice header

@@ -10,6 +10,7 @@ export interface ToothData {
 export interface MedicineEntry {
   name: string;
   dosage: string;
+  frequency?: string;
   duration?: string;
   quantity?: number;
   composition?: string;
@@ -284,8 +285,14 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
         page.drawText(nl, { x: colName + 4, y: nyRow, size: 9, font: regularFont, color: rgb(0, 0, 0) });
         nyRow -= 13;
       }
-      page.drawText(sanitize(med.dosage || '—'), { x: colDos + 4, y: y + 4, size: 9, font: regularFont, color: rgb(0, 0, 0) });
-      const durationTiming = [med.duration, med.timing].filter(Boolean).join(' - ') || '—';
+      const timingParts: string[] = [];
+      if (med.frequency) timingParts.push(med.frequency);
+      if (med.duration && (!med.freq_duration || !med.freq_duration.toLowerCase().includes(med.duration.toLowerCase()))) {
+        timingParts.push(med.duration);
+      }
+      if (med.freq_duration) timingParts.push(med.freq_duration);
+      if (med.timing) timingParts.push(med.timing);
+      const durationTiming = Array.from(new Set(timingParts)).filter(Boolean).join(' - ') || '—';
       page.drawText(sanitize(durationTiming), { x: colDur + 4, y: y + 4, size: 9, font: regularFont, color: rgb(0, 0, 0) });
       y -= rowHeight;
     }
@@ -294,6 +301,15 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
 
   if (data.advice) drawSection('ADVICE / INSTRUCTIONS', data.advice);
   if (data.followupDate) drawSection('NEXT APPOINTMENT', formatDate(data.followupDate));
+
+  // 30 days validity notice
+  page.drawText('* Prescription is valid for 30 days only', {
+    x: MARGIN_L,
+    y: Math.max(y - 6, 80),
+    size: 8,
+    font: boldFont,
+    color: rgb(0.7, 0.1, 0.1),
+  });
 
   // Signature block
   const sigY = Math.min(y - 30, 160);

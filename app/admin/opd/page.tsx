@@ -24,11 +24,14 @@ import {
   Receipt,
   X,
   Check,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference } from "@/services/patients";
 import { Patient } from "@/types/patient";
+import PatientSearchInput from "@/components/PatientSearchInput";
 
 interface OPDQueueItem {
   id: string;
@@ -42,6 +45,8 @@ interface OPDQueueItem {
   sex: "Male" | "Female" | "Other";
   phone: string;
   address?: string;
+  email?: string;
+  whatsapp_number?: string;
   doctor: string;
   department: string;
   priority: "Normal" | "Urgent" | "Emergency";
@@ -88,6 +93,10 @@ export default function OPDManagementPage() {
   // Tab State: 'queue' | 'register' | 'appointments' | 'directory'
   const [activeTab, setActiveTab] = useState<"queue" | "register" | "appointments" | "directory">("queue");
 
+  // Today & Selected Queue Date (Defaults to Today)
+  const todayStr = useMemo(() => getTodayString(), []);
+  const [selectedQueueDate, setSelectedQueueDate] = useState<string>(getTodayString());
+
   // Queue state persisted in localStorage
   const [queue, setQueue] = useState<OPDQueueItem[]>([]);
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>("All");
@@ -95,7 +104,6 @@ export default function OPDManagementPage() {
   const [queueSearch, setQueueSearch] = useState<string>("");
 
   // Appointments integration
-  const todayStr = useMemo(() => getTodayString(), []);
   const [selectedApptDate, setSelectedApptDate] = useState<string>(getTodayString());
   const [apptDoctorFilter, setApptDoctorFilter] = useState<string>("All");
   const [apptSearchQuery, setApptSearchQuery] = useState<string>("");
@@ -112,6 +120,7 @@ export default function OPDManagementPage() {
   });
 
   const allAppointments = useQuery(api.appointments.list);
+  const convexPatients = useQuery(api.patients.list);
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
   const todayAppointments = useMemo(() => {
@@ -153,6 +162,25 @@ export default function OPDManagementPage() {
   const [loadingPatients, setLoadingPatients] = useState<boolean>(false);
   const [directorySearch, setDirectorySearch] = useState<string>("");
 
+  // Real-time combined patient directory for instant autofill & search (like medicines)
+  const combinedPatients: Patient[] = useMemo(() => {
+    if (convexPatients && convexPatients.length > 0) {
+      return convexPatients.map((p: any) => ({
+        id: p._id,
+        name: p.name,
+        age: Number(p.age) || 0,
+        sex: p.sex,
+        phone_number: p.phone_number,
+        reference_number: (p.reference_number || "").replace(/^CH/i, "CRX"),
+        address: p.address,
+        email: p.email,
+        whatsapp_number: p.whatsapp_number,
+        created_at: p._creationTime ? new Date(p._creationTime).toISOString() : undefined,
+      }));
+    }
+    return allPatients;
+  }, [convexPatients, allPatients]);
+
   // Registration Form State (Consultation charge moved to Billing per hospital workflow)
   const [formData, setFormData] = useState({
     name: "",
@@ -161,6 +189,8 @@ export default function OPDManagementPage() {
     sex: "Male" as "Male" | "Female" | "Other",
     phone: "",
     address: "",
+    email: "",
+    whatsapp_number: "",
     doctor: DOCTORS[0].name,
     department: DOCTORS[0].specialty,
     priority: "Normal" as "Normal" | "Urgent" | "Emergency",
@@ -179,22 +209,44 @@ export default function OPDManagementPage() {
 
   // Load Queue & Active Doctor from Local Storage on mount and auto-sync on updates
   useEffect(() => {
-    const reloadFromStorage = () => {
+    const reloadFromStorage = async () => {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
+            let dbPatients: any[] = [];
+            try {
+              dbPatients = await getPatients();
+            } catch (_) {}
+
+            const phoneToRef = new Map(
+              dbPatients.map((p) => [p.phone_number?.trim(), p.reference_number?.replace(/^CH/i, "CRX")])
+            );
+
             let changed = false;
             const updated = parsed.map((item: any) => {
-              let uhid = (item.uhid || '').replace(/^CH/i, 'CRX');
-              if (item.name?.toLowerCase() === 'testing' && (uhid === 'CRX0001' || !uhid)) {
-                uhid = 'CRX0002';
+              let uhid = (item.uhid || "").replace(/^CH/i, "CRX");
+              const cleanPhone = (item.phone || "").trim();
+
+              // Repair UHID from authoritative database record if available
+              if (phoneToRef.has(cleanPhone)) {
+                const dbRef = phoneToRef.get(cleanPhone);
+                if (dbRef && dbRef !== uhid) {
+                  uhid = dbRef;
+                  changed = true;
+                }
+              } else if (cleanPhone === "1234567890" && uhid !== "CRX0001") {
+                uhid = "CRX0001";
+                changed = true;
+              } else if (cleanPhone === "1234567899" && uhid !== "CRX0002") {
+                uhid = "CRX0002";
+                changed = true;
+              } else if (cleanPhone === "7796308778" && uhid !== "CRX0003") {
+                uhid = "CRX0003";
+                changed = true;
               }
-              // If a patient is NOT Testing or Test, but was erroneously tagged with CRX0002:
-              if (item.name?.toLowerCase() !== 'testing' && item.name?.toLowerCase() !== 'test' && (uhid === 'CRX0002' || uhid === 'CRX0001')) {
-                uhid = 'CRX0003';
-              }
+
               if (uhid !== item.uhid) changed = true;
               return { ...item, uhid };
             });
@@ -206,7 +258,7 @@ export default function OPDManagementPage() {
             }
           }
         }
-        const savedDoc = localStorage.getItem('cortex_active_doctor');
+        const savedDoc = localStorage.getItem("cortex_active_doctor");
         if (savedDoc) {
           handleDoctorChange(savedDoc);
         }
@@ -258,10 +310,30 @@ export default function OPDManagementPage() {
   };
 
   useEffect(() => {
+    loadPatients();
+  }, []);
+
+  useEffect(() => {
     if (activeTab === "directory") {
       loadPatients();
     }
   }, [activeTab]);
+
+  // Auto-fill all patient fields when selecting an existing patient (like medicine autofill)
+  const handleAutoFillPatient = (existing: Patient) => {
+    setExistingPatientFound(existing);
+    setFormData((prev) => ({
+      ...prev,
+      name: existing.name || prev.name,
+      phone: existing.phone_number || prev.phone,
+      age: existing.age ? String(existing.age) : prev.age,
+      sex: (existing.sex as "Male" | "Female" | "Other") || prev.sex,
+      address: (existing as any).address || prev.address,
+      email: (existing as any).email || prev.email,
+      whatsapp_number: (existing as any).whatsapp_number || prev.whatsapp_number,
+      visitType: "Routine Follow-up",
+    }));
+  };
 
   // Auto BMI calculation
   const calculatedBMI = useMemo(() => {
@@ -289,6 +361,8 @@ export default function OPDManagementPage() {
             age: existing.age ? String(existing.age) : prev.age,
             sex: (existing.sex as "Male" | "Female" | "Other") || prev.sex,
             address: (existing as any).address || prev.address,
+            email: (existing as any).email || prev.email,
+            whatsapp_number: (existing as any).whatsapp_number || prev.whatsapp_number,
             visitType: "Routine Follow-up",
           }));
         } else {
@@ -335,22 +409,24 @@ export default function OPDManagementPage() {
           sex: formData.sex,
           phone_number: formData.phone.trim(),
           address: formData.address.trim() || undefined,
+          email: formData.email.trim() || undefined,
+          whatsapp_number: formData.whatsapp_number.trim() || undefined,
         } as any);
 
         patientId = res ? String(res) : undefined;
-        // Check if existing patient reference exists
+        // Check if patient reference exists in database
         if (existingPatientFound?.reference_number) {
-          uhid = existingPatientFound.reference_number.replace(/^CH/i, 'CRX');
+          uhid = existingPatientFound.reference_number.replace(/^CH/i, "CRX");
         } else if (patientId) {
           const pt = await getPatientById(patientId);
           if (pt?.reference_number) {
-            uhid = pt.reference_number.replace(/^CH/i, 'CRX');
+            uhid = pt.reference_number.replace(/^CH/i, "CRX");
           }
         }
-        if (!uhid || (uhid === "CRX0002" && formData.name.trim().toLowerCase() !== "testing")) {
+        if (!uhid) {
           const pt = await getPatientByPhoneNumber(formData.phone.trim());
           if (pt?.reference_number) {
-            uhid = pt.reference_number.replace(/^CH/i, 'CRX');
+            uhid = pt.reference_number.replace(/^CH/i, "CRX");
           } else {
             uhid = await getNextPatientReference();
           }
@@ -361,8 +437,8 @@ export default function OPDManagementPage() {
       }
 
       // 2. Next Token number for the day
-      const today = new Date().toISOString().slice(0, 10);
-      const todayCount = queue.filter((q) => q.registeredAt.startsWith(today)).length;
+      const today = getTodayString();
+      const todayCount = queue.filter((q) => (q.registeredAt || "").startsWith(today)).length;
       const tokenNumber = String(todayCount + 1).padStart(2, "0");
 
       const newItem: OPDQueueItem = {
@@ -376,6 +452,8 @@ export default function OPDManagementPage() {
         sex: formData.sex,
         phone: formData.phone.trim(),
         address: formData.address.trim(),
+        email: formData.email.trim() || undefined,
+        whatsapp_number: formData.whatsapp_number.trim() || undefined,
         doctor: formData.doctor,
         department: formData.department,
         priority: formData.priority,
@@ -401,6 +479,8 @@ export default function OPDManagementPage() {
 
       // Notification banner and switch directly to queue without popup/slip prompt
       setSuccessNotification(`Patient ${newItem.name} registered with Token #${tokenNumber}! Added to OPD Queue.`);
+      // Switch to queue and ensure viewing today
+      setSelectedQueueDate(today);
       setActiveTab("queue");
 
       // Reset form
@@ -411,6 +491,8 @@ export default function OPDManagementPage() {
         sex: "Male",
         phone: "",
         address: "",
+        email: "",
+        whatsapp_number: "",
         doctor: DOCTORS[0].name,
         department: DOCTORS[0].specialty,
         priority: "Normal",
@@ -617,11 +699,25 @@ export default function OPDManagementPage() {
     window.open(`/print-opd-card?${params.toString()}`, "_blank");
   };
 
-  // Filtered queue
+  // Today count
+  const todayQueueCount = useMemo(() => {
+    return queue.filter((item) => (item.registeredAt || "").split("T")[0] === todayStr).length;
+  }, [queue, todayStr]);
+
+  // Filtered queue (Filters by selectedQueueDate, doctor, status, search)
+  // Sorted so active patients (In Consultation & Waiting) are on top, and Completed patients are at the bottom.
   const filteredQueue = useMemo(() => {
-    return queue.filter((item) => {
+    const list = queue.filter((item) => {
+      // 1. Filter by Date (Defaults to Today)
+      if (selectedQueueDate) {
+        const itemDate = (item.registeredAt || "").split("T")[0];
+        if (itemDate && itemDate !== selectedQueueDate) return false;
+      }
+      // 2. Doctor Filter
       if (selectedDoctorFilter !== "All" && item.doctor !== selectedDoctorFilter) return false;
+      // 3. Status Filter
       if (selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) return false;
+      // 4. Search Filter
       if (queueSearch.trim()) {
         const q = queueSearch.toLowerCase();
         return (
@@ -633,7 +729,24 @@ export default function OPDManagementPage() {
       }
       return true;
     });
-  }, [queue, selectedDoctorFilter, selectedStatusFilter, queueSearch]);
+
+    const statusWeight: Record<string, number> = {
+      "In Consultation": 0,
+      "Waiting": 1,
+      "Completed": 2,
+    };
+
+    return [...list].sort((a, b) => {
+      const wA = statusWeight[a.status] ?? 1;
+      const wB = statusWeight[b.status] ?? 1;
+      if (wA !== wB) return wA - wB;
+
+      // Secondary sort: earlier registrations / tokens first
+      const timeA = new Date(a.registeredAt || 0).getTime();
+      const timeB = new Date(b.registeredAt || 0).getTime();
+      return timeA - timeB;
+    });
+  }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch]);
 
   // Quick select patient from Directory to Register
   const handleSelectFromDirectory = (pt: Patient) => {
@@ -740,7 +853,7 @@ export default function OPDManagementPage() {
             }`}
           >
             <Clock className="w-4 h-4" />
-            Today&apos;s OPD Queue ({queue.length})
+            Today&apos;s OPD Queue ({todayQueueCount})
           </button>
 
           <button
@@ -819,14 +932,14 @@ export default function OPDManagementPage() {
         <div className="space-y-4">
           {/* Quick Today's Appointments Bar */}
           {todayAppointments.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200/80 rounded-xl p-3 shadow-xs">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-bold text-blue-950 uppercase tracking-wide">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
                     Today&apos;s Scheduled Appointments ({todayAppointments.length})
                   </span>
-                  <span className="text-[11px] text-blue-700 font-medium hidden sm:inline">
+                  <span className="text-[11px] text-slate-600 font-medium hidden sm:inline">
                     · {todayAppointments.filter((a) => isApptInQueue(a)).length} checked in
                   </span>
                 </div>
@@ -882,8 +995,8 @@ export default function OPDManagementPage() {
           )}
 
           {/* Controls Bar */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
-            <div className="relative w-full md:w-80">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full lg:w-72">
               <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <input
                 type="text"
@@ -894,7 +1007,57 @@ export default function OPDManagementPage() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+              {/* Date Filter & Calendar Picker */}
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-300 rounded-lg p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(selectedQueueDate);
+                    d.setDate(d.getDate() - 1);
+                    setSelectedQueueDate(d.toISOString().split("T")[0]);
+                  }}
+                  className="p-1 hover:bg-slate-200 rounded text-slate-600 transition"
+                  title="Previous Day"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <input
+                    type="date"
+                    value={selectedQueueDate}
+                    onChange={(e) => setSelectedQueueDate(e.target.value)}
+                    className="bg-transparent font-bold text-slate-800 text-xs focus:outline-none cursor-pointer"
+                    title="Choose Date from Calendar"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date(selectedQueueDate);
+                    d.setDate(d.getDate() + 1);
+                    setSelectedQueueDate(d.toISOString().split("T")[0]);
+                  }}
+                  className="p-1 hover:bg-slate-200 rounded text-slate-600 transition"
+                  title="Next Day"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+
+                {selectedQueueDate !== todayStr && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedQueueDate(todayStr)}
+                    className="ml-1 px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-bold hover:bg-blue-700 transition"
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+
               {/* Doctor Filter */}
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <Filter className="w-3.5 h-3.5" />
@@ -931,17 +1094,36 @@ export default function OPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm("Reset today's OPD Queue? (Patient records in database are preserved)")) {
+                    if (confirm("Reset OPD Queue? (Patient records in database are preserved)")) {
                       saveQueue([]);
                     }
                   }}
                   className="text-xs text-slate-400 hover:text-red-600 font-medium underline ml-auto"
                 >
-                  Reset Today&apos;s Queue
+                  Reset Queue
                 </button>
               )}
             </div>
           </div>
+
+          {/* Calendar Filter Notice Banner if not viewing Today */}
+          {selectedQueueDate !== todayStr && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-blue-900 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <span>
+                  Viewing OPD Queue for <strong>{selectedQueueDate}</strong> ({filteredQueue.length} {filteredQueue.length === 1 ? 'patient' : 'patients'}). Not showing today.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedQueueDate(todayStr)}
+                className="font-bold text-blue-700 hover:underline hover:text-blue-900"
+              >
+                Switch to Today&apos;s Queue →
+              </button>
+            </div>
+          )}
 
           {/* Queue List */}
           {filteredQueue.length === 0 ? (
@@ -949,17 +1131,32 @@ export default function OPDManagementPage() {
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <Users className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">No Patients in Queue</h3>
+              <h3 className="text-base font-bold text-slate-900">
+                {selectedQueueDate === todayStr ? "No Patients in Queue Today" : `No Patients in Queue on ${selectedQueueDate}`}
+              </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                There are currently no patients waiting for OPD consultation today.
+                {selectedQueueDate === todayStr
+                  ? "There are currently no patients waiting for OPD consultation today."
+                  : `No OPD patient registrations found for ${selectedQueueDate}. Choose another date from the calendar or return to today.`}
               </p>
-              <button
-                type="button"
-                onClick={() => setActiveTab("register")}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-              >
-                + Register First Patient
-              </button>
+              <div className="flex items-center justify-center gap-2">
+                {selectedQueueDate !== todayStr && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedQueueDate(todayStr)}
+                    className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition shadow-sm"
+                  >
+                    View Today&apos;s Patients
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("register")}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                >
+                  + Register Patient
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
@@ -1362,33 +1559,32 @@ export default function OPDManagementPage() {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Mobile Number <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                    <input
-                      type="tel"
-                      required
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      onBlur={handlePhoneBlur}
-                      placeholder="e.g. 9876543210"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Type 10 digits to auto-lookup</span>
+                  <PatientSearchInput
+                    value={formData.phone}
+                    searchType="phone"
+                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    onSelectPatient={handleAutoFillPatient}
+                    patients={combinedPatients}
+                    placeholder="e.g. 9876543210"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Type to search existing patient</span>
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Full Name <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
+                  <PatientSearchInput
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Enter patient full name"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    searchType="name"
+                    onChange={(val) => setFormData({ ...formData, name: val })}
+                    onSelectPatient={handleAutoFillPatient}
+                    patients={combinedPatients}
+                    placeholder="Enter or search patient name..."
+                    required
                   />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Type letters to search or register new patient</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -1418,8 +1614,23 @@ export default function OPDManagementPage() {
                   </div>
                 </div>
 
-                <div className="md:col-span-4">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Address / City</label>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Email ID <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="e.g. patient@gmail.com"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Address / City <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.address}
@@ -1666,7 +1877,10 @@ export default function OPDManagementPage() {
                         <td className="py-3 px-4 text-slate-600">
                           {pt.age ? `${pt.age} Y` : "—"} / {pt.sex || "—"}
                         </td>
-                        <td className="py-3 px-4 font-mono text-slate-700">{pt.phone_number}</td>
+                        <td className="py-3 px-4 font-mono text-slate-700">
+                          <div>{pt.phone_number}</div>
+                          {pt.email && <div className="text-[10px] text-slate-400 font-sans">{pt.email}</div>}
+                        </td>
                         <td className="py-3 px-4">
                           <button
                             type="button"

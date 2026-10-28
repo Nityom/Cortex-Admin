@@ -8,6 +8,7 @@ import { doctorService } from '@/services/doctors';
 interface MedicineEntry {
   name: string;
   dosage: string;
+  frequency?: string;
   duration?: string;
   quantity?: number;
   composition?: string;
@@ -674,6 +675,14 @@ function PrintPrescriptionContent() {
           color: #000000;
         }
 
+        .prescription-validity-note {
+          font-size: 8pt;
+          font-weight: 800;
+          color: #b91c1c;
+          margin-top: 5px;
+          letter-spacing: 0.2px;
+        }
+
         .marathi-label {
           font-weight: 800;
           margin-right: 5px;
@@ -966,7 +975,27 @@ function PrintPrescriptionContent() {
                         {/* Timing - Freq - Duration */}
                         <td>
                           <div className="timing-val">
-                            {med.freq_duration || med.duration || '—'}
+                            {(() => {
+                              const parts: string[] = [];
+                              if (med.frequency && med.frequency !== 'Daily') {
+                                parts.push(med.frequency);
+                              }
+                              if (med.freq_duration) {
+                                parts.push(med.freq_duration);
+                              }
+                              if (
+                                med.duration &&
+                                (!med.freq_duration ||
+                                  (!med.freq_duration.toLowerCase().includes(med.duration.toLowerCase()) &&
+                                    !/दिवस|महिना|week|day/i.test(med.freq_duration)))
+                              ) {
+                                parts.push(`(${med.duration})`);
+                              }
+                              if (parts.length > 0) {
+                                return parts.join(' • ');
+                              }
+                              return med.freq_duration || med.duration || med.frequency || '—';
+                            })()}
                           </div>
                         </td>
                       </tr>
@@ -1013,6 +1042,10 @@ function PrintPrescriptionContent() {
                     </span>
                   </div>
                 )}
+
+                <div className="prescription-validity-note">
+                  * Prescription is valid for 30 days only
+                </div>
               </div>
 
               {/* Signature Block */}

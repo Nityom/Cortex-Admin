@@ -9,6 +9,8 @@ export const create = mutation({
         sex: v.union(v.literal("Male"), v.literal("Female"), v.literal("Other")),
         phone_number: v.string(),
         address: v.optional(v.string()),
+        email: v.optional(v.string()),
+        whatsapp_number: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         // Check if patient exists with this phone number
@@ -57,6 +59,8 @@ export const create = mutation({
             sex: args.sex,
             phone_number: args.phone_number,
             address: args.address,
+            email: args.email,
+            whatsapp_number: args.whatsapp_number,
         });
         return newPatientId;
     },
@@ -158,6 +162,8 @@ export const update = mutation({
         sex: v.optional(v.union(v.literal("Male"), v.literal("Female"), v.literal("Other"))),
         phone_number: v.optional(v.string()),
         address: v.optional(v.string()),
+        email: v.optional(v.string()),
+        whatsapp_number: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { id, ...updates } = args;

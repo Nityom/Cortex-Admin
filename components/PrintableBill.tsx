@@ -281,7 +281,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
           <p className="text-xs text-gray-800 font-medium">
             Beside Urich Mall, Aarti Square, Mohini Nagar, Nagpur Road, Wardha (M.S) - 442001
           </p>
-          <p className="text-xs text-gray-700 mt-0.5">Mobile: +91 9373280505 &nbsp;|&nbsp; +91 7184273030</p>
+          <p className="text-xs text-gray-700 mt-0.5">Mobile: +91 9373280505 &nbsp;</p>
         </div>
       </div>
 

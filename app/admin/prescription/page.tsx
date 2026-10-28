@@ -29,6 +29,7 @@ const convexClient = new ConvexHttpClient(convexUrl);
 interface MedicineEntry {
   name: string;
   dosage: string;
+  frequency?: string; // Stat, Daily, Weekly, Fortnight, Thrice weekly, Bi weekly, Monthly
   duration?: string;
   quantity?: number; // Optional quantity
   composition?: string;
@@ -36,6 +37,27 @@ interface MedicineEntry {
   freq_duration?: string;
   note?: string;
 }
+
+const MEDICINE_FREQUENCY_OPTIONS = [
+  "Stat",
+  "Daily",
+  "Weekly",
+  "Fortnight",
+  "Thrice weekly",
+  "Bi weekly",
+  "Monthly",
+] as const;
+
+const DURATION_PRESETS = [
+  { label: '3 days', value: '3 days', marathiDays: '3 दिवस' },
+  { label: '4 days', value: '4 days', marathiDays: '4 दिवस' },
+  { label: '7 days', value: '7 days', marathiDays: '7 दिवस' },
+  { label: '10 days', value: '10 days', marathiDays: '10 दिवस' },
+  { label: '15 days', value: '15 days', marathiDays: '15 दिवस' },
+  { label: '1 month', value: '1 month', marathiDays: '1 महिना' },
+  { label: '90 days', value: '90 days', marathiDays: '90 दिवस' },
+  { label: '180 days', value: '180 days', marathiDays: '180 दिवस' },
+] as const;
 
 // Define dental disease options
 const DENTAL_DISEASES = [
@@ -192,6 +214,40 @@ function getTimingFromDosage(dosage?: string): string {
     return 'तातडीने (Stat)';
   }
   return '';
+}
+
+function formatPrescriptionDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function formatFollowup(followupDate?: string, prescriptionDate?: string): string {
+  if (!followupDate) return '';
+  const fDate = new Date(followupDate);
+  if (isNaN(fDate.getTime())) return followupDate;
+
+  const daysOfWeek = ['रविवार', 'सोमवार', 'मंगळवार', 'बुधवार', 'गुरुवार', 'शुक्रवार', 'शनिवार'];
+  const dayName = daysOfWeek[fDate.getDay()];
+  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}/${String(fDate.getMonth() + 1).padStart(2, '0')}/${fDate.getFullYear()}`;
+
+  let diffPrefix = '';
+  if (prescriptionDate) {
+    const pDate = new Date(prescriptionDate);
+    if (!isNaN(pDate.getTime())) {
+      const diffMs = fDate.getTime() - pDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays > 0) {
+        diffPrefix = `${diffDays} दिवसानंतर `;
+      }
+    }
+  }
+
+  return `${diffPrefix}(${formattedDate} - ${dayName})`;
 }
 
 const PrescriptionPage = () => {
@@ -704,6 +760,7 @@ const PrescriptionPage = () => {
         name: '',
         composition: '',
         dosage: '1-0-1',
+        frequency: 'Daily',
         timing: '1 - नाश्ता नंतर, 1 - रात्री जेवणानंतर',
         freq_duration: 'जेवणानंतर - दररोज - 5 दिवस',
         duration: '5 days',
@@ -715,6 +772,26 @@ const PrescriptionPage = () => {
     const updatedMedicines = [...medicines];
     updatedMedicines.splice(index, 1);
     setMedicines(updatedMedicines);
+  };
+
+  const handleDurationSelect = (index: number, durationVal: string, marathiText?: string) => {
+    handleMedicineChange(index, 'duration', durationVal);
+    setMedicines(prev => {
+      const updated = [...prev];
+      const curMed = updated[index];
+      if (curMed) {
+        let fd = curMed.freq_duration || 'जेवणानंतर - दररोज - 5 दिवस';
+        if (marathiText && /दिवस|महिना/.test(fd)) {
+          fd = fd.replace(/\d+\s*(?:दिवस|महिना)/, marathiText);
+        } else if (/days|day|month/i.test(fd)) {
+          fd = fd.replace(/\d+\s*(?:days|day|months|month)/i, durationVal);
+        } else {
+          fd = `${fd} - ${durationVal}`;
+        }
+        updated[index] = { ...curMed, duration: durationVal, freq_duration: fd };
+      }
+      return updated;
+    });
   };
 
   // Handler for adding a tooth (or a general, non-tooth-specific diagnosis) to the selected list
@@ -2415,9 +2492,9 @@ const PrescriptionPage = () => {
                         </div>
                       </div>
 
-                      {/* Row 2: Dosage & Timing-Freq-Duration */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                      {/* Row 2: Dosage, Frequency, Duration & Timing-Freq-Duration */}
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                        <div className="md:col-span-3">
                           <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
                             Dosage (Center Column)
                           </label>
@@ -2435,7 +2512,7 @@ const PrescriptionPage = () => {
                             placeholder="e.g. 1-0-1 or 0-1-0 or Stat"
                             className="w-full p-2 border border-gray-300 rounded-lg text-sm font-bold text-center tracking-wider focus:ring-2 focus:ring-purple-500 transition"
                           />
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          <div className="flex flex-wrap gap-1 mt-1.5">
                             {['1-0-1', '0-1-0', '1-1-1', '1-0-0', '0-0-1', 'Stat'].map((d) => (
                               <button
                                 key={d}
@@ -2447,7 +2524,7 @@ const PrescriptionPage = () => {
                                     handleMedicineChange(index, 'timing', derived);
                                   }
                                 }}
-                                className="px-2 py-0.5 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-semibold transition"
+                                className="px-1.5 py-0.5 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-semibold transition"
                               >
                                 {d}
                               </button>
@@ -2455,7 +2532,69 @@ const PrescriptionPage = () => {
                           </div>
                         </div>
 
-                        <div>
+                        <div className="md:col-span-3">
+                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                            Frequency
+                          </label>
+                          <select
+                            value={medicine.frequency || 'Daily'}
+                            onChange={(e) => handleMedicineChange(index, 'frequency', e.target.value)}
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white focus:ring-2 focus:ring-purple-500 transition"
+                          >
+                            {MEDICINE_FREQUENCY_OPTIONS.map((freq) => (
+                              <option key={freq} value={freq}>
+                                {freq}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {MEDICINE_FREQUENCY_OPTIONS.map((freq) => (
+                              <button
+                                key={freq}
+                                type="button"
+                                onClick={() => handleMedicineChange(index, 'frequency', freq)}
+                                className={`px-1.5 py-0.5 text-[11px] rounded font-medium transition ${
+                                  (medicine.frequency || 'Daily') === freq
+                                    ? 'bg-purple-600 text-white font-bold'
+                                    : 'bg-gray-100 hover:bg-purple-100 text-gray-700'
+                                }`}
+                              >
+                                {freq}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-3">
+                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                            Duration (How many days)
+                          </label>
+                          <input
+                            type="text"
+                            value={medicine.duration || ''}
+                            onChange={(e) => handleMedicineChange(index, 'duration', e.target.value)}
+                            placeholder="e.g. 5 days or 1 month"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-500 transition"
+                          />
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {DURATION_PRESETS.map((d) => (
+                              <button
+                                key={d.label}
+                                type="button"
+                                onClick={() => handleDurationSelect(index, d.value, d.marathiDays)}
+                                className={`px-1.5 py-0.5 text-[11px] rounded font-medium transition ${
+                                  medicine.duration === d.value
+                                    ? 'bg-purple-600 text-white font-bold shadow-2xs'
+                                    : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200'
+                                }`}
+                              >
+                                {d.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-3">
                           <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
                             Timing - Freq. - Duration (Right Column)
                           </label>
@@ -2463,23 +2602,21 @@ const PrescriptionPage = () => {
                             type="text"
                             value={medicine.freq_duration || ''}
                             onChange={(e) => handleMedicineChange(index, 'freq_duration', e.target.value)}
-                            placeholder="e.g. जेवणानंतर - दररोज - 5 दिवस or Stat - पुढील तारखे पर्यंत"
+                            placeholder="e.g. जेवणानंतर - दररोज - 5 दिवस"
                             className="w-full p-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-500 transition"
                           />
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          <div className="flex flex-wrap gap-1 mt-1.5">
                             {[
                               'जेवणानंतर - दररोज - 5 दिवस',
                               'जेवणाआधी - दररोज - 5 दिवस',
                               'Stat - पुढील तारखे पर्यंत',
-                              'जेवणानंतर - दररोज - 3 दिवस',
-                              'जेवणानंतर - दररोज - 7 दिवस',
                               'After Food - Daily - 5 Days',
                             ].map((fd) => (
                               <button
                                 key={fd}
                                 type="button"
                                 onClick={() => handleMedicineChange(index, 'freq_duration', fd)}
-                                className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-purple-100 text-gray-800 rounded font-medium transition"
+                                className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-purple-100 text-gray-800 rounded font-medium transition"
                               >
                                 {fd}
                               </button>
@@ -2566,6 +2703,9 @@ const PrescriptionPage = () => {
                     rows={4}
                     placeholder="Special instructions or advice for the patient"
                   />
+                  <p className="mt-1.5 text-xs font-semibold text-rose-600 flex items-center gap-1">
+                    <span>*</span> Prescription is valid for 30 days only
+                  </p>
                 </div>
 
                 <div>
@@ -2951,236 +3091,317 @@ const PrescriptionPage = () => {
             </div>
           </form>
 
-          {/* Prescription Preview Section */}
+          {/* Prescription Preview Section - Exact 1-to-1 Printable Letterhead Replica */}
           <div className="mt-12 mb-8">
-            <h2 className="text-2xl font-bold mb-4 text-center text-blue-700 border-b pb-4">
-              Prescription Preview
-            </h2>
-            <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden p-8">
-              {/* Header */}
-              <div className="mb-6">
-                <div className="text-sm mb-1">
-                  <strong>Date:</strong> {formData.date ? new Date(formData.date).toLocaleDateString('en-GB') : 'Not set'}
+            <div className="flex items-center justify-between mb-4 border-b pb-3">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Prescription Live Preview
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Exact print representation as printed on hospital letterhead
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handlePrintablePrescription}
+                disabled={!prescriptionId}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print / Download
+              </button>
+            </div>
+
+            {/* Letterhead Container */}
+            <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl border border-slate-300 relative overflow-hidden p-6 sm:p-9 font-sans text-slate-900 transition">
+              {/* Background Watermark */}
+              <img
+                src="/cortex_logo.png"
+                alt="Watermark"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 opacity-[0.04] pointer-events-none select-none"
+              />
+
+              {/* Top Meta Row */}
+              <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono border-b border-slate-200 pb-1.5 mb-3">
+                <span>{formData.date ? `${formatPrescriptionDate(formData.date)} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : 'Live Preview'}</span>
+                <span className="font-bold text-slate-700">Svasth HMS</span>
+              </div>
+
+              {/* Header Area */}
+              <div className="flex justify-between items-start pb-3 border-b-2 border-slate-800 gap-4">
+                <div className="flex items-center pt-1">
+                  <img
+                    src="/cortex_logo.png"
+                    alt="Cortex Hospital"
+                    className="h-16 w-auto object-contain"
+                  />
                 </div>
-                {formData.reference_number && (
-                  <div className="text-sm">
-                    <strong>Prescription No.:</strong> {formData.reference_number}
-                  </div>
-                )}
+
+                <div className="text-right">
+                  {(selectedDoctorName || '').toLowerCase().includes('shillpa') ? (
+                    <>
+                      <h1 className="text-xl sm:text-2xl font-black text-[#7B1828] tracking-tight leading-tight">
+                        Dr. Shillpa Raut
+                      </h1>
+                      <div className="text-xs font-semibold text-slate-700 mt-0.5">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</div>
+                      <div className="text-[11px] text-slate-500">Reg. No. 2004/05/1842</div>
+                      <div className="text-xs font-semibold text-slate-800">Consulting Gynecologist &amp; Obstetrician</div>
+                      <div className="text-xs font-semibold text-slate-800">Maternity, Infertility &amp; Women Care Specialist</div>
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="text-xl sm:text-2xl font-black text-[#7B1828] tracking-tight leading-tight">
+                        {selectedDoctorName || 'Dr. Vipeen Raut'}
+                      </h1>
+                      <div className="text-xs font-semibold text-slate-700 mt-0.5">
+                        M.B.B.S.,Dip.Ortho.,DNB Ortho
+                      </div>
+                      <div className="text-[11px] text-slate-500">Reg. No. 1692/03/2002</div>
+                      <div className="text-xs font-semibold text-slate-800">
+                        Diplomate of National Board (Orthopaedics)
+                      </div>
+                      <div className="text-xs font-semibold text-slate-800">
+                        Consulting Orthopaedic and Joint Replacement Surgeon
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* I. Patient Information */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold mb-3">I. Patient Information</h3>
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold w-1/3">Field</th>
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="border border-gray-300 px-4 py-2 font-medium">Patient Name</td>
-                      <td className="border border-gray-300 px-4 py-2">{formData.patientName || 'Not entered'}</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-gray-300 px-4 py-2 font-medium">Age</td>
-                      <td className="border border-gray-300 px-4 py-2">{formData.age || 'Not entered'}</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-gray-300 px-4 py-2 font-medium">Gender</td>
-                      <td className="border border-gray-300 px-4 py-2">{formData.sex || 'Not entered'}</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-gray-300 px-4 py-2 font-medium">Contact Information</td>
-                      <td className="border border-gray-300 px-4 py-2">{formData.phoneNumber || 'Not entered'}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              {/* Patient Bar */}
+              <div className="flex flex-wrap justify-between items-center py-2 text-xs sm:text-sm font-bold text-black border-b border-slate-300">
+                <div className="flex-1 min-w-[240px]">
+                  <span>{formData.reference_number || patientReferenceNumber || 'CRX0001'}</span> : <span>MR./MS. {(formData.patientName || 'PATIENT NAME').toUpperCase()}</span>{' '}
+                  <span className="font-medium text-slate-700">
+                    ({formData.age ? `${formData.age} Y` : '—'}
+                    {formData.age && formData.sex ? ', ' : ''}
+                    {formData.sex || ''})
+                  </span>
+                  {formData.phoneNumber ? <span className="font-normal text-slate-600"> - Ph: {formData.phoneNumber}</span> : ''}
+                </div>
+                <div className="whitespace-nowrap font-bold text-slate-900">
+                  Date: {formatPrescriptionDate(formData.date || new Date().toISOString().slice(0, 10))}
+                </div>
               </div>
 
-              {/* II. Prescription Details */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold mb-3">II. Prescription Details</h3>
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold w-1/3">Field</th>
-                      <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.cc && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Chief Complaint</td>
-                        <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">{formData.cc}</td>
-                      </tr>
-                    )}
-                    {formData.mh && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Medical History</td>
-                        <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">{formData.mh}</td>
-                      </tr>
-                    )}
-                    {formData.investigation && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Investigation</td>
-                        <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">{formData.investigation}</td>
-                      </tr>
-                    )}
-                    {formData.de && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Diagnosis</td>
-                        <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">{formData.de}</td>
-                      </tr>
-                    )}
-                    {(selectedTeeth.length > 0 || oralExamNotes) && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Additional Notes</td>
-                        <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">
-                          {selectedTeeth.length > 0 && (
-                            <div>{selectedTeeth.map(tooth => tooth.category === 'General' || String(tooth.id).startsWith('General') ? tooth.disease : `#${getToothDropdownFormat(tooth.id)} (${tooth.disease})`).join(', ')}</div>
-                          )}
-                          {oralExamNotes && <div>{oralExamNotes}</div>}
-                        </td>
-                      </tr>
-                    )}
-                    {formData.treatmentPlan && formData.treatmentPlan.length > 0 && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Treatment Plan (Estimate)</td>
-                        <td className="border border-gray-300 px-4 py-2">
-                          <ul className="list-disc list-inside space-y-1">
-                            {formData.treatmentPlan.map((item, idx) => (
-                              <li key={idx}>
-                                {item.name}
-                                {item.cost ? <span className="text-gray-600"> — ₹{item.cost}</span> : null}
-                                {item.notes ? <span className="text-gray-500 text-xs"> ({item.notes})</span> : null}
-                              </li>
-                            ))}
-                          </ul>
-                          <div className="font-semibold mt-1">
-                            Estimated Cost: ₹{formData.treatmentPlan.reduce((sum, item) => sum + (Number(item.cost) || 0), 0).toLocaleString('en-IN')}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    {formData.advice && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Special Instructions</td>
-                        <td className="border border-gray-300 px-4 py-2 whitespace-pre-wrap">{formData.advice}</td>
-                      </tr>
-                    )}
-                    {formData.followupDate && (
-                      <tr>
-                        <td className="border border-gray-300 px-4 py-2 font-medium">Next Appointment</td>
-                        <td className="border border-gray-300 px-4 py-2">
-                          {new Date(formData.followupDate).toLocaleDateString('en-GB')}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* III. Medications */}
-              {medicines.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold mb-3">III. Medications (Rx)</h3>
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Medicine &amp; Composition</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center font-semibold">Dosage</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Timing - Freq. - Duration</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {medicines.map((med, idx) => (
-                        <tr key={idx}>
-                          <td className="border border-gray-300 px-4 py-2">
-                            <div className="font-bold text-gray-900">{idx + 1}) {med.name || 'Not specified'}</div>
-                            {med.composition && (
-                              <div className="text-xs text-gray-600 font-mono mt-0.5">
-                                <span className="font-semibold text-gray-500 uppercase">Composition:</span> {med.composition}
-                              </div>
-                            )}
-                            {med.timing && (
-                              <div className="text-xs text-gray-700 mt-0.5">
-                                <span className="font-semibold text-gray-500 uppercase">Timing:</span> {med.timing}
-                              </div>
-                            )}
-                            {med.note && (
-                              <div className="text-xs text-red-700 underline font-semibold mt-0.5">
-                                Note: {med.note}
-                              </div>
-                            )}
-                          </td>
-                          <td className="border border-gray-300 px-4 py-2 text-center font-bold tracking-wider">
-                            {med.dosage || '—'}
-                          </td>
-                          <td className="border border-gray-300 px-4 py-2 font-medium">
-                            {med.freq_duration || med.duration || '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Vitals Row (BP, SpO2, Height, Weight, Pulse) */}
+              {(formData.bp || formData.spo2 || formData.height || formData.weight || formData.pulse) && (
+                <div className="flex flex-wrap items-center gap-3 py-1.5 text-xs text-slate-800 border-b border-dashed border-slate-300 bg-slate-50/60 px-2 rounded mt-1">
+                  <span className="font-black text-black uppercase tracking-wider text-[11px]">Vitals:</span>
+                  {formData.bp && (
+                    <span className="inline-flex items-center gap-1">
+                      <strong>BP:</strong> {formData.bp}{!formData.bp.toLowerCase().includes('mmhg') ? ' mmHg' : ''}
+                    </span>
+                  )}
+                  {formData.spo2 && (
+                    <span className="inline-flex items-center gap-1">
+                      <strong>SpO₂:</strong> {formData.spo2}{!String(formData.spo2).includes('%') ? '%' : ''}
+                    </span>
+                  )}
+                  {formData.height && (
+                    <span className="inline-flex items-center gap-1">
+                      <strong>Height:</strong> {formData.height}{!String(formData.height).toLowerCase().includes('cm') ? ' cm' : ''}
+                    </span>
+                  )}
+                  {formData.weight && (
+                    <span className="inline-flex items-center gap-1">
+                      <strong>Weight:</strong> {formData.weight}{!String(formData.weight).toLowerCase().includes('kg') ? ' kg' : ''}
+                    </span>
+                  )}
+                  {formData.pulse && (
+                    <span className="inline-flex items-center gap-1">
+                      <strong>Pulse:</strong> {formData.pulse}{!String(formData.pulse).includes('/') ? ' /min' : ''}
+                    </span>
+                  )}
                 </div>
               )}
 
-              {/* IV. Treatment Done (Removed / commented out per user request) */}
-              {/*
-              {treatmentItems.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold mb-3">IV. Treatment Done</h3>
-                  <table className="w-full border-collapse border border-gray-300">
+              {/* Diagnosis Row */}
+              {formData.de && (
+                <div className="py-2 text-xs sm:text-sm border-b border-slate-300">
+                  <span className="font-extrabold text-black">Diagnosis: </span>
+                  <span className="font-bold text-slate-900 uppercase">{formData.de}</span>
+                </div>
+              )}
+
+              {/* Rx Section */}
+              <div className="mt-3">
+                <div className="font-serif italic font-bold text-2xl text-slate-900 leading-none mb-1">
+                  ℞
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left">
                     <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Description</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Date</th>
+                      <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
+                        <th className="py-2 px-1 text-left w-1/2">Medicine</th>
+                        <th className="py-2 px-2 text-center w-1/5">Dosage</th>
+                        <th className="py-2 px-2 text-left w-3/10">Timing - Freq. - Duration</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {treatmentItems.map((item, idx) => (
-                        <tr key={idx}>
-                          <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                          <td className="border border-gray-300 px-4 py-2">{item.date ? new Date(item.date).toLocaleDateString('en-GB') : ''}</td>
+                    <tbody className="divide-y divide-slate-200 text-xs">
+                      {medicines.length > 0 ? (
+                        medicines.map((med, index) => (
+                          <tr key={index} className="align-top">
+                            {/* Medicine Details */}
+                            <td className="py-2 px-1">
+                              <div className="font-extrabold text-sm text-black tracking-wide uppercase">
+                                {index + 1}) &nbsp;{med.name || 'Not specified'}
+                              </div>
+                              {med.composition && (
+                                <div className="text-[11px] text-slate-600 pl-4 mt-0.5">
+                                  <span className="font-semibold text-slate-500 uppercase">Composition:</span> {med.composition}
+                                </div>
+                              )}
+                              {(() => {
+                                const timingVal = med.timing || getTimingFromDosage(med.dosage);
+                                if (!timingVal) return null;
+                                return (
+                                  <div className="text-[11px] text-slate-800 pl-4 mt-0.5">
+                                    <span className="font-semibold text-slate-500 uppercase">Timing:</span> {timingVal}
+                                  </div>
+                                );
+                              })()}
+                              {med.note && (
+                                <div className="text-[11px] text-red-700 font-bold underline pl-4 mt-0.5">
+                                  Note: {med.note}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Dosage */}
+                            <td className="py-2 px-2 text-center font-bold text-sm tracking-wider text-slate-900">
+                              {med.dosage ? med.dosage.replace(/-/g, ' — ') : '—'}
+                            </td>
+
+                            {/* Timing - Freq - Duration */}
+                            <td className="py-2 px-2 text-xs font-semibold text-slate-900">
+                              {(() => {
+                                const parts: string[] = [];
+                                if (med.frequency && med.frequency !== 'Daily') parts.push(med.frequency);
+                                if (med.freq_duration) parts.push(med.freq_duration);
+                                if (
+                                  med.duration &&
+                                  (!med.freq_duration ||
+                                    (!med.freq_duration.toLowerCase().includes(med.duration.toLowerCase()) &&
+                                      !/दिवस|महिना|week|day/i.test(med.freq_duration)))
+                                ) {
+                                  parts.push(`(${med.duration})`);
+                                }
+                                return parts.join(' • ') || med.freq_duration || med.duration || med.frequency || '—';
+                              })()}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="text-center py-6 text-slate-400 italic">
+                            No medications added yet. Add medicines from the form above.
+                          </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
-              )}
-              */}
+              </div>
 
-              {/* Signature */}
-              <div className="mt-12 text-right">
-                {includeSignature && (
-                  <div className="mb-4">
-                    <img
-                      src={
-                        (() => {
-                          const docObj = availableDoctors.find((d) => d.name.toLowerCase() === (selectedDoctorName || '').toLowerCase());
-                          const sig = docObj?.signature_url;
-                          if (!sig) return (selectedDoctorName || '').toLowerCase().includes('anjali') ? '/sign1.png' : '/sign.png';
-                          if (sig.startsWith('data:') || sig.startsWith('http://') || sig.startsWith('https://')) return sig;
-                          return `/${sig.replace(/^\//, '')}`;
-                        })()
-                      }
-                      alt="Doctor's Signature"
-                      className="inline-block max-h-14 w-auto object-contain"
-                    />
+              {/* Advice, Followup & Doctor Signature Block */}
+              <div className="mt-5 pt-3 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-end gap-4">
+                <div className="flex-1 text-xs">
+                  {formData.advice && (
+                    <div className="mb-2">
+                      <div className="font-bold text-black uppercase tracking-wider text-[11px]">Advice:</div>
+                      <div className="text-slate-800 font-medium whitespace-pre-line mt-0.5">{formData.advice}</div>
+                    </div>
+                  )}
+
+                  {formData.investigation && (
+                    <div className="text-slate-900 font-bold mt-1">
+                      <span className="font-extrabold mr-1.5">फेर चाचणी :</span>
+                      <span>{formData.investigation}</span>
+                    </div>
+                  )}
+
+                  {formData.followupDate && (
+                    <div className="text-slate-900 font-bold mt-1">
+                      <span className="font-extrabold mr-1.5">फेरतपासणी:</span>
+                      <span>{formatFollowup(formData.followupDate, formData.date)}</span>
+                    </div>
+                  )}
+
+                  <div className="text-rose-700 font-extrabold text-[11px] tracking-wide mt-2">
+                    * Prescription is valid for 30 days only
                   </div>
-                )}
-                <div className="font-semibold">
-                  {selectedDoctorName || 'Dr. Vipeen Raut'}
                 </div>
-                {!includeSignature && (
-                  <div className="text-[11px] text-gray-400 italic">
-                    (Without Signature: Doctor name only, no signature image)
+
+                {/* Signature Box */}
+                <div className="text-center min-w-[150px] shrink-0 pb-1">
+                  {includeSignature && (
+                    <div className="mb-1">
+                      <img
+                        src={
+                          (() => {
+                            const docObj = availableDoctors.find((d) => d.name.toLowerCase() === (selectedDoctorName || '').toLowerCase());
+                            const sig = docObj?.signature_url;
+                            if (!sig) return (selectedDoctorName || '').toLowerCase().includes('anjali') ? '/sign1.png' : '/sign.png';
+                            if (sig.startsWith('data:') || sig.startsWith('http://') || sig.startsWith('https://')) return sig;
+                            return `/${sig.replace(/^\//, '')}`;
+                          })()
+                        }
+                        alt="Doctor's Signature"
+                        className="inline-block h-12 max-w-[130px] object-contain"
+                      />
+                    </div>
+                  )}
+                  <div className="font-bold text-xs sm:text-sm text-slate-900">
+                    {selectedDoctorName || 'Dr. Vipeen Raut'}
                   </div>
-                )}
+                  {!includeSignature && (
+                    <div className="text-[10px] text-slate-400 italic">
+                      (Signature omitted in print mode)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Schedule Banner */}
+              <div className="mt-5 pt-3 border-t-2 border-slate-300 text-center">
+                <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
+                  <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
+                    Hip &amp; Knee Joint Clinic
+                  </span>
+                  <span className="text-xs font-bold text-slate-900">
+                    Every Thursday 6 pm to 8 pm
+                  </span>
+                </div>
+
+                <div className="text-xs sm:text-sm font-extrabold text-black">
+                  Orthopaedics Clinic
+                </div>
+
+                <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
+                  <span className="font-bold text-[#7B1828]">OPD Time : </span>
+                  Mon. to Fri. - 10 am to 1 pm &amp; 6 pm to 8 pm | Sat. - 10 am to 1 pm &amp; Evening OPD Closed
+                </div>
+
+                <div className="text-[11px] font-bold text-[#7B1828] mt-0.5">
+                  Sunday OPD Closed
+                </div>
+
+                <div className="text-[10px] text-slate-600 mt-1">
+                  Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001 &nbsp;|&nbsp; Ph. : 07152-255795, Cell : 9373280505
+                </div>
+
+                <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
+
+                <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
+                  <span>Powered by</span>
+                  <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-2.5 w-auto inline-block" />
+                  <strong className="text-slate-600">Svasth HMS</strong>
+                </div>
               </div>
             </div>
           </div>

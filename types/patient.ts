@@ -5,6 +5,9 @@ export interface Patient {
     age: number;
     sex: string;
     phone_number: string;
+    address?: string;
+    email?: string;
+    whatsapp_number?: string;
     created_at?: string;
     updated_at?: string;
 }

@@ -60,6 +60,8 @@ interface IPDAdmission {
   sex: "Male" | "Female" | "Other";
   phone: string;
   address: string;
+  email?: string;
+  whatsapp_number?: string;
   medicalHistory?: string;
   allergies?: string;
   provisionalDiagnosis: string;
@@ -235,9 +237,34 @@ export default function IPDManagementPage() {
 
   // Selected patient for interactive modals
   const [activeAdmission, setActiveAdmission] = useState<IPDAdmission | null>(null);
-  const [activeModal, setActiveModal] = useState<"none" | "profile" | "billing" | "discharge" | "editAdmission" | "printTicket" | "printReceipt" | "printDischarge">("none");
+  const [activeModal, setActiveModal] = useState<"none" | "profile" | "billing" | "discharge" | "editAdmission" | "printTicket" | "printReceipt" | "printDischarge" | "recordPayment">("none");
   const [printReceiptData, setPrintReceiptData] = useState<any>(null);
+  const [recordPaymentAdmission, setRecordPaymentAdmission] = useState<IPDAdmission | null>(null);
+  const [editingAdvanceId, setEditingAdvanceId] = useState<string | null>(null);
+  const [editingReceiptNumber, setEditingReceiptNumber] = useState<string | null>(null);
+  const [quickPaymentForm, setQuickPaymentForm] = useState({
+    amount: "",
+    mode: "Cash" as "Cash" | "UPI" | "Card" | "Bank Transfer" | "Cheque",
+    notes: "Interim Stay Payment",
+    receivedBy: "Reception Desk",
+    date: new Date().toISOString().split("T")[0],
+  });
   const [dischargeIncludeSignature, setDischargeIncludeSignature] = useState<boolean>(true);
+
+  // Editable Clinical Items & Admission Profile State
+  const [editingClinicalItem, setEditingClinicalItem] = useState<{
+    type: "vitals" | "doctorNotes" | "meds" | "investigations" | "procedures" | "nursing";
+    id: string;
+    data: any;
+  } | null>(null);
+  const [isEditingAdmissionInfo, setIsEditingAdmissionInfo] = useState<boolean>(false);
+  const [editAdmissionInfoForm, setEditAdmissionInfoForm] = useState({
+    provisionalDiagnosis: "",
+    reasonForAdmission: "",
+    consultantDoctor: "",
+    bedNumber: "",
+    ward: "",
+  });
 
   // New Admission Form State (Ward, Bed & All Charges Editable)
   const [newAdmissionForm, setNewAdmissionForm] = useState({
@@ -247,6 +274,8 @@ export default function IPDManagementPage() {
     sex: "Male" as "Male" | "Female" | "Other",
     phone: "",
     address: "",
+    email: "",
+    whatsapp_number: "",
     medicalHistory: "",
     allergies: "",
     provisionalDiagnosis: "",
@@ -299,6 +328,11 @@ export default function IPDManagementPage() {
   const [submittingAdmission, setSubmittingAdmission] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  const showSuccess = (msg: string) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 3500);
+  };
+
   // Clinical Profile Sub-tab
   const [profileTab, setProfileTab] = useState<"vitals" | "doctorNotes" | "meds" | "investigations" | "procedures" | "nursing">("vitals");
 
@@ -308,7 +342,7 @@ export default function IPDManagementPage() {
   const [medInput, setMedInput] = useState({ name: "", dosage: "", route: "Oral", frequency: "BD", timing: "Morning & Night" });
   const [investigationInput, setInvestigationInput] = useState({ name: "", cost: 500 });
   const [procedureInput, setProcedureInput] = useState({ name: "", surgeon: DOCTORS[0].name, cost: 5000, notes: "" });
-  const [nursingNoteInput, setNursingNoteInput] = useState({ shift: "Morning" as const, note: "", nurse: "Staff Nurse" });
+  const [nursingNoteInput, setNursingNoteInput] = useState<{ shift: "Morning" | "Evening" | "Night"; note: string; nurse: string }>({ shift: "Morning", note: "", nurse: "Staff Nurse" });
 
   // Advance Payment Modal Input
   const [advanceInput, setAdvanceInput] = useState({ amount: 5000, mode: "Cash" as const, notes: "Interim Stay Advance" });
@@ -496,6 +530,8 @@ export default function IPDManagementPage() {
             age: found.age ? String(found.age) : prev.age,
             sex: (found.sex as any) || prev.sex,
             address: (found as any).address || prev.address,
+            email: (found as any).email || prev.email,
+            whatsapp_number: (found as any).whatsapp_number || prev.whatsapp_number,
           }));
         } else {
           setExistingPatientFound(null);
@@ -512,6 +548,172 @@ export default function IPDManagementPage() {
     const end = dischargeDate ? new Date(dischargeDate).getTime() : new Date().getTime();
     const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     return Math.max(1, diff);
+  };
+
+  // Convert numbers to Indian Rupees in words
+  const numberToWordsINR = (amount: number): string => {
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const num = Math.floor(Math.abs(amount));
+    if (num === 0) return 'Rupees Zero Only';
+
+    function inWords(n: number): string {
+      if (n < 20) return a[n];
+      if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : ' ');
+      if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 !== 0 ? inWords(n % 100) : '');
+      if (n < 100000) return inWords(Math.floor(n / 1000)) + 'Thousand ' + (n % 1000 !== 0 ? inWords(n % 1000) : '');
+      if (n < 10000000) return inWords(Math.floor(n / 100000)) + 'Lakh ' + (n % 100000 !== 0 ? inWords(n % 100000) : '');
+      return inWords(Math.floor(n / 10000000)) + 'Crore ' + (n % 10000000 !== 0 ? inWords(n % 10000000) : '');
+    }
+    return 'Rupees ' + inWords(num).trim() + ' Only';
+  };
+
+  // Open Quick Record Payment modal directly for this patient
+  const handleOpenRecordPayment = (adm: IPDAdmission) => {
+    setActiveAdmission(adm);
+    setRecordPaymentAdmission(adm);
+    setEditingAdvanceId(null);
+    setEditingReceiptNumber(null);
+    const hasAdvances = (adm.advances || []).length > 0;
+    setQuickPaymentForm({
+      amount: "",
+      mode: "Cash",
+      notes: hasAdvances ? "Stay Installment Payment" : "Admission Advance Deposit",
+      receivedBy: "Reception Desk",
+      date: new Date().toISOString().split("T")[0],
+    });
+    setActiveModal("recordPayment");
+  };
+
+  // Open Edit Payment Receipt modal
+  const handleOpenEditPaymentReceipt = (adm: IPDAdmission, adv: any) => {
+    setActiveAdmission(adm);
+    setRecordPaymentAdmission(adm);
+    setEditingAdvanceId(adv.id);
+    setEditingReceiptNumber(adv.receiptNumber);
+    setQuickPaymentForm({
+      amount: String(adv.amount || ""),
+      mode: (adv.mode || "Cash") as any,
+      notes: adv.notes || "",
+      receivedBy: adv.receivedBy || "Reception Desk",
+      date: adv.date || new Date().toISOString().split("T")[0],
+    });
+    setActiveModal("recordPayment");
+  };
+
+  // Save quick payment and show small receipt (Supports both Create and Edit)
+  const handleSaveQuickPayment = (printReceiptNow: boolean = true) => {
+    if (!recordPaymentAdmission) return;
+    const amt = Number(quickPaymentForm.amount);
+    if (!amt || amt <= 0) {
+      alert("Please enter a valid amount to record payment.");
+      return;
+    }
+
+    let finalPayment: any;
+
+    if (editingAdvanceId) {
+      // EDIT EXISTING RECEIPT
+      finalPayment = {
+        id: editingAdvanceId,
+        receiptNumber: editingReceiptNumber || `CRX-REC-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`,
+        date: quickPaymentForm.date || new Date().toISOString().split("T")[0],
+        amount: amt,
+        mode: quickPaymentForm.mode as any,
+        notes: quickPaymentForm.notes.trim() || "Inpatient Stay Payment",
+        receivedBy: quickPaymentForm.receivedBy.trim() || "Reception Desk",
+      };
+
+      const updated = admissions.map((adm) => {
+        if (adm.id === recordPaymentAdmission.id) {
+          return {
+            ...adm,
+            advances: (adm.advances || []).map((a) => (a.id === editingAdvanceId ? finalPayment : a)),
+          };
+        }
+        return adm;
+      });
+
+      saveAdmissions(updated);
+      const targetAdm = updated.find((a) => a.id === recordPaymentAdmission.id);
+      setActiveAdmission(targetAdm || null);
+
+      if (printReceiptNow && targetAdm) {
+        setPrintReceiptData({
+          patient: targetAdm,
+          advance: finalPayment,
+        });
+        setActiveModal("printReceipt");
+      } else {
+        setActiveModal("none");
+        setRecordPaymentAdmission(null);
+      }
+      setEditingAdvanceId(null);
+      setEditingReceiptNumber(null);
+      showSuccess("Receipt updated successfully!");
+      return;
+    }
+
+    // CREATE NEW PAYMENT
+    const year = new Date().getFullYear();
+    const seq = String(Date.now()).slice(-5);
+    const receiptNum = `CRX-REC-${year}-${seq}`;
+
+    finalPayment = {
+      id: `adv_${Date.now()}`,
+      receiptNumber: receiptNum,
+      date: quickPaymentForm.date || new Date().toISOString().split("T")[0],
+      amount: amt,
+      mode: quickPaymentForm.mode as any,
+      notes: quickPaymentForm.notes.trim() || "Inpatient Stay Payment",
+      receivedBy: quickPaymentForm.receivedBy.trim() || "Reception Desk",
+    };
+
+    const updated = admissions.map((adm) => {
+      if (adm.id === recordPaymentAdmission.id) {
+        return {
+          ...adm,
+          advances: [...(adm.advances || []), finalPayment],
+        };
+      }
+      return adm;
+    });
+
+    saveAdmissions(updated);
+    const targetAdm = updated.find((a) => a.id === recordPaymentAdmission.id);
+    setActiveAdmission(targetAdm || null);
+
+    if (printReceiptNow && targetAdm) {
+      setPrintReceiptData({
+        patient: targetAdm,
+        advance: finalPayment,
+      });
+      setActiveModal("printReceipt");
+    } else {
+      setActiveModal("none");
+      setRecordPaymentAdmission(null);
+    }
+    showSuccess("Payment recorded & receipt generated!");
+  };
+
+  // Open Payment Receipt linked directly to the patient
+  const handleOpenPatientReceipt = (adm: IPDAdmission, specificAdvance?: any) => {
+    setActiveAdmission(adm);
+    const targetAdv = specificAdvance || (adm.advances && adm.advances.length > 0 ? adm.advances[adm.advances.length - 1] : {
+      id: `adv_${Date.now()}`,
+      receiptNumber: `CRX-REC-${new Date().getFullYear()}-${adm.ipdNumber.replace(/^IPD-\d+-/, '')}`,
+      date: new Date().toISOString().split("T")[0],
+      amount: adm.advances?.reduce((sum, a) => sum + (Number(a.amount) || 0), 0) || 0,
+      mode: "Cash",
+      notes: "Inpatient Payment / Advance Deposit",
+      receivedBy: "Reception Desk",
+    });
+
+    setPrintReceiptData({
+      patient: adm,
+      advance: targetAdv,
+    });
+    setActiveModal("printReceipt");
   };
 
   // Calculate running bill for an admission with override support
@@ -936,6 +1138,8 @@ export default function IPDManagementPage() {
           sex: newAdmissionForm.sex,
           phone_number: newAdmissionForm.phone.trim(),
           address: newAdmissionForm.address.trim() || undefined,
+          email: newAdmissionForm.email.trim() || undefined,
+          whatsapp_number: newAdmissionForm.whatsapp_number.trim() || undefined,
         } as any);
 
         patientId = res ? String(res) : undefined;
@@ -983,6 +1187,8 @@ export default function IPDManagementPage() {
         sex: newAdmissionForm.sex,
         phone: newAdmissionForm.phone.trim(),
         address: newAdmissionForm.address.trim(),
+        email: newAdmissionForm.email.trim() || undefined,
+        whatsapp_number: newAdmissionForm.whatsapp_number.trim() || undefined,
         medicalHistory: newAdmissionForm.medicalHistory.trim(),
         allergies: newAdmissionForm.allergies.trim(),
         provisionalDiagnosis: newAdmissionForm.provisionalDiagnosis.trim() || "Under Observation",
@@ -1053,6 +1259,8 @@ export default function IPDManagementPage() {
         sex: "Male",
         phone: "",
         address: "",
+        email: "",
+        whatsapp_number: "",
         medicalHistory: "",
         allergies: "",
         provisionalDiagnosis: "",
@@ -1299,6 +1507,246 @@ export default function IPDManagementPage() {
     if (activeAdmission?.id === admissionId) {
       setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
     }
+  };
+
+  // ── CLINICAL SHEET EDIT & DELETE HANDLERS ─────────────────────
+  const handleUpdateVitals = (admissionId: string, vitalsId: string, data: any) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          vitals: adm.vitals.map((v) => (v.id === vitalsId ? { ...v, ...data } : v)),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    setEditingClinicalItem(null);
+    showSuccess("Vitals entry updated!");
+  };
+
+  const handleDeleteVitals = (admissionId: string, vitalsId: string) => {
+    if (!confirm("Are you sure you want to remove this vitals entry?")) return;
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          vitals: adm.vitals.filter((v) => v.id !== vitalsId),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    showSuccess("Vitals entry deleted");
+  };
+
+  const handleUpdateDoctorNote = (admissionId: string, noteId: string, data: any) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          doctorNotes: adm.doctorNotes.map((dn) => (dn.id === noteId ? { ...dn, ...data } : dn)),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    setEditingClinicalItem(null);
+    showSuccess("Doctor round note updated!");
+  };
+
+  const handleDeleteDoctorNote = (admissionId: string, noteId: string) => {
+    if (!confirm("Are you sure you want to remove this doctor note?")) return;
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          doctorNotes: adm.doctorNotes.filter((dn) => dn.id !== noteId),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    showSuccess("Doctor note deleted");
+  };
+
+  const handleUpdateMedication = (admissionId: string, medId: string, data: any) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          medications: adm.medications.map((m) => (m.id === medId ? { ...m, ...data } : m)),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    setEditingClinicalItem(null);
+    showSuccess("Medication updated!");
+  };
+
+  const handleDeleteMedication = (admissionId: string, medId: string) => {
+    if (!confirm("Are you sure you want to delete this medication?")) return;
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          medications: adm.medications.filter((m) => m.id !== medId),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    showSuccess("Medication removed");
+  };
+
+  const handleUpdateClinicalInvestigation = (admissionId: string, invId: string, data: any) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          investigations: adm.investigations.map((inv) => (inv.id === invId ? { ...inv, ...data } : inv)),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    setEditingClinicalItem(null);
+    showSuccess("Investigation updated!");
+  };
+
+  const handleDeleteClinicalInvestigation = (admissionId: string, invId: string) => {
+    if (!confirm("Are you sure you want to delete this investigation?")) return;
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          investigations: adm.investigations.filter((inv) => inv.id !== invId),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    showSuccess("Investigation deleted");
+  };
+
+  const handleUpdateClinicalProcedure = (admissionId: string, procId: string, data: any) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          procedures: adm.procedures.map((p) => (p.id === procId ? { ...p, ...data } : p)),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    setEditingClinicalItem(null);
+    showSuccess("Procedure record updated!");
+  };
+
+  const handleDeleteClinicalProcedure = (admissionId: string, procId: string) => {
+    if (!confirm("Are you sure you want to remove this procedure?")) return;
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          procedures: adm.procedures.filter((p) => p.id !== procId),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    showSuccess("Procedure removed");
+  };
+
+  const handleUpdateNursingNote = (admissionId: string, noteId: string, data: any) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          nursingNotes: adm.nursingNotes.map((nn) => (nn.id === noteId ? { ...nn, ...data } : nn)),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    setEditingClinicalItem(null);
+    showSuccess("Nursing note updated!");
+  };
+
+  const handleDeleteNursingNote = (admissionId: string, noteId: string) => {
+    if (!confirm("Are you sure you want to remove this nursing note?")) return;
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          nursingNotes: adm.nursingNotes.filter((nn) => nn.id !== noteId),
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(updated.find((a) => a.id === admissionId) || null);
+    }
+    showSuccess("Nursing note deleted");
+  };
+
+  const handleUpdateAdmissionInfo = (admissionId: string) => {
+    const updated = admissions.map((adm) => {
+      if (adm.id === admissionId) {
+        return {
+          ...adm,
+          provisionalDiagnosis: editAdmissionInfoForm.provisionalDiagnosis.trim() || adm.provisionalDiagnosis,
+          reasonForAdmission: editAdmissionInfoForm.reasonForAdmission.trim() || adm.reasonForAdmission,
+          consultantDoctor: editAdmissionInfoForm.consultantDoctor || adm.consultantDoctor,
+          ward: editAdmissionInfoForm.ward || adm.ward,
+          bedNumber: editAdmissionInfoForm.bedNumber || adm.bedNumber,
+        };
+      }
+      return adm;
+    });
+    saveAdmissions(updated);
+    const targetAdm = updated.find((a) => a.id === admissionId) || null;
+    if (activeAdmission?.id === admissionId) {
+      setActiveAdmission(targetAdm);
+    }
+    setIsEditingAdmissionInfo(false);
+    showSuccess("Admission diagnosis & details updated!");
   };
 
   // Record Advance Deposit
@@ -1888,6 +2336,26 @@ export default function IPDManagementPage() {
 
                           <button
                             type="button"
+                            onClick={() => handleOpenRecordPayment(adm)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition"
+                            title="Record payment & give small receipt to patient"
+                          >
+                            <IndianRupee className="w-3.5 h-3.5" />
+                            + Record Payment
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPatientReceipt(adm)}
+                            className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
+                            title="View / Print Small Payment Receipts"
+                          >
+                            <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                            Receipts ({adm.advances?.length || 0})
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => {
                               setActiveAdmission(adm);
                               const isKnownWard = wardBedConfig.some(w => w.ward === adm.ward);
@@ -2207,8 +2675,23 @@ export default function IPDManagementPage() {
                   </div>
                 </div>
 
-                <div className="md:col-span-3">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Residential Address</label>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Email ID <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={newAdmissionForm.email}
+                    onChange={(e) => setNewAdmissionForm({ ...newAdmissionForm, email: e.target.value })}
+                    placeholder="e.g. patient@gmail.com"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Residential Address <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={newAdmissionForm.address}
@@ -2972,12 +3455,12 @@ export default function IPDManagementPage() {
           MODAL 1: PATIENT CLINICAL STAY PROFILE (TREATMENT & CARE)
       ───────────────────────────────────────────────────────────── */}
       {activeModal === "profile" && activeAdmission && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl max-w-6xl w-full h-[94vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
-              <div>
-                <div className="flex items-center gap-2">
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/90 rounded-t-2xl shrink-0">
+              <div className="flex-1 min-w-[280px]">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-mono font-bold text-xs">
                     {activeAdmission.ipdNumber}
                   </span>
@@ -2987,27 +3470,115 @@ export default function IPDManagementPage() {
                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">
                     Bed: {activeAdmission.bedNumber} ({activeAdmission.ward})
                   </span>
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded text-xs font-semibold">
+                    Admitted: {activeAdmission.admissionDate}
+                  </span>
                 </div>
-                <h2 className="text-xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
-                <p className="text-xs text-slate-500">
-                  {activeAdmission.age}y • {activeAdmission.sex} • Doctor: {activeAdmission.consultantDoctor} • Diagnosis: {activeAdmission.provisionalDiagnosis}
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
+                <p className="text-xs text-slate-600 font-medium">
+                  {activeAdmission.age}y • {activeAdmission.sex} • Doctor: <strong className="text-slate-800">{activeAdmission.consultantDoctor}</strong> • Diagnosis: <strong className="text-indigo-900">{activeAdmission.provisionalDiagnosis}</strong>
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModal("none");
-                  setActiveAdmission(null);
-                }}
-                className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditAdmissionInfoForm({
+                      provisionalDiagnosis: activeAdmission.provisionalDiagnosis || "",
+                      reasonForAdmission: activeAdmission.reasonForAdmission || "",
+                      consultantDoctor: activeAdmission.consultantDoctor || DOCTORS[0].name,
+                      ward: activeAdmission.ward,
+                      bedNumber: activeAdmission.bedNumber,
+                    });
+                    setIsEditingAdmissionInfo(!isEditingAdmissionInfo);
+                  }}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs"
+                  title="Edit patient diagnosis, doctor, or admission notes"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                  {isEditingAdmissionInfo ? "Close Edit Info" : "Edit Diagnosis & Bed"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.open(`/print-discharge?id=${activeAdmission.id}&includeSignature=true&includeClinicalSheet=true`, "_blank")}
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs"
+                  title="Print Full Inpatient Clinical Sheet"
+                >
+                  <Printer className="w-3.5 h-3.5 text-blue-600" />
+                  Print Clinical Sheet
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModal("none");
+                    setActiveAdmission(null);
+                    setEditingClinicalItem(null);
+                    setIsEditingAdmissionInfo(false);
+                  }}
+                  className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
+            {/* Inline Admission Diagnosis & Info Editor */}
+            {isEditingAdmissionInfo && (
+              <div className="p-4 bg-indigo-50/80 border-b border-indigo-200 flex flex-wrap items-end gap-3 text-xs animate-in slide-in-from-top-2 duration-150 shrink-0">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Provisional Diagnosis</label>
+                  <input
+                    type="text"
+                    value={editAdmissionInfoForm.provisionalDiagnosis}
+                    onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, provisionalDiagnosis: e.target.value })}
+                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white font-semibold"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Reason for Admission</label>
+                  <input
+                    type="text"
+                    value={editAdmissionInfoForm.reasonForAdmission}
+                    onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, reasonForAdmission: e.target.value })}
+                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white"
+                  />
+                </div>
+                <div className="w-48">
+                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Consultant Doctor</label>
+                  <select
+                    value={editAdmissionInfoForm.consultantDoctor}
+                    onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, consultantDoctor: e.target.value })}
+                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white"
+                  >
+                    {DOCTORS.map((d) => (
+                      <option key={d.name} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-24">
+                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Bed No.</label>
+                  <input
+                    type="text"
+                    value={editAdmissionInfoForm.bedNumber}
+                    onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, bedNumber: e.target.value })}
+                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white font-mono"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateAdmissionInfo(activeAdmission.id)}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow transition"
+                >
+                  Save Details
+                </button>
+              </div>
+            )}
+
             {/* Sub-Tabs */}
-            <div className="flex border-b border-slate-200 px-5 pt-3 gap-3 overflow-x-auto text-xs font-bold">
+            <div className="flex border-b border-slate-200 px-5 pt-3 gap-3 overflow-x-auto text-xs font-bold bg-white shrink-0">
               {[
                 { id: "vitals", label: "Vitals Chart", icon: HeartPulse, count: activeAdmission.vitals.length },
                 { id: "doctorNotes", label: "Doctor Notes", icon: Stethoscope, count: activeAdmission.doctorNotes.length },
@@ -3018,7 +3589,10 @@ export default function IPDManagementPage() {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setProfileTab(tab.id as any)}
+                  onClick={() => {
+                    setProfileTab(tab.id as any);
+                    setEditingClinicalItem(null);
+                  }}
                   className={`pb-2.5 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
                     profileTab === tab.id
                       ? "border-blue-600 text-blue-700 font-bold"
@@ -3039,14 +3613,15 @@ export default function IPDManagementPage() {
               {/* VITALS TAB */}
               {profileTab === "vitals" && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-wrap items-end gap-2.5">
+                  <div className={`p-4 rounded-xl border flex flex-wrap items-end gap-3 ${editingClinicalItem?.type === 'vitals' ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase">BP (mmHg)</label>
                       <input
                         type="text"
                         value={vitalsInput.bp}
                         onChange={(e) => setVitalsInput({ ...vitalsInput, bp: e.target.value })}
-                        className="px-2 py-1 text-xs border border-slate-300 rounded w-24"
+                        placeholder="120/80"
+                        className="px-2 py-1.5 text-xs border border-slate-300 rounded w-24 bg-white"
                       />
                     </div>
                     <div>
@@ -3055,7 +3630,8 @@ export default function IPDManagementPage() {
                         type="text"
                         value={vitalsInput.pulse}
                         onChange={(e) => setVitalsInput({ ...vitalsInput, pulse: e.target.value })}
-                        className="px-2 py-1 text-xs border border-slate-300 rounded w-20"
+                        placeholder="72"
+                        className="px-2 py-1.5 text-xs border border-slate-300 rounded w-20 bg-white"
                       />
                     </div>
                     <div>
@@ -3064,7 +3640,8 @@ export default function IPDManagementPage() {
                         type="text"
                         value={vitalsInput.temp}
                         onChange={(e) => setVitalsInput({ ...vitalsInput, temp: e.target.value })}
-                        className="px-2 py-1 text-xs border border-slate-300 rounded w-20"
+                        placeholder="98.6"
+                        className="px-2 py-1.5 text-xs border border-slate-300 rounded w-20 bg-white"
                       />
                     </div>
                     <div>
@@ -3073,7 +3650,8 @@ export default function IPDManagementPage() {
                         type="text"
                         value={vitalsInput.spo2}
                         onChange={(e) => setVitalsInput({ ...vitalsInput, spo2: e.target.value })}
-                        className="px-2 py-1 text-xs border border-slate-300 rounded w-20"
+                        placeholder="99"
+                        className="px-2 py-1.5 text-xs border border-slate-300 rounded w-20 bg-white"
                       />
                     </div>
                     <div>
@@ -3082,41 +3660,104 @@ export default function IPDManagementPage() {
                         type="text"
                         value={vitalsInput.recordedBy}
                         onChange={(e) => setVitalsInput({ ...vitalsInput, recordedBy: e.target.value })}
-                        className="px-2 py-1 text-xs border border-slate-300 rounded w-32"
+                        placeholder="Staff Nurse"
+                        className="px-2 py-1.5 text-xs border border-slate-300 rounded w-32 bg-white"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAddVitals(activeAdmission.id)}
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow transition"
-                    >
-                      + Record Vitals
-                    </button>
+
+                    {editingClinicalItem?.type === 'vitals' ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateVitals(activeAdmission.id, editingClinicalItem.id, vitalsInput)}
+                          className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shadow transition"
+                        >
+                          Save Vitals Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingClinicalItem(null);
+                            setVitalsInput({ bp: "120/80", pulse: "72", temp: "98.6", spo2: "99", weight: "", recordedBy: "Staff Nurse" });
+                          }}
+                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold text-xs transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAddVitals(activeAdmission.id)}
+                        className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow transition"
+                      >
+                        + Record Vitals
+                      </button>
+                    )}
                   </div>
 
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
                     <table className="w-full text-xs text-left">
                       <thead className="bg-slate-50 text-slate-500 font-semibold uppercase border-b border-slate-200">
                         <tr>
-                          <th className="p-3">Date & Time</th>
+                          <th className="p-3">Date &amp; Time</th>
                           <th className="p-3">BP</th>
                           <th className="p-3">Pulse</th>
                           <th className="p-3">Temp</th>
                           <th className="p-3">SpO₂</th>
                           <th className="p-3">Recorded By</th>
+                          <th className="p-3 text-center w-24">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {activeAdmission.vitals.map((v) => (
-                          <tr key={v.id}>
-                            <td className="p-3 font-medium">{v.date} ({v.time})</td>
-                            <td className="p-3 font-bold text-slate-900">{v.bp}</td>
-                            <td className="p-3">{v.pulse} bpm</td>
-                            <td className="p-3">{v.temp} °F</td>
-                            <td className="p-3 font-bold text-emerald-700">{v.spo2}%</td>
-                            <td className="p-3 text-slate-500">{v.recordedBy}</td>
+                        {activeAdmission.vitals.length > 0 ? (
+                          activeAdmission.vitals.map((v) => (
+                            <tr key={v.id} className="hover:bg-slate-50/70">
+                              <td className="p-3 font-medium">{v.date} ({v.time})</td>
+                              <td className="p-3 font-bold text-slate-900">{v.bp}</td>
+                              <td className="p-3">{v.pulse} bpm</td>
+                              <td className="p-3">{v.temp} °F</td>
+                              <td className="p-3 font-bold text-emerald-700">{v.spo2}%</td>
+                              <td className="p-3 text-slate-500">{v.recordedBy}</td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingClinicalItem({ type: 'vitals', id: v.id, data: v });
+                                      setVitalsInput({
+                                        bp: v.bp,
+                                        pulse: v.pulse,
+                                        temp: v.temp,
+                                        spo2: v.spo2,
+                                        weight: v.weight || "",
+                                        recordedBy: v.recordedBy || "Staff Nurse",
+                                      });
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                    title="Edit vitals entry"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteVitals(activeAdmission.id, v.id)}
+                                    className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
+                                    title="Delete vitals entry"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="p-6 text-center text-slate-400 italic">
+                              No vitals recorded yet.
+                            </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -3126,14 +3767,14 @@ export default function IPDManagementPage() {
               {/* DOCTOR NOTES TAB */}
               {profileTab === "doctorNotes" && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
+                  <div className={`p-4 rounded-xl border space-y-2 ${editingClinicalItem?.type === 'doctorNotes' ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase">Consulting Doctor</label>
                         <select
                           value={doctorNoteInput.doctor}
                           onChange={(e) => setDoctorNoteInput({ ...doctorNoteInput, doctor: e.target.value })}
-                          className="w-full p-1.5 text-xs border border-slate-300 rounded bg-white"
+                          className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                         >
                           {DOCTORS.map((d) => (
                             <option key={d.name} value={d.name}>{d.name}</option>
@@ -3147,7 +3788,7 @@ export default function IPDManagementPage() {
                           value={doctorNoteInput.note}
                           onChange={(e) => setDoctorNoteInput({ ...doctorNoteInput, note: e.target.value })}
                           placeholder="e.g. Afebrile, wound clean, drain minimal, vitals stable."
-                          className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                          className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                         />
                       </div>
                       <div className="md:col-span-3">
@@ -3158,35 +3799,84 @@ export default function IPDManagementPage() {
                             value={doctorNoteInput.plan}
                             onChange={(e) => setDoctorNoteInput({ ...doctorNoteInput, plan: e.target.value })}
                             placeholder="e.g. Start oral fluids, mobilised with walker."
-                            className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                            className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleAddDoctorNote(activeAdmission.id)}
-                            className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
-                          >
-                            + Add Round Note
-                          </button>
+                          {editingClinicalItem?.type === 'doctorNotes' ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateDoctorNote(activeAdmission.id, editingClinicalItem.id, doctorNoteInput)}
+                                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
+                              >
+                                Save Note Changes
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingClinicalItem(null);
+                                  setDoctorNoteInput({ doctor: DOCTORS[0].name, note: "", plan: "" });
+                                }}
+                                className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleAddDoctorNote(activeAdmission.id)}
+                              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
+                            >
+                              + Add Round Note
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2.5">
-                    {activeAdmission.doctorNotes.map((dn) => (
-                      <div key={dn.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-indigo-900">{dn.doctor}</span>
-                          <span className="text-slate-400 font-mono">{dn.date} • {dn.time}</span>
+                    {activeAdmission.doctorNotes.length > 0 ? (
+                      activeAdmission.doctorNotes.map((dn) => (
+                        <div key={dn.id} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1.5 hover:shadow-xs transition">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-indigo-900 text-sm">{dn.doctor}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 font-mono text-[11px]">{dn.date} • {dn.time}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingClinicalItem({ type: 'doctorNotes', id: dn.id, data: dn });
+                                  setDoctorNoteInput({ doctor: dn.doctor, note: dn.note, plan: dn.plan || "" });
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                title="Edit round note"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDoctorNote(activeAdmission.id, dn.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
+                                title="Delete round note"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-800 leading-relaxed">{dn.note}</p>
+                          {dn.plan && (
+                            <p className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded w-fit border border-emerald-200">
+                              Plan / Orders: {dn.plan}
+                            </p>
+                          )}
                         </div>
-                        <p className="text-xs text-slate-700">{dn.note}</p>
-                        {dn.plan && (
-                          <p className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded w-fit">
-                            Plan: {dn.plan}
-                          </p>
-                        )}
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 italic bg-slate-50 rounded-xl border border-slate-200">
+                        No doctor round notes added yet.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
@@ -3194,15 +3884,15 @@ export default function IPDManagementPage() {
               {/* MEDICATION MAR TAB */}
               {profileTab === "meds" && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-wrap items-end gap-2.5">
+                  <div className={`p-4 rounded-xl border flex flex-wrap items-end gap-2.5 ${editingClinicalItem?.type === 'meds' ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex-1 min-w-[200px]">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase">Medicine & Strength</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase">Medicine &amp; Strength</label>
                       <input
                         type="text"
                         value={medInput.name}
                         onChange={(e) => setMedInput({ ...medInput, name: e.target.value })}
                         placeholder="e.g. Inj. Ceftriaxone 1g"
-                        className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                        className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                       />
                     </div>
                     <div>
@@ -3210,7 +3900,7 @@ export default function IPDManagementPage() {
                       <select
                         value={medInput.route}
                         onChange={(e) => setMedInput({ ...medInput, route: e.target.value })}
-                        className="p-1.5 text-xs border border-slate-300 rounded bg-white"
+                        className="p-2 text-xs border border-slate-300 rounded bg-white"
                       >
                         <option value="Oral">Oral</option>
                         <option value="IV">IV</option>
@@ -3223,7 +3913,7 @@ export default function IPDManagementPage() {
                       <select
                         value={medInput.frequency}
                         onChange={(e) => setMedInput({ ...medInput, frequency: e.target.value })}
-                        className="p-1.5 text-xs border border-slate-300 rounded bg-white"
+                        className="p-2 text-xs border border-slate-300 rounded bg-white"
                       >
                         <option value="OD">OD (Once daily)</option>
                         <option value="BD">BD (Twice daily)</option>
@@ -3238,19 +3928,42 @@ export default function IPDManagementPage() {
                         value={medInput.timing}
                         onChange={(e) => setMedInput({ ...medInput, timing: e.target.value })}
                         placeholder="e.g. Morning & Night"
-                        className="p-1.5 text-xs border border-slate-300 rounded w-36"
+                        className="p-2 text-xs border border-slate-300 rounded w-40 bg-white"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAddMedication(activeAdmission.id)}
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
-                    >
-                      + Add Medication
-                    </button>
+
+                    {editingClinicalItem?.type === 'meds' ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateMedication(activeAdmission.id, editingClinicalItem.id, medInput)}
+                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shadow"
+                        >
+                          Save Medication Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingClinicalItem(null);
+                            setMedInput({ name: "", dosage: "", route: "Oral", frequency: "BD", timing: "Morning & Night" });
+                          }}
+                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAddMedication(activeAdmission.id)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                      >
+                        + Add Medication
+                      </button>
+                    )}
                   </div>
 
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
                     <table className="w-full text-xs text-left">
                       <thead className="bg-slate-50 text-slate-500 font-semibold uppercase border-b border-slate-200">
                         <tr>
@@ -3259,22 +3972,69 @@ export default function IPDManagementPage() {
                           <th className="p-3">Frequency</th>
                           <th className="p-3">Timing</th>
                           <th className="p-3">Status</th>
+                          <th className="p-3 text-center w-24">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {activeAdmission.medications.map((m) => (
-                          <tr key={m.id}>
-                            <td className="p-3 font-bold text-slate-900">{m.name}</td>
-                            <td className="p-3 font-mono">{m.route}</td>
-                            <td className="p-3 font-semibold text-blue-700">{m.frequency}</td>
-                            <td className="p-3 text-slate-600">{m.timing}</td>
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                {m.status}
-                              </span>
+                        {activeAdmission.medications.length > 0 ? (
+                          activeAdmission.medications.map((m) => (
+                            <tr key={m.id} className="hover:bg-slate-50/70">
+                              <td className="p-3 font-bold text-slate-900">{m.name}</td>
+                              <td className="p-3 font-mono">{m.route}</td>
+                              <td className="p-3 font-semibold text-blue-700">{m.frequency}</td>
+                              <td className="p-3 text-slate-600">{m.timing}</td>
+                              <td className="p-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateMedication(activeAdmission.id, m.id, { status: m.status === 'Active' ? 'Discontinued' : 'Active' })}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                                    m.status === 'Active'
+                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                  }`}
+                                  title="Click to toggle status"
+                                >
+                                  {m.status}
+                                </button>
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingClinicalItem({ type: 'meds', id: m.id, data: m });
+                                      setMedInput({
+                                        name: m.name,
+                                        dosage: m.dosage || "",
+                                        route: m.route,
+                                        frequency: m.frequency,
+                                        timing: m.timing,
+                                      });
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                    title="Edit medication"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMedication(activeAdmission.id, m.id)}
+                                    className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
+                                    title="Remove medication"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="p-6 text-center text-slate-400 italic">
+                              No medications administered or prescribed yet.
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -3284,7 +4044,7 @@ export default function IPDManagementPage() {
               {/* INVESTIGATIONS TAB */}
               {profileTab === "investigations" && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-wrap items-end gap-2.5">
+                  <div className={`p-4 rounded-xl border flex flex-wrap items-end gap-2.5 ${editingClinicalItem?.type === 'investigations' ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex-1 min-w-[200px]">
                       <label className="block text-[10px] font-bold text-slate-500 uppercase">Investigation Test / Imaging</label>
                       <input
@@ -3292,7 +4052,7 @@ export default function IPDManagementPage() {
                         value={investigationInput.name}
                         onChange={(e) => setInvestigationInput({ ...investigationInput, name: e.target.value })}
                         placeholder="e.g. Serum Electrolytes / Digital X-Ray"
-                        className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                        className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                       />
                     </div>
                     <div>
@@ -3302,19 +4062,42 @@ export default function IPDManagementPage() {
                         min="0"
                         value={investigationInput.cost}
                         onChange={(e) => setInvestigationInput({ ...investigationInput, cost: Number(e.target.value) })}
-                        className="p-1.5 text-xs border border-slate-300 rounded w-24"
+                        className="p-2 text-xs border border-slate-300 rounded w-28 bg-white font-bold"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAddInvestigation(activeAdmission.id)}
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
-                    >
-                      + Order Test
-                    </button>
+
+                    {editingClinicalItem?.type === 'investigations' ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateClinicalInvestigation(activeAdmission.id, editingClinicalItem.id, investigationInput)}
+                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shadow"
+                        >
+                          Save Test Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingClinicalItem(null);
+                            setInvestigationInput({ name: "", cost: 500 });
+                          }}
+                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                        <button
+                        type="button"
+                        onClick={() => handleAddInvestigation(activeAdmission.id)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                      >
+                        + Order Test
+                      </button>
+                    )}
                   </div>
 
-                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
                     <table className="w-full text-xs text-left">
                       <thead className="bg-slate-50 text-slate-500 font-semibold uppercase border-b border-slate-200">
                         <tr>
@@ -3322,21 +4105,64 @@ export default function IPDManagementPage() {
                           <th className="p-3">Date</th>
                           <th className="p-3">Status</th>
                           <th className="p-3">Cost (₹)</th>
+                          <th className="p-3 text-center w-24">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {activeAdmission.investigations.map((inv) => (
-                          <tr key={inv.id}>
-                            <td className="p-3 font-bold text-slate-900">{inv.name}</td>
-                            <td className="p-3 text-slate-500">{inv.date}</td>
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">
-                                {inv.status}
-                              </span>
+                        {activeAdmission.investigations.length > 0 ? (
+                          activeAdmission.investigations.map((inv) => (
+                            <tr key={inv.id} className="hover:bg-slate-50/70">
+                              <td className="p-3 font-bold text-slate-900">{inv.name}</td>
+                              <td className="p-3 text-slate-500">{inv.date}</td>
+                              <td className="p-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateClinicalInvestigation(activeAdmission.id, inv.id, {
+                                    status: inv.status === 'Ordered' ? 'Completed' : 'Ordered'
+                                  })}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                                    inv.status === 'Completed'
+                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                      : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                                  }`}
+                                  title="Click to toggle status"
+                                >
+                                  {inv.status}
+                                </button>
+                              </td>
+                              <td className="p-3 font-mono font-bold text-slate-800">₹{inv.cost}</td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingClinicalItem({ type: 'investigations', id: inv.id, data: inv });
+                                      setInvestigationInput({ name: inv.name, cost: inv.cost });
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                    title="Edit investigation"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteClinicalInvestigation(activeAdmission.id, inv.id)}
+                                    className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
+                                    title="Delete investigation"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="p-6 text-center text-slate-400 italic">
+                              No diagnostic investigations recorded.
                             </td>
-                            <td className="p-3 font-mono font-bold text-slate-800">₹{inv.cost}</td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -3346,7 +4172,7 @@ export default function IPDManagementPage() {
               {/* PROCEDURES TAB */}
               {profileTab === "procedures" && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2">
+                  <div className={`p-4 rounded-xl border space-y-2 ${editingClinicalItem?.type === 'procedures' ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                       <div className="md:col-span-2">
                         <label className="block text-[10px] font-bold text-slate-500 uppercase">Procedure / Surgery Name</label>
@@ -3355,7 +4181,7 @@ export default function IPDManagementPage() {
                           value={procedureInput.name}
                           onChange={(e) => setProcedureInput({ ...procedureInput, name: e.target.value })}
                           placeholder="e.g. Major Dressing / Implant Removal / Knee Arthroscopy"
-                          className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                          className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                         />
                       </div>
                       <div>
@@ -3363,7 +4189,7 @@ export default function IPDManagementPage() {
                         <select
                           value={procedureInput.surgeon}
                           onChange={(e) => setProcedureInput({ ...procedureInput, surgeon: e.target.value })}
-                          className="w-full p-1.5 text-xs border border-slate-300 rounded bg-white"
+                          className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                         >
                           {DOCTORS.map((d) => (
                             <option key={d.name} value={d.name}>{d.name}</option>
@@ -3377,7 +4203,7 @@ export default function IPDManagementPage() {
                           min="0"
                           value={procedureInput.cost}
                           onChange={(e) => setProcedureInput({ ...procedureInput, cost: Number(e.target.value) })}
-                          className="w-full p-1.5 text-xs border border-slate-300 rounded font-bold"
+                          className="w-full p-2 text-xs border border-slate-300 rounded font-bold bg-white"
                         />
                       </div>
                       <div className="md:col-span-4 flex gap-2">
@@ -3386,30 +4212,81 @@ export default function IPDManagementPage() {
                           value={procedureInput.notes}
                           onChange={(e) => setProcedureInput({ ...procedureInput, notes: e.target.value })}
                           placeholder="Operative notes / findings..."
-                          className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                          className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleAddProcedure(activeAdmission.id)}
-                          className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
-                        >
-                          + Record Procedure
-                        </button>
+                        {editingClinicalItem?.type === 'procedures' ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateClinicalProcedure(activeAdmission.id, editingClinicalItem.id, procedureInput)}
+                              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
+                            >
+                              Save Procedure Changes
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingClinicalItem(null);
+                                setProcedureInput({ name: "", surgeon: DOCTORS[0].name, cost: 5000, notes: "" });
+                              }}
+                              className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold text-xs"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleAddProcedure(activeAdmission.id)}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
+                          >
+                            + Record Procedure
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    {activeAdmission.procedures.map((p) => (
-                      <div key={p.id} className="p-3 bg-white border border-slate-200 rounded-xl flex justify-between items-center text-xs">
-                        <div>
-                          <p className="font-bold text-slate-900">{p.name}</p>
-                          <p className="text-slate-500 text-[11px]">{p.date} • Surgeon: {p.surgeon}</p>
-                          {p.notes && <p className="text-slate-600 italic text-[11px] mt-0.5">{p.notes}</p>}
+                    {activeAdmission.procedures.length > 0 ? (
+                      activeAdmission.procedures.map((p) => (
+                        <div key={p.id} className="p-3.5 bg-white border border-slate-200 rounded-xl flex justify-between items-center text-xs hover:shadow-xs transition">
+                          <div>
+                            <p className="font-bold text-slate-900 text-sm">{p.name}</p>
+                            <p className="text-slate-500 text-[11px]">{p.date} • Surgeon: <strong className="text-slate-700">{p.surgeon}</strong></p>
+                            {p.notes && <p className="text-slate-600 italic text-[11px] mt-0.5">{p.notes}</p>}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono font-bold text-indigo-700 text-sm">₹{p.cost}</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingClinicalItem({ type: 'procedures', id: p.id, data: p });
+                                  setProcedureInput({ name: p.name, surgeon: p.surgeon, cost: p.cost, notes: p.notes || "" });
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                title="Edit procedure"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteClinicalProcedure(activeAdmission.id, p.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
+                                title="Remove procedure"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <span className="font-mono font-bold text-indigo-700 text-sm">₹{p.cost}</span>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 italic bg-slate-50 rounded-xl border border-slate-200">
+                        No surgeries or procedures recorded.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
@@ -3417,13 +4294,13 @@ export default function IPDManagementPage() {
               {/* NURSING NOTES TAB */}
               {profileTab === "nursing" && (
                 <div className="space-y-4">
-                  <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-wrap items-end gap-2.5">
+                  <div className={`p-4 rounded-xl border flex flex-wrap items-end gap-2.5 ${editingClinicalItem?.type === 'nursing' ? 'bg-amber-50/80 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase">Shift</label>
                       <select
                         value={nursingNoteInput.shift}
                         onChange={(e) => setNursingNoteInput({ ...nursingNoteInput, shift: e.target.value as any })}
-                        className="p-1.5 text-xs border border-slate-300 rounded bg-white"
+                        className="p-2 text-xs border border-slate-300 rounded bg-white font-medium"
                       >
                         <option value="Morning">Morning</option>
                         <option value="Evening">Evening</option>
@@ -3431,34 +4308,84 @@ export default function IPDManagementPage() {
                       </select>
                     </div>
                     <div className="flex-1 min-w-[250px]">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase">Care Observations & Notes</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase">Care Observations &amp; Notes</label>
                       <input
                         type="text"
                         value={nursingNoteInput.note}
                         onChange={(e) => setNursingNoteInput({ ...nursingNoteInput, note: e.target.value })}
                         placeholder="e.g. IV fluids infused, wound dressing intact, patient comfortable."
-                        className="w-full p-1.5 text-xs border border-slate-300 rounded"
+                        className="w-full p-2 text-xs border border-slate-300 rounded bg-white"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAddNursingNote(activeAdmission.id)}
-                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
-                    >
-                      + Add Note
-                    </button>
+
+                    {editingClinicalItem?.type === 'nursing' ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateNursingNote(activeAdmission.id, editingClinicalItem.id, nursingNoteInput)}
+                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shadow"
+                        >
+                          Save Nursing Note
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingClinicalItem(null);
+                            setNursingNoteInput({ shift: "Morning", note: "", nurse: "Staff Nurse" });
+                          }}
+                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded font-semibold text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAddNursingNote(activeAdmission.id)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                      >
+                        + Add Note
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    {activeAdmission.nursingNotes.map((nn) => (
-                      <div key={nn.id} className="p-3 bg-white border border-slate-200 rounded-xl space-y-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800">{nn.shift} Shift • {nn.nurse}</span>
-                          <span className="text-slate-400 font-mono">{nn.date}</span>
+                    {activeAdmission.nursingNotes.length > 0 ? (
+                      activeAdmission.nursingNotes.map((nn) => (
+                        <div key={nn.id} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1 text-xs hover:shadow-xs transition">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 text-sm">{nn.shift} Shift • {nn.nurse}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400 font-mono text-[11px]">{nn.date}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingClinicalItem({ type: 'nursing', id: nn.id, data: nn });
+                                  setNursingNoteInput({ shift: nn.shift, note: nn.note, nurse: nn.nurse });
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                title="Edit nursing note"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteNursingNote(activeAdmission.id, nn.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
+                                title="Delete nursing note"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-slate-700 leading-relaxed">{nn.note}</p>
                         </div>
-                        <p className="text-slate-700">{nn.note}</p>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center text-slate-400 italic bg-slate-50 rounded-xl border border-slate-200">
+                        No nursing care notes recorded.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}
@@ -3490,16 +4417,36 @@ export default function IPDManagementPage() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveModal("none");
-                    setActiveAdmission(null);
-                  }}
-                  className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenRecordPayment(activeAdmission)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                    title="Record payment & give small receipt to patient"
+                  >
+                    <IndianRupee className="w-3.5 h-3.5" />
+                    + Record Payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPatientReceipt(activeAdmission)}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                    title="Print Small Payment Receipt"
+                  >
+                    <Receipt className="w-3.5 h-3.5" />
+                    Receipts ({(activeAdmission.advances || []).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModal("none");
+                      setActiveAdmission(null);
+                    }}
+                    className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Body */}
@@ -4113,6 +5060,14 @@ export default function IPDManagementPage() {
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => handleOpenEditPaymentReceipt(activeAdmission, adv)}
+                                  className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                  title="Edit payment receipt"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => handleDeleteAdvance(activeAdmission.id, adv.id)}
                                   className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-red-50"
                                   title="Remove advance record"
@@ -4416,70 +5371,437 @@ export default function IPDManagementPage() {
       })()}
 
       {/* ─────────────────────────────────────────────────────────────
-          MODAL 4: PRINT ADVANCE RECEIPT
+          MODAL 4: INPATIENT PAYMENT RECEIPT (LINKED TO PATIENT)
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: RECORD INPATIENT PAYMENT (FAST DIRECT PAYMENT ENTRY)
       ───────────────────────────────────────────────────────────── */}
-      {activeModal === "printReceipt" && printReceiptData && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="text-center border-b border-slate-200 pb-3">
-              <h2 className="text-lg font-black text-slate-900 tracking-tight">CORTEX HOSPITAL</h2>
-              <p className="text-[11px] text-slate-500">Official Inpatient Advance Payment Receipt</p>
-            </div>
+      {activeModal === "recordPayment" && recordPaymentAdmission && (() => {
+        const pt = recordPaymentAdmission;
+        const ptBill = calculateRunningBill(pt);
+        const totalPaidSoFar = (pt.advances || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+        const currentBalance = Math.max(0, ptBill.grossTotal - totalPaidSoFar);
 
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Receipt No:</span>
-                <span className="font-mono font-bold text-slate-900">{printReceiptData.advance.receiptNumber}</span>
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className={`p-2 ${editingAdvanceId ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'} rounded-xl`}>
+                    <Receipt className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">
+                      {editingAdvanceId ? `Edit Payment Receipt — ${editingReceiptNumber || 'CRX-REC'}` : "Record Inpatient Payment"}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      {editingAdvanceId ? "Modify amount, mode, date, or notes for this receipt" : "Record payment and give small receipt slip immediately"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModal("none");
+                    setRecordPaymentAdmission(null);
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Date:</span>
-                <span className="font-bold">{printReceiptData.advance.date}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Patient Name:</span>
-                <span className="font-bold text-slate-900">{printReceiptData.patient.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">UHID / IPD No:</span>
-                <span className="font-mono">{printReceiptData.patient.uhid} • {printReceiptData.patient.ipdNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Bed:</span>
-                <span>{printReceiptData.patient.bedNumber} ({printReceiptData.patient.ward})</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Payment Mode:</span>
-                <span className="font-semibold">{printReceiptData.advance.mode}</span>
-              </div>
-              <div className="flex justify-between items-center p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900">
-                <span className="font-bold">Advance Amount Received:</span>
-                <span className="font-black font-mono text-base">₹{printReceiptData.advance.amount.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
 
-            <div className="pt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                Print Receipt
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModal("none");
-                  setPrintReceiptData(null);
-                }}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold"
-              >
-                Close
-              </button>
+              {/* Patient Info Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-bold text-slate-900 text-sm">{pt.name}</div>
+                  <div className="text-slate-500 font-mono text-[11px] mt-0.5">
+                    UHID: <strong className="text-slate-800">{pt.uhid}</strong> • IPD: <strong className="text-blue-700">{pt.ipdNumber}</strong>
+                  </div>
+                  <div className="text-slate-500 text-[11px]">
+                    {pt.ward} (Bed {pt.bedNumber}) • {pt.consultantDoctor}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 uppercase font-semibold block">Stay Balance</span>
+                  <span className="font-mono font-bold text-sm text-slate-900">₹{currentBalance.toLocaleString("en-IN")}</span>
+                  <span className="text-[10px] text-emerald-600 block">Total Paid: ₹{totalPaidSoFar.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              {/* Payment Input Form */}
+              <div className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
+                    Enter Amount Received (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <input
+                      type="number"
+                      min="1"
+                      autoFocus
+                      required
+                      value={quickPaymentForm.amount}
+                      onChange={(e) => setQuickPaymentForm({ ...quickPaymentForm, amount: e.target.value })}
+                      placeholder="e.g. 5000"
+                      className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-xl text-lg font-mono font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                  {/* Quick-add chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {[1000, 2000, 5000, 10000, 20000].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => setQuickPaymentForm({ ...quickPaymentForm, amount: String(chip) })}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold transition"
+                      >
+                        +₹{chip.toLocaleString("en-IN")}
+                      </button>
+                    ))}
+                    {currentBalance > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setQuickPaymentForm({ ...quickPaymentForm, amount: String(currentBalance) })}
+                        className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded text-xs font-bold transition ml-auto"
+                      >
+                        Full Balance (₹{currentBalance.toLocaleString("en-IN")})
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Mode</label>
+                    <select
+                      value={quickPaymentForm.mode}
+                      onChange={(e) => setQuickPaymentForm({ ...quickPaymentForm, mode: e.target.value as any })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                      <option value="Card">Debit / Credit Card</option>
+                      <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Date</label>
+                    <input
+                      type="date"
+                      value={quickPaymentForm.date}
+                      onChange={(e) => setQuickPaymentForm({ ...quickPaymentForm, date: e.target.value })}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Purpose / Notes</label>
+                  <input
+                    type="text"
+                    value={quickPaymentForm.notes}
+                    onChange={(e) => setQuickPaymentForm({ ...quickPaymentForm, notes: e.target.value })}
+                    placeholder="e.g. Admission Advance / Part Payment"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {["Admission Advance", "Surgery Deposit", "Medicines / Pharmacy", "Interim Payment", "Discharge Settlement"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setQuickPaymentForm({ ...quickPaymentForm, notes: p })}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-[11px] transition"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Received By</label>
+                  <input
+                    type="text"
+                    value={quickPaymentForm.receivedBy}
+                    onChange={(e) => setQuickPaymentForm({ ...quickPaymentForm, receivedBy: e.target.value })}
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModal("none");
+                    setRecordPaymentAdmission(null);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveQuickPayment(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition"
+                >
+                  {editingAdvanceId ? "Save Changes" : "Save Only"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveQuickPayment(true)}
+                  className={`px-5 py-2 ${editingAdvanceId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow transition`}
+                >
+                  <Receipt className="w-4 h-4" />
+                  {editingAdvanceId ? "Update & Open Receipt Slip" : "Record & Print Small Receipt"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL 4: INPATIENT SMALL PAYMENT RECEIPT SLIP
+      ───────────────────────────────────────────────────────────── */}
+      {activeModal === "printReceipt" && printReceiptData && (() => {
+        const pt = printReceiptData.patient;
+        const adv = printReceiptData.advance;
+        const ptBill = calculateRunningBill(pt);
+        const amountWords = numberToWordsINR(adv.amount || 0);
+        const allPatientAdvances = pt.advances || [];
+
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            {/* Embedded Print CSS to print ONLY the small slip centered */}
+            <style dangerouslySetInnerHTML={{ __html: `
+              @media print {
+                body * {
+                  visibility: hidden !important;
+                }
+                #inpatient-small-receipt, #inpatient-small-receipt * {
+                  visibility: visible !important;
+                }
+                #inpatient-small-receipt {
+                  position: absolute !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                  top: 0 !important;
+                  margin: 0 auto !important;
+                  width: 320px !important;
+                  max-width: 80mm !important;
+                  padding: 12px !important;
+                  border: 1px dashed #000 !important;
+                  box-shadow: none !important;
+                  background: #fff !important;
+                  color: #000 !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}} />
+
+            <div className="bg-white rounded-2xl max-w-md w-full p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-3.5 print:p-0 print:border-none print:shadow-none">
+              
+              {/* Top Navigation: Installments pill list */}
+              <div className="no-print flex items-center justify-between gap-2 pb-2 border-b border-slate-200">
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                    Slips ({allPatientAdvances.length}):
+                  </span>
+                  {allPatientAdvances.map((item: any, idx: number) => (
+                    <button
+                      key={item.id || idx}
+                      type="button"
+                      onClick={() => setPrintReceiptData({ patient: pt, advance: item })}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold whitespace-nowrap transition ${
+                        adv.id === item.id
+                          ? "bg-emerald-600 text-white shadow-2xs"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      #{idx + 1}: ₹{item.amount.toLocaleString("en-IN")}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditPaymentReceipt(pt, adv)}
+                    className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold whitespace-nowrap border border-blue-200 flex items-center gap-1"
+                    title="Edit amount, mode, or notes of this receipt"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit Receipt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenRecordPayment(pt)}
+                    className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-[11px] font-bold whitespace-nowrap border border-emerald-200"
+                  >
+                    + Add Payment
+                  </button>
+                </div>
+              </div>
+
+              {/* The Small Receipt Slip Container */}
+              <div
+                id="inpatient-small-receipt"
+                className="border-2 border-dashed border-slate-300 rounded-xl p-4 bg-white space-y-3 text-slate-900"
+              >
+                {/* Header */}
+                <div className="text-center pb-2.5 border-b border-slate-300">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <img src="/cortex_logo.png" alt="Cortex Hospital" className="h-7 w-auto object-contain" />
+                    <h2 className="text-sm font-black tracking-tight text-slate-900">
+                      CORTEX HOSPITAL &amp; RESEARCH CENTRE
+                    </h2>
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-0.5">
+                    Beside Urich Mall, Aarti Square, Wardha (M.S) - 442001
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-mono">Cell: +91 9373280505</p>
+
+                  <div className="inline-block mt-2 px-2.5 py-0.5 bg-slate-900 text-white text-[10px] font-extrabold uppercase tracking-wider rounded">
+                    INPATIENT PAYMENT RECEIPT
+                  </div>
+                </div>
+
+                {/* Receipt Meta */}
+                <div className="flex items-center justify-between text-[11px] font-mono border-b border-dashed border-slate-200 pb-2">
+                  <div>
+                    <span className="text-slate-500 text-[10px] block">Receipt No.</span>
+                    <strong className="text-slate-900">{adv.receiptNumber || `CRX-REC-${pt.ipdNumber}`}</strong>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-500 text-[10px] block">Date</span>
+                    <strong className="text-slate-900">{adv.date || new Date().toISOString().split("T")[0]}</strong>
+                  </div>
+                </div>
+
+                {/* Patient Information List */}
+                <div className="text-xs space-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Patient Name:</span>
+                    <span className="font-bold text-slate-900">{pt.name}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-500">UHID:</span>
+                    <span className="font-mono font-bold text-slate-800">{pt.uhid}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-500">IPD No:</span>
+                    <span className="font-mono font-bold text-blue-700">{pt.ipdNumber}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-500">Ward &amp; Bed:</span>
+                    <span className="font-semibold text-slate-800">{pt.ward} (Bed {pt.bedNumber})</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-500">Doctor:</span>
+                    <span className="font-semibold text-slate-800">{pt.consultantDoctor}</span>
+                  </div>
+                </div>
+
+                {/* Prominent Amount Box */}
+                <div className="p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl text-center">
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                    AMOUNT RECEIVED
+                  </span>
+                  <div className="text-xl font-black font-mono text-emerald-900 my-0.5">
+                    ₹{Number(adv.amount || 0).toLocaleString("en-IN")}
+                  </div>
+                  <p className="text-[10px] font-bold text-emerald-950 italic">
+                    {amountWords}
+                  </p>
+                  <div className="mt-1.5 pt-1.5 border-t border-emerald-200 flex justify-between text-[10px] text-emerald-900 font-semibold">
+                    <span>Mode: {adv.mode || "Cash"}</span>
+                    <span>{adv.notes || "Inpatient Care Payment"}</span>
+                  </div>
+                </div>
+
+                {/* Running Account Summary */}
+                <div className="p-2 border border-slate-200 rounded-lg text-[10px] space-y-1">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Total Inpatient Charges So Far:</span>
+                    <span className="font-mono font-bold text-slate-800">₹{ptBill.grossTotal.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-700 font-semibold">
+                    <span>Total Payments Made (including this slip):</span>
+                    <span className="font-mono font-bold">₹{ptBill.totalAdvances.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-900 font-bold pt-1 border-t border-slate-200">
+                    <span>Current Stay Balance Due:</span>
+                    <span className="font-mono text-xs">₹{ptBill.balanceDue.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+
+                {/* Signature Row */}
+                <div className="pt-2 flex justify-between items-end border-t border-slate-200 text-[10px]">
+                  <div>
+                    <span className="text-slate-400 block text-[9px]">Received By:</span>
+                    <span className="font-semibold text-slate-700">{adv.receivedBy || "Billing Desk"}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="border-t border-slate-400 pt-1 font-bold text-slate-800">
+                      Authorized Signatory
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center text-[9px] text-slate-400 pt-1">
+                  Computer generated receipt • Please retain for final discharge
+                </div>
+              </div>
+
+              {/* Modal Buttons (no-print) */}
+              <div className="no-print pt-2 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModal("none");
+                    setPrintReceiptData(null);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  Close
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditPaymentReceipt(pt, adv)}
+                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold border border-blue-200 flex items-center gap-1.5 transition"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit Receipt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenRecordPayment(pt)}
+                    className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 flex items-center gap-1.5 transition"
+                  >
+                    + Record Next Payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5 transition"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print Small Receipt
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─────────────────────────────────────────────────────────────
           MODAL 5: PRINT BED TICKET / ADMISSION CARD
@@ -4613,13 +5935,13 @@ export default function IPDManagementPage() {
                   <div className="text-right">
                     {(activeAdmission.consultantDoctor || "").toLowerCase().includes("shillpa") ? (
                       <>
-                        <h3 className="text-base font-extrabold text-[#7B1828]">Dr. Shillpa Raut</h3>
+                        <h3 className="text-base font-extrabold text-slate-900">Dr. Shillpa Raut</h3>
                         <p className="text-[11px] font-bold text-slate-900">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</p>
                         <p className="text-[10px] text-slate-500">Reg. No. 2004/05/1842 • Consulting Gynecologist</p>
                       </>
                     ) : (
                       <>
-                        <h3 className="text-base font-extrabold text-[#7B1828]">{activeAdmission.consultantDoctor || "Dr. Vipeen Raut"}</h3>
+                        <h3 className="text-base font-extrabold text-slate-900">{activeAdmission.consultantDoctor || "Dr. Vipeen Raut"}</h3>
                         <p className="text-[11px] font-bold text-slate-900">M.B.B.S., Dip.Ortho., DNB Ortho</p>
                         <p className="text-[10px] text-slate-500">Reg. No. 1692/03/2002 • Consulting Orthopaedic Surgeon</p>
                       </>

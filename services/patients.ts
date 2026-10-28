@@ -40,6 +40,8 @@ export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' |
         sex: patient.sex as "Male" | "Female" | "Other",
         phone_number: patient.phone_number,
         address: (patient as any).address,
+        email: (patient as any).email,
+        whatsapp_number: (patient as any).whatsapp_number,
     });
     return data;
 }

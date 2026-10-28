@@ -385,7 +385,10 @@ const ViewPatients = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="font-medium text-gray-900">{patient.name}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">{patient.phone_number}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                        <div>{patient.phone_number}</div>
+                        {patient.email && <div className="text-xs text-gray-400">{patient.email}</div>}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{patient.age}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{patient.sex}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-500">{formatDate(patient.latestVisit)}</td>
@@ -527,6 +530,9 @@ const ViewPatients = () => {
                         <div className="space-y-2">
                           <p><span className="font-medium">Name:</span> {selectedPatient.name}</p>
                           <p><span className="font-medium">Phone:</span> {selectedPatient.phone_number}</p>
+                          {selectedPatient.email && (
+                            <p><span className="font-medium">Email:</span> {selectedPatient.email}</p>
+                          )}
                           <p><span className="font-medium">Age:</span> {selectedPatient.age}</p>
                           <p><span className="font-medium">Sex:</span> {selectedPatient.sex}</p>
                           <p><span className="font-medium">Latest Visit:</span> {formatDate(selectedPatient.latestVisit)}</p>

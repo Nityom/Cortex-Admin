@@ -57,6 +57,8 @@ export default defineSchema({
     sex: v.union(v.literal("Male"), v.literal("Female"), v.literal("Other")),
     phone_number: v.string(),
     address: v.optional(v.string()),
+    email: v.optional(v.string()),
+    whatsapp_number: v.optional(v.string()),
   })
     .index("by_phone", ["phone_number"])
     .index("by_reference", ["reference_number"]),

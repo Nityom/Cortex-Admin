@@ -37,6 +37,7 @@ interface IPDAdmission {
     doctorNotes: string;
   };
   vitals?: Array<{
+    id?: string;
     date: string;
     time: string;
     bp: string;
@@ -45,6 +46,7 @@ interface IPDAdmission {
     spo2: string;
     respRate?: string;
     weight?: string;
+    recordedBy?: string;
   }>;
   procedures?: Array<{
     id: string;
@@ -52,6 +54,7 @@ interface IPDAdmission {
     date: string;
     surgeon: string;
     notes?: string;
+    cost?: number;
   }>;
   investigations?: Array<{
     id: string;
@@ -59,8 +62,10 @@ interface IPDAdmission {
     date: string;
     status: string;
     result?: string;
+    cost?: number;
   }>;
   doctorNotes?: Array<{
+    id?: string;
     date: string;
     time: string;
     doctor: string;
@@ -68,12 +73,20 @@ interface IPDAdmission {
     plan: string;
   }>;
   medications?: Array<{
+    id?: string;
     name: string;
     dosage: string;
     route: string;
     frequency: string;
     timing: string;
     status: string;
+  }>;
+  nursingNotes?: Array<{
+    id?: string;
+    date: string;
+    shift: string;
+    note: string;
+    nurse?: string;
   }>;
   finalSettlement?: {
     billNumber: string;
@@ -170,9 +183,11 @@ function DischargeSheetContent() {
   const searchParams = useSearchParams();
   const admissionId = searchParams.get('id');
   const includeSigParam = searchParams.get('includeSignature');
+  const includeClinicalParam = searchParams.get('includeClinicalSheet');
 
   const [admission, setAdmission] = useState<IPDAdmission | null>(null);
   const [includeSignature, setIncludeSignature] = useState<boolean>(includeSigParam !== 'false');
+  const [includeClinicalSheet, setIncludeClinicalSheet] = useState<boolean>(includeClinicalParam !== 'false');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -239,7 +254,17 @@ function DischargeSheetContent() {
           <ArrowLeft className="w-3.5 h-3.5" /> Close
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 transition">
+            <input
+              type="checkbox"
+              checked={includeClinicalSheet}
+              onChange={(e) => setIncludeClinicalSheet(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+            />
+            <span>{includeClinicalSheet ? "✓ Full Clinical Sheet Included" : "Summary Only (No Clinical Logs)"}</span>
+          </label>
+
           <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-300 transition">
             <input
               type="checkbox"
@@ -589,32 +614,340 @@ function DischargeSheetContent() {
               </div>
             </div>
 
-            {/* Official Cortex Hospital Schedule & Contact Footer Banner */}
-            <div className="footer-banner-container">
-              <div className="footer-top-pill-row">
-                <span className="clinic-pill">Hip &amp; Knee Joint Clinic</span>
-                <span className="clinic-time">Every Thursday 6 pm to 8 pm</span>
+            {/* Official Hospital Discharge Document Footer */}
+            <div className="discharge-footer">
+              <div className="discharge-footer-contact">
+                <strong>CORTEX HOSPITAL &amp; RESEARCH CENTRE</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
               </div>
-
-              <div className="footer-clinic-title">Orthopaedics &amp; Maternity Centre</div>
-
-              <div className="footer-opd-line">
-                <span className="footer-opd-label">OPD Time : </span>
-                Mon. to Fri. - 10 am to 1 pm &amp; 6 pm to 8 pm | Sat. - 10 am to 1 pm &amp; Evening OPD Closed
+              <div className="discharge-footer-disclaimer">
+                This Inpatient Discharge Summary &amp; Clinical Report is a confidential medical record. Please bring this summary during follow-up visits.
               </div>
-
-              <div className="footer-sunday-line">Sunday OPD Closed • 24/7 Casualty &amp; Inpatient Admissions Open</div>
-
-              <div className="footer-address-line">
-                Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001
-                &nbsp;|&nbsp; Ph. : 07152-255795, Cell : 9373280505
-              </div>
-
-              <div className="footer-bottom-bar" />
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Official A4 Clinical Stay Sheet (Annexure) ── */}
+      {includeClinicalSheet && (
+        <div className="prescription-sheet clinical-sheet-annexure">
+          <img
+            src="/cortex_logo.png"
+            alt="Watermark"
+            className="sheet-watermark"
+          />
+
+          <div className="sheet-content">
+            <div className="sheet-top-and-body">
+              {/* Top Meta Row */}
+              <div className="top-meta-row">
+                <span>{new Date().toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="font-bold tracking-wider">CORTEX HOSPITAL • INPATIENT CLINICAL CASE SHEET &amp; STAY LOG</span>
+                <span>PAGE 2 (ANNEXURE)</span>
+              </div>
+
+              {/* Header Row */}
+              <div className="header-row">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/cortex_logo.png"
+                    alt="Cortex Hospital"
+                    className="hospital-logo"
+                  />
+                </div>
+
+                <div className="doctor-header-block">
+                  <h1 className="doctor-title-name">{doctorName}</h1>
+                  <div className="doctor-qualifications">
+                    {doctorIsGynae ? "M.B.B.S., M.D. (Gynecology & Obstetrics)" : "M.B.B.S., Dip.Ortho., DNB Ortho"}
+                  </div>
+                  <div className="doctor-specialty">
+                    {doctorIsGynae ? "Consulting Gynecologist & Obstetrician" : "Consulting Orthopaedic & Joint Replacement Surgeon"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Title Banner */}
+              <div className="doc-banner-row">
+                <span className="doc-banner-title">INPATIENT CLINICAL STAY RECORD (CASE SHEET)</span>
+              </div>
+
+              {/* Patient Info Strip */}
+              <div className="patient-row">
+                <div className="patient-info-left">
+                  <span>{admission.uhid}</span> • <span>IPD NO: <strong>{admission.ipdNumber}</strong></span> :{' '}
+                  <span className="patient-name">MR./MRS. {admission.name.toUpperCase()}</span>{' '}
+                  <span>({admission.age} Y, {admission.sex})</span>
+                  {admission.phone && <span> - Ph: {admission.phone}</span>}
+                </div>
+                <div className="patient-date-right">
+                  Ward: <strong>{admission.ward}</strong> (Bed {admission.bedNumber})
+                </div>
+              </div>
+
+              {/* Admission & Stay Meta Row */}
+              <div className="stay-meta-row">
+                <div>
+                  <span>DOA: </span><strong>{formatDisplayDate(admission.admissionDate)} {admission.admissionTime || ''}</strong>
+                </div>
+                <div>
+                  <span>DOD: </span>
+                  <strong>
+                    {formatDisplayDate(admission.dischargeDate || new Date().toISOString().split('T')[0])}{' '}
+                    {admission.dischargeTime || ''}
+                  </strong>
+                </div>
+                <div>
+                  <span>Stay: </span><strong>{stayDays} {stayDays === 1 ? 'Day' : 'Days'}</strong>
+                </div>
+                <div>
+                  <span>Diagnosis: </span><strong>{admission.dischargeSummary?.finalDiagnosis || admission.provisionalDiagnosis}</strong>
+                </div>
+              </div>
+
+              {/* 1. TPR & Vitals History Chart */}
+              <div className="clinical-section">
+                <div className="section-label">1. INPATIENT VITALS &amp; TPR MONITORING LOG (DAILY OBSERVATIONS)</div>
+                {admission.vitals && admission.vitals.length > 0 ? (
+                  <div className="section-body p-0">
+                    <table className="annexure-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '16%' }}>Date &amp; Time</th>
+                          <th style={{ width: '14%' }}>BP (mmHg)</th>
+                          <th style={{ width: '12%' }}>Pulse (/min)</th>
+                          <th style={{ width: '12%' }}>Temp (°F)</th>
+                          <th style={{ width: '12%' }}>SpO₂ (%)</th>
+                          <th style={{ width: '12%' }}>Resp. Rate</th>
+                          <th style={{ width: '22%' }}>Recorded By</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admission.vitals.map((v, i) => (
+                          <tr key={i}>
+                            <td><strong>{formatDisplayDate(v.date)}</strong> <span className="text-[7pt] text-slate-500">{v.time}</span></td>
+                            <td><strong className="font-mono text-slate-900">{v.bp || '—'}</strong></td>
+                            <td>{v.pulse ? `${v.pulse} bpm` : '—'}</td>
+                            <td>{v.temp ? `${v.temp} °F` : '—'}</td>
+                            <td>{v.spo2 ? `${v.spo2}%` : '—'}</td>
+                            <td>{v.respRate ? `${v.respRate} /min` : '—'}</td>
+                            <td className="text-slate-700">{v.recordedBy || 'Staff Nurse'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="section-body text-slate-500 italic text-[8pt]">No vitals logs recorded during admission.</div>
+                )}
+              </div>
+
+              {/* 2. Doctor Clinical Round Notes */}
+              <div className="clinical-section">
+                <div className="section-label">2. DOCTOR DAILY ROUND NOTES &amp; CLINICAL PROGRESS</div>
+                {admission.doctorNotes && admission.doctorNotes.length > 0 ? (
+                  <div className="section-body p-0">
+                    <table className="annexure-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '18%' }}>Date &amp; Time</th>
+                          <th style={{ width: '22%' }}>Doctor</th>
+                          <th style={{ width: '35%' }}>Clinical Observations &amp; Progress</th>
+                          <th style={{ width: '25%' }}>Orders / Treatment Plan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admission.doctorNotes.map((dn, i) => (
+                          <tr key={i}>
+                            <td><strong>{formatDisplayDate(dn.date)}</strong> <span className="text-[7pt] text-slate-500">{dn.time}</span></td>
+                            <td className="font-bold text-slate-900">{dn.doctor}</td>
+                            <td>{dn.note}</td>
+                            <td className="text-indigo-900 font-medium">{dn.plan || 'Continue current therapy'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="section-body text-slate-500 italic text-[8pt]">No doctor progress notes recorded.</div>
+                )}
+              </div>
+
+              {/* 3. Inpatient Medication MAR */}
+              <div className="clinical-section">
+                <div className="section-label">3. INPATIENT MEDICATION ADMINISTRATION RECORD (MAR)</div>
+                {admission.medications && admission.medications.length > 0 ? (
+                  <div className="section-body p-0">
+                    <table className="annexure-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '38%' }}>Medicine Name</th>
+                          <th style={{ width: '16%' }}>Dosage</th>
+                          <th style={{ width: '14%' }}>Route</th>
+                          <th style={{ width: '20%' }}>Frequency &amp; Timing</th>
+                          <th style={{ width: '12%' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admission.medications.map((m, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-slate-900">{m.name}</td>
+                            <td>{m.dosage}</td>
+                            <td><span className="annexure-tag">{m.route || 'Oral'}</span></td>
+                            <td>{m.frequency} {m.timing ? `• ${m.timing}` : ''}</td>
+                            <td>
+                              <span className={`annexure-status-tag ${m.status === 'Active' ? 'tag-active' : 'tag-stopped'}`}>
+                                {m.status || 'Active'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="section-body text-slate-500 italic text-[8pt]">No inpatient running medications logged.</div>
+                )}
+              </div>
+
+              {/* 4. Investigations & Diagnostic Reports */}
+              {admission.investigations && admission.investigations.length > 0 && (
+                <div className="clinical-section">
+                  <div className="section-label">4. DIAGNOSTIC INVESTIGATIONS &amp; LAB FINDINGS</div>
+                  <div className="section-body p-0">
+                    <table className="annexure-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '40%' }}>Investigation / Test</th>
+                          <th style={{ width: '18%' }}>Date</th>
+                          <th style={{ width: '18%' }}>Status</th>
+                          <th style={{ width: '24%' }}>Report Findings / Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admission.investigations.map((inv, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-slate-900">{inv.name}</td>
+                            <td>{formatDisplayDate(inv.date)}</td>
+                            <td>
+                              <span className={`annexure-status-tag ${inv.status === 'Completed' ? 'tag-active' : 'tag-pending'}`}>
+                                {inv.status}
+                              </span>
+                            </td>
+                            <td>{inv.result || 'Normal / Within normal limits'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. Procedures & Surgeries Log (if any) */}
+              {admission.procedures && admission.procedures.length > 0 && (
+                <div className="clinical-section">
+                  <div className="section-label">5. SURGICAL &amp; OPERATIVE PROCEDURES PERFORMED</div>
+                  <div className="section-body p-0">
+                    <table className="annexure-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '38%' }}>Procedure / Surgery</th>
+                          <th style={{ width: '18%' }}>Date</th>
+                          <th style={{ width: '24%' }}>Surgeon</th>
+                          <th style={{ width: '20%' }}>Operative Findings</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admission.procedures.map((p, i) => (
+                          <tr key={i}>
+                            <td className="font-bold text-slate-900">{p.name}</td>
+                            <td>{formatDisplayDate(p.date)}</td>
+                            <td className="font-semibold text-slate-800">{p.surgeon}</td>
+                            <td className="text-slate-600 text-[7.5pt]">{p.notes || 'Successfully performed without complications'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. Nursing Shift Observations */}
+              <div className="clinical-section">
+                <div className="section-label">6. NURSING CARE &amp; SHIFT OBSERVATIONS LOG</div>
+                {admission.nursingNotes && admission.nursingNotes.length > 0 ? (
+                  <div className="section-body p-0">
+                    <table className="annexure-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '20%' }}>Date &amp; Shift</th>
+                          <th style={{ width: '58%' }}>Nursing Care, Vitals Monitoring &amp; Patient Condition</th>
+                          <th style={{ width: '22%' }}>Duty Nurse</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admission.nursingNotes.map((nn, i) => (
+                          <tr key={i}>
+                            <td><strong>{formatDisplayDate(nn.date)}</strong> <span className="annexure-tag">[{nn.shift}]</span></td>
+                            <td>{nn.note}</td>
+                            <td className="font-semibold text-slate-700">{nn.nurse || 'Staff Nurse'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="section-body text-slate-500 italic text-[8pt]">Regular routine nursing care provided. Vitals stable throughout stay.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Signatures for Clinical Sheet */}
+            <div className="sheet-bottom-section">
+              <div className="clinical-bottom-grid">
+                <div className="advice-box">
+                  <div className="emergency-notice">
+                    <strong>* RECORD VERIFICATION : </strong> This clinical sheet is an official chronological record of inpatient hospital care at Cortex Hospital &amp; Research Centre.
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="signature-block">
+                    <div className="h-[38px] flex items-end justify-center">
+                      <span className="text-[7.5pt] text-slate-400 italic">Verified Record</span>
+                    </div>
+                    <div className="sig-doc-name">Nursing In-Charge</div>
+                    <div className="sig-doc-sub">IPD Ward Station</div>
+                  </div>
+
+                  <div className="signature-block">
+                    {includeSignature && (
+                      <img
+                        src="/sign.png"
+                        alt="Doctor Signature"
+                        className="sig-img"
+                      />
+                    )}
+                    <div className="sig-doc-name">
+                      {doctorName}
+                    </div>
+                    <div className="sig-doc-sub">Authorized Consultant</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Official Hospital Discharge Document Footer */}
+              <div className="discharge-footer">
+                <div className="discharge-footer-contact">
+                  <strong>CORTEX HOSPITAL &amp; RESEARCH CENTRE</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
+                </div>
+                <div className="discharge-footer-disclaimer">
+                  Confidential Patient Clinical Stay Record • Inpatient Medical Records
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Prescription Sheet Styles ── */}
       <style jsx global>{`
@@ -673,6 +1006,11 @@ function DischargeSheetContent() {
             page-break-inside: avoid !important;
             page-break-before: avoid !important;
             margin-top: 4px !important;
+          }
+
+          .clinical-sheet-annexure {
+            page-break-before: always !important;
+            margin-top: 0 !important;
           }
         }
 
@@ -783,7 +1121,7 @@ function DischargeSheetContent() {
         .doctor-title-name {
           font-size: 15pt;
           font-weight: 800;
-          color: #7B1828;
+          color: #0f172a;
           margin: 0;
           line-height: 1.15;
           letter-spacing: -0.2px;
@@ -1156,75 +1494,91 @@ function DischargeSheetContent() {
           color: #64748b;
         }
 
-        /* ── Bottom Schedule Banner ── */
-        .footer-banner-container {
-          margin-top: 4px;
-          padding-top: 3px;
-          border-top: 1.5px solid #d1d5db;
+        /* ── Discharge Document Footer ── */
+        .discharge-footer {
+          margin-top: 6px;
+          padding-top: 5px;
+          border-top: 1.5px solid #cbd5e1;
           text-align: center;
         }
 
-        .footer-top-pill-row {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
+        .discharge-footer-contact {
+          font-size: 8pt;
+          font-weight: 600;
+          color: #1e293b;
           margin-bottom: 2px;
         }
 
-        .clinic-pill {
-          background-color: #7B1828;
-          color: #ffffff;
+        .discharge-footer-disclaimer {
+          font-size: 7pt;
+          color: #64748b;
+          font-style: italic;
+        }
+
+        .prescription-sheet + .prescription-sheet {
+          margin-top: 24px;
+        }
+
+        .annexure-table {
+          width: 100%;
+          border-collapse: collapse;
           font-size: 7.5pt;
+        }
+
+        .annexure-table th {
+          background: #f1f5f9;
+          padding: 2.5px 5px;
+          text-align: left;
+          font-size: 7pt;
           font-weight: 700;
-          padding: 1px 8px;
-          border-radius: 9999px;
-          letter-spacing: 0.2px;
+          color: #334155;
+          border-bottom: 1px solid #cbd5e1;
+          border-right: 1px solid #f1f5f9;
         }
 
-        .clinic-time {
-          font-size: 8pt;
+        .annexure-table td {
+          padding: 2.5px 5px;
+          border-bottom: 1px solid #f1f5f9;
+          border-right: 1px solid #f8fafc;
+          vertical-align: top;
+          color: #0f172a;
+        }
+
+        .annexure-table tr:nth-child(even) {
+          background: #fafbfc;
+        }
+
+        .annexure-tag {
+          display: inline-block;
+          font-size: 6.5pt;
           font-weight: 700;
-          color: #111111;
-        }
-
-        .footer-clinic-title {
-          font-size: 9.5pt;
-          font-weight: 800;
-          color: #000000;
-          margin-bottom: 1px;
-        }
-
-        .footer-opd-line {
-          font-size: 7.5pt;
-          font-weight: 600;
-          color: #1f2937;
-          margin-bottom: 1px;
-        }
-
-        .footer-opd-label {
-          font-weight: 800;
-          color: #7B1828;
-        }
-
-        .footer-sunday-line {
-          font-size: 7.5pt;
-          font-weight: 700;
-          color: #7B1828;
-          margin-bottom: 1.5px;
-        }
-
-        .footer-address-line {
-          font-size: 7.5pt;
-          font-weight: 500;
-          color: #374151;
-        }
-
-        .footer-bottom-bar {
-          height: 3.5px;
-          background: linear-gradient(90deg, #4c1d95 0%, #7B1828 50%, #4c1d95 100%);
+          background: #e2e8f0;
+          color: #334155;
+          padding: 0.5px 4px;
           border-radius: 2px;
-          margin-top: 3px;
+        }
+
+        .annexure-status-tag {
+          display: inline-block;
+          font-size: 6.5pt;
+          font-weight: 700;
+          padding: 0.5px 4px;
+          border-radius: 2px;
+        }
+
+        .tag-active {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .tag-stopped {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+
+        .tag-pending {
+          background: #fef3c7;
+          color: #92400e;
         }
       `}</style>
     </>
