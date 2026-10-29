@@ -49,6 +49,11 @@ interface PrescriptionData {
   diagnosis?: string;
   treatment_plan?: any[];
   oral_exam_notes?: string;
+  findings?: string;
+  clinical_findings?: string;
+  diet_exercise?: string;
+  referral_doctor?: string;
+  drawing_data?: string;
   selected_teeth?: any[];
   medicines?: MedicineEntry[];
   treatment_done?: any[];
@@ -57,6 +62,8 @@ interface PrescriptionData {
   doctor_name?: string;
   opd_visit_id?: string;
   vitals?: any;
+  section_order?: string[];
+  enabled_sections?: Record<string, boolean>;
 }
 
 const getSignatureSrc = (sig?: string) => {
@@ -261,17 +268,23 @@ function PrintPrescriptionContent() {
           prescription_date: data.prescription_date || data.date || new Date().toISOString(),
           chief_complaint: data.chief_complaint || data.cc || '',
           medical_history: data.medical_history || data.mh || '',
+          findings: data.findings || data.clinical_findings || data.oral_exam_notes || '',
           investigation: data.investigation || '',
           diagnosis: data.diagnosis || data.de || '',
           treatment_plan: Array.isArray(rawTreatmentPlan) ? rawTreatmentPlan : [],
           oral_exam_notes: data.oral_exam_notes || data.diagnosisNotes || '',
           selected_teeth: normalizedSelectedTeeth,
           medicines: normalizedMedicines,
-          treatment_done: Array.isArray(rawTreatmentDone) ? rawTreatmentDone : [],
+          treatment_done: [], // EXCLUDED: Treatment done is strictly excluded from prescription printout
           advice: data.advice || '',
+          diet_exercise: data.diet_exercise || data.dietExercise || '',
+          referral_doctor: data.referral_doctor || data.referralDoctor || '',
+          drawing_data: data.drawing_data || data.drawingDataUrl || '',
           followup_date: data.followup_date || data.followupDate || '',
           doctor_name: data.doctor_name || data.doctorName || '',
           vitals: rawVitals,
+          section_order: Array.isArray(data.section_order) ? data.section_order : undefined,
+          enabled_sections: typeof data.enabled_sections === 'object' ? data.enabled_sections : undefined,
         };
 
         if (isMounted) {
@@ -373,12 +386,322 @@ function PrintPrescriptionContent() {
   const phoneDisplay = prescriptionData.phone_number || '';
 
   const vitals = prescriptionData.vitals || (prescriptionData as any).vital_signs || {};
-  const bpDisplay = vitals.bp || (vitals.bp_systolic && vitals.bp_diastolic ? `${vitals.bp_systolic}/${vitals.bp_diastolic}` : '') || (prescriptionData as any).bp || '';
+  const bpDisplay = vitals.bp || (vitals.bp_systolic && vitals.bp_diastolic ? `${vitals.bp_systolic}/${vitals.bp_diastolic}` : '') || (vitals.bp_systolic ? `${vitals.bp_systolic}` : '') || (prescriptionData as any).bp || '';
   const spo2Display = vitals.spo2 || (prescriptionData as any).spo2 || '';
   const heightDisplay = vitals.height || (prescriptionData as any).height || '';
   const weightDisplay = vitals.weight || (prescriptionData as any).weight || '';
   const pulseDisplay = vitals.pulse || (prescriptionData as any).pulse || '';
-  const hasVitals = !!(bpDisplay || spo2Display || heightDisplay || weightDisplay);
+  const tempDisplay = vitals.temperature || vitals.temp || (prescriptionData as any).temp || '';
+  const bmiDisplay = vitals.bmi || (prescriptionData as any).bmi || '';
+  const hasVitals = !!(bpDisplay || spo2Display || heightDisplay || weightDisplay || pulseDisplay || tempDisplay || bmiDisplay);
+
+  const chiefComplaintText = prescriptionData.chief_complaint?.trim();
+  const medicalHistoryText = prescriptionData.medical_history?.trim();
+  const findingsText = (prescriptionData.findings || prescriptionData.clinical_findings || prescriptionData.oral_exam_notes || '').trim();
+  const drawingData = prescriptionData.drawing_data?.trim();
+
+  const enabledSections = prescriptionData.enabled_sections || {};
+  const DEFAULT_PRINT_ORDER = [
+    'vitals',
+    'complaints',
+    'history',
+    'findings',
+    'diagnosis',
+    'drawing_board',
+    'medicines',
+    'clinical_notes',
+    'next_visit',
+    'signature',
+  ];
+  const effectiveOrder = prescriptionData.section_order && prescriptionData.section_order.length > 0
+    ? prescriptionData.section_order.filter((k) => k !== 'procedure')
+    : DEFAULT_PRINT_ORDER;
+
+  const renderVitals = () => {
+    if (enabledSections.vitals === false || !hasVitals) return null;
+    return (
+      <div key="vitals" className="vitals-row">
+        <span className="vitals-label">Vitals:</span>
+        {bpDisplay && (
+          <span className="vitals-item">
+            <strong>BP:</strong> {bpDisplay}{!bpDisplay.toLowerCase().includes('mmhg') ? ' mmHg' : ''}
+          </span>
+        )}
+        {pulseDisplay && (
+          <span className="vitals-item">
+            <strong>Pulse:</strong> {pulseDisplay}{!String(pulseDisplay).includes('/') ? ' /min' : ''}
+          </span>
+        )}
+        {spo2Display && (
+          <span className="vitals-item">
+            <strong>SpO₂:</strong> {spo2Display}{!String(spo2Display).includes('%') ? '%' : ''}
+          </span>
+        )}
+        {tempDisplay && (
+          <span className="vitals-item">
+            <strong>Temp:</strong> {tempDisplay}{!String(tempDisplay).toLowerCase().includes('f') && !String(tempDisplay).toLowerCase().includes('c') ? ' °F' : ''}
+          </span>
+        )}
+        {heightDisplay && (
+          <span className="vitals-item">
+            <strong>Height:</strong> {heightDisplay}{!String(heightDisplay).toLowerCase().includes('cm') ? ' cm' : ''}
+          </span>
+        )}
+        {weightDisplay && (
+          <span className="vitals-item">
+            <strong>Weight:</strong> {weightDisplay}{!String(weightDisplay).toLowerCase().includes('kg') ? ' kg' : ''}
+          </span>
+        )}
+        {bmiDisplay && (
+          <span className="vitals-item">
+            <strong>BMI:</strong> {bmiDisplay}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderComplaints = () => {
+    if (enabledSections.complaints === false || !chiefComplaintText) return null;
+    return (
+      <div key="complaints" className="clinical-strip-section">
+        <div className="clinical-strip-row">
+          <span className="clinical-strip-lbl">Chief Complaints:</span>
+          <span className="clinical-strip-val">{chiefComplaintText}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderHistory = () => {
+    if (enabledSections.history === false || !medicalHistoryText) return null;
+    return (
+      <div key="history" className="clinical-strip-section">
+        <div className="clinical-strip-row">
+          <span className="clinical-strip-lbl">Medical History:</span>
+          <span className="clinical-strip-val">{medicalHistoryText}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderFindings = () => {
+    if (enabledSections.findings === false || !findingsText) return null;
+    return (
+      <div key="findings" className="clinical-strip-section">
+        <div className="clinical-strip-row">
+          <span className="clinical-strip-lbl">Clinical Examination:</span>
+          <span className="clinical-strip-val">{findingsText}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDiagnosis = () => {
+    if (enabledSections.diagnosis === false || !diagnosisText) return null;
+    return (
+      <div key="diagnosis" className="diagnosis-row">
+        <span className="diagnosis-label">Diagnosis: </span>
+        <span className="diagnosis-text">{diagnosisText}</span>
+      </div>
+    );
+  };
+
+  const renderDrawingBoard = () => {
+    if (enabledSections.drawing_board === false) return null;
+    if (!drawingData || (!drawingData.startsWith('data:image') && !drawingData.startsWith('http') && drawingData.length < 500)) return null;
+    return (
+      <div key="drawing_board" className="clinical-sketch-row">
+        <span className="clinical-strip-lbl">Clinical Sketch:</span>
+        <img src={drawingData} alt="Clinical Sketch" className="clinical-sketch-img" />
+      </div>
+    );
+  };
+
+  const renderMedicines = () => {
+    if (enabledSections.medicines === false) return null;
+    return (
+      <div key="medicines" className="rx-wrapper">
+        <div className="rx-symbol">℞</div>
+        <table className="med-table">
+          <thead>
+            <tr>
+              <th className="col-med">Medicine</th>
+              <th className="col-dosage">Dosage</th>
+              <th className="col-timing">Timing - Freq. - Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.isArray(prescriptionData.medicines) && prescriptionData.medicines.length > 0 ? (
+              prescriptionData.medicines.map((med, index) => (
+                <tr key={index} className="med-row">
+                  <td>
+                    <div className="med-name-heading">
+                      {index + 1}) &nbsp;{med.name}
+                    </div>
+                    {med.composition && (
+                      <div className="med-sub-line">
+                        <span className="med-sub-lbl">Composition</span>
+                        <span className="med-sub-sep">:</span>
+                        <span className="med-sub-val">{med.composition}</span>
+                      </div>
+                    )}
+                    {(() => {
+                      const timingVal = med.timing || (typeof med.dosage === 'string' ? getTimingFromDosage(med.dosage) : '');
+                      if (!timingVal) return null;
+                      return (
+                        <div className="med-sub-line">
+                          <span className="med-sub-lbl">Timing</span>
+                          <span className="med-sub-sep">:</span>
+                          <span className="med-sub-val">{timingVal}</span>
+                        </div>
+                      );
+                    })()}
+                    {med.note && (
+                      <div className="med-sub-line">
+                        <span className="med-sub-lbl">Note</span>
+                        <span className="med-sub-sep">:</span>
+                        <span className="med-sub-val med-note-val">{med.note}</span>
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    {med.schedules && med.schedules.length > 1 ? (
+                      <div className="space-y-1">
+                        {med.schedules.map((s, si) => (
+                          <div key={si} className="dosage-val">
+                            {s.dosage ? String(s.dosage).replace(/-/g, ' — ') : '—'}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="dosage-val">
+                        {med.dosage ? String(med.dosage).replace(/-/g, ' — ') : '—'}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    {med.schedules && med.schedules.length > 1 ? (
+                      <div className="space-y-1.5">
+                        {med.schedules.map((s, si) => (
+                          <div key={si} className="timing-val text-[8.5pt]">
+                            <span className="font-bold">{s.frequency || 'Daily'}</span>
+                            {s.duration ? ` • ${s.duration}` : ''}
+                            {s.when ? ` • ${s.when}` : ''}
+                            {s.where ? ` • ${s.where}` : ''}
+                            {s.notes ? ` (${s.notes})` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="timing-val">
+                        {(() => {
+                          const parts: string[] = [];
+                          if (med.frequency && med.frequency !== 'Daily') {
+                            parts.push(String(med.frequency));
+                          }
+                          if (med.freq_duration) {
+                            parts.push(String(med.freq_duration));
+                          }
+                          if (
+                            med.duration &&
+                            (!med.freq_duration ||
+                              (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
+                                !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
+                          ) {
+                            parts.push(`(${med.duration})`);
+                          }
+                          if (parts.length > 0) {
+                            return parts.join(' • ');
+                          }
+                          return med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
+                        })()}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr className="med-row">
+                <td colSpan={3} className="text-center py-4 text-gray-500 italic">
+                  No medicines prescribed.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderClinicalNotes = () => {
+    if (enabledSections.clinical_notes === false) return null;
+    const hasAny = !!(prescriptionData.advice || prescriptionData.diet_exercise || prescriptionData.referral_doctor || prescriptionData.investigation);
+    if (!hasAny) return null;
+    return (
+      <div key="clinical_notes" className="advice-box" style={{ marginTop: '6px' }}>
+        {prescriptionData.advice && (
+          <div>
+            <div className="advice-heading">Advice:</div>
+            <div className="advice-content-body">{prescriptionData.advice}</div>
+          </div>
+        )}
+        {prescriptionData.diet_exercise && (
+          <div className="marathi-item">
+            <span className="marathi-label">Diet &amp; Exercise:</span>
+            <span>{prescriptionData.diet_exercise}</span>
+          </div>
+        )}
+        {prescriptionData.referral_doctor && (
+          <div className="marathi-item">
+            <span className="marathi-label">Referred To:</span>
+            <span>{prescriptionData.referral_doctor}</span>
+          </div>
+        )}
+        {prescriptionData.investigation && (
+          <div className="marathi-item">
+            <span className="marathi-label">फेर चाचणी / Tests :</span>
+            <span>{prescriptionData.investigation}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderNextVisit = () => {
+    if (enabledSections.next_visit === false || !prescriptionData.followup_date) return null;
+    return (
+      <div key="next_visit" className="marathi-item" style={{ marginTop: '4px' }}>
+        <span className="marathi-label">फेरतपासणी (Next Visit):</span>
+        <span>
+          {formatFollowup(
+            prescriptionData.followup_date,
+            prescriptionData.prescription_date
+          )}
+        </span>
+      </div>
+    );
+  };
+
+  const renderSignature = () => {
+    if (enabledSections.signature === false) return null;
+    return (
+      <div key="signature" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+        <div className="signature-block">
+          {includeSignature && resolvedSignature && (
+            <img
+              src={getSignatureSrc(resolvedSignature)}
+              alt="Doctor Signature"
+              className="sig-img"
+            />
+          )}
+          <div className="sig-doc-name">
+            {resolvedDoctorName || 'Dr Vipeen Raut'}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -646,6 +969,53 @@ function PrintPrescriptionContent() {
           display: inline-flex;
           align-items: center;
           gap: 3px;
+        }
+
+        /* ── Clinical Strip (Complaints, History, Findings) ── */
+        .clinical-strip-section {
+          padding: 3px 0 3px 0;
+          font-size: 8.5pt;
+          line-height: 1.35;
+          border-top: 1px dashed #cbd5e1;
+          border-bottom: 1px solid #d1d5db;
+        }
+
+        .clinical-strip-row {
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+          margin-bottom: 1.5px;
+        }
+
+        .clinical-strip-lbl {
+          font-weight: 800;
+          color: #000000;
+          font-size: 8pt;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          flex-shrink: 0;
+        }
+
+        .clinical-strip-val {
+          font-weight: 600;
+          color: #111111;
+        }
+
+        .clinical-sketch-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 3px 0;
+          border-bottom: 1px dashed #cbd5e1;
+        }
+
+        .clinical-sketch-img {
+          max-height: 70px;
+          max-width: 150px;
+          object-fit: contain;
+          border: 1px solid #cbd5e1;
+          border-radius: 4px;
+          background: #ffffff;
         }
 
         /* ── Diagnosis Row ── */
@@ -1013,214 +1383,39 @@ function PrintPrescriptionContent() {
               </div>
             </div>
 
-            {/* Vitals Bar (BP, SpO2, Height, Weight, Pulse) */}
-            {hasVitals && (
-              <div className="vitals-row">
-                <span className="vitals-label">Vitals:</span>
-                {bpDisplay && (
-                  <span className="vitals-item">
-                    <strong>BP:</strong> {bpDisplay}{!bpDisplay.toLowerCase().includes('mmhg') ? ' mmHg' : ''}
-                  </span>
-                )}
-                {spo2Display && (
-                  <span className="vitals-item">
-                    <strong>SpO₂:</strong> {spo2Display}{!String(spo2Display).includes('%') ? '%' : ''}
-                  </span>
-                )}
-                {heightDisplay && (
-                  <span className="vitals-item">
-                    <strong>Height:</strong> {heightDisplay}{!String(heightDisplay).toLowerCase().includes('cm') ? ' cm' : ''}
-                  </span>
-                )}
-                {weightDisplay && (
-                  <span className="vitals-item">
-                    <strong>Weight:</strong> {weightDisplay}{!String(weightDisplay).toLowerCase().includes('kg') ? ' kg' : ''}
-                  </span>
-                )}
-                {pulseDisplay && (
-                  <span className="vitals-item">
-                    <strong>Pulse:</strong> {pulseDisplay}{!String(pulseDisplay).includes('/') ? ' /min' : ''}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Diagnosis Bar */}
-            {diagnosisText && (
-              <div className="diagnosis-row">
-                <span className="diagnosis-label">Diagnosis: </span>
-                <span className="diagnosis-text">{diagnosisText}</span>
-              </div>
-            )}
-
-            {/* Rx Section */}
-            <div className="rx-wrapper">
-              <div className="rx-symbol">℞</div>
-
-              <table className="med-table">
-                <thead>
-                  <tr>
-                    <th className="col-med">Medicine</th>
-                    <th className="col-dosage">Dosage</th>
-                    <th className="col-timing">Timing - Freq. - Duration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(prescriptionData.medicines) && prescriptionData.medicines.length > 0 ? (
-                    prescriptionData.medicines.map((med, index) => (
-                      <tr key={index} className="med-row">
-                        {/* Medicine Name, Composition, Timing, Note */}
-                        <td>
-                          <div className="med-name-heading">
-                            {index + 1}) &nbsp;{med.name}
-                          </div>
-                          {med.composition && (
-                            <div className="med-sub-line">
-                              <span className="med-sub-lbl">Composition</span>
-                              <span className="med-sub-sep">:</span>
-                              <span className="med-sub-val">{med.composition}</span>
-                            </div>
-                          )}
-                          {(() => {
-                            const timingVal = med.timing || (typeof med.dosage === 'string' ? getTimingFromDosage(med.dosage) : '');
-                            if (!timingVal) return null;
-                            return (
-                              <div className="med-sub-line">
-                                <span className="med-sub-lbl">Timing</span>
-                                <span className="med-sub-sep">:</span>
-                                <span className="med-sub-val">{timingVal}</span>
-                              </div>
-                            );
-                          })()}
-                          {med.note && (
-                            <div className="med-sub-line">
-                              <span className="med-sub-lbl">Note</span>
-                              <span className="med-sub-sep">:</span>
-                              <span className="med-sub-val med-note-val">{med.note}</span>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Dosage */}
-                        <td>
-                          {med.schedules && med.schedules.length > 1 ? (
-                            <div className="space-y-1">
-                              {med.schedules.map((s, si) => (
-                                <div key={si} className="dosage-val">
-                                  {s.dosage ? String(s.dosage).replace(/-/g, ' — ') : '—'}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="dosage-val">
-                              {med.dosage ? String(med.dosage).replace(/-/g, ' — ') : '—'}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Timing - Freq - Duration */}
-                        <td>
-                          {med.schedules && med.schedules.length > 1 ? (
-                            <div className="space-y-1.5">
-                              {med.schedules.map((s, si) => (
-                                <div key={si} className="timing-val text-[8.5pt]">
-                                  <span className="font-bold">{s.frequency || 'Daily'}</span>
-                                  {s.duration ? ` • ${s.duration}` : ''}
-                                  {s.when ? ` • ${s.when}` : ''}
-                                  {s.where ? ` • ${s.where}` : ''}
-                                  {s.notes ? ` (${s.notes})` : ''}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="timing-val">
-                              {(() => {
-                                const parts: string[] = [];
-                                if (med.frequency && med.frequency !== 'Daily') {
-                                  parts.push(String(med.frequency));
-                                }
-                                if (med.freq_duration) {
-                                  parts.push(String(med.freq_duration));
-                                }
-                                if (
-                                  med.duration &&
-                                  (!med.freq_duration ||
-                                    (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
-                                      !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
-                                ) {
-                                  parts.push(`(${med.duration})`);
-                                }
-                                if (parts.length > 0) {
-                                  return parts.join(' • ');
-                                }
-                                return med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
-                              })()}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr className="med-row">
-                      <td colSpan={3} className="text-center py-4 text-gray-500 italic">
-                        No medicines prescribed.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* Dynamic Body Sections in Doctor Custom Order */}
+            {effectiveOrder.map((sectionKey) => {
+              switch (sectionKey) {
+                case 'vitals':
+                  return renderVitals();
+                case 'complaints':
+                  return renderComplaints();
+                case 'history':
+                  return renderHistory();
+                case 'findings':
+                  return renderFindings();
+                case 'diagnosis':
+                  return renderDiagnosis();
+                case 'drawing_board':
+                  return renderDrawingBoard();
+                case 'medicines':
+                  return renderMedicines();
+                case 'clinical_notes':
+                  return renderClinicalNotes();
+                case 'next_visit':
+                  return renderNextVisit();
+                case 'signature':
+                  return renderSignature();
+                default:
+                  return null;
+              }
+            })}
           </div>
 
-          {/* Bottom Section: Advice, Doctor Signature & Pinned Schedule Footer */}
+          {/* Bottom Section: Validity Note */}
           <div className="sheet-bottom-section">
-            {/* Advice, Investigation, Followup & Signature Section */}
-            <div className="clinical-bottom-grid">
-              <div className="advice-box">
-                {prescriptionData.advice && (
-                  <div>
-                    <div className="advice-heading">Advice:</div>
-                    <div className="advice-content-body">{prescriptionData.advice}</div>
-                  </div>
-                )}
-
-                {prescriptionData.investigation && (
-                  <div className="marathi-item">
-                    <span className="marathi-label">फेर चाचणी :</span>
-                    <span>{prescriptionData.investigation}</span>
-                  </div>
-                )}
-
-                {prescriptionData.followup_date && (
-                  <div className="marathi-item">
-                    <span className="marathi-label">फेरतपासणी:</span>
-                    <span>
-                      {formatFollowup(
-                        prescriptionData.followup_date,
-                        prescriptionData.prescription_date
-                      )}
-                    </span>
-                  </div>
-                )}
-
-                <div className="prescription-validity-note">
-                  * Prescription is valid for 30 days only
-                </div>
-              </div>
-
-              {/* Signature Block */}
-              <div className="signature-block">
-                {includeSignature && resolvedSignature && (
-                  <img
-                    src={getSignatureSrc(resolvedSignature)}
-                    alt="Doctor Signature"
-                    className="sig-img"
-                  />
-                )}
-                <div className="sig-doc-name">
-                  {resolvedDoctorName || 'Dr Vipeen Raut'}
-                </div>
-              </div>
+            <div className="prescription-validity-note">
+              * Prescription is valid for 30 days only
             </div>
           </div>
 

@@ -160,7 +160,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
     ...(isAdmin ? [{ id: "sales-report", title: "Sales Report", url: "/admin/medicines/sales", icon: TrendingUp }] : []),
     { id: "installments", title: "Payment Installments", url: "/admin/installments", icon: CreditCard },
     { id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText },
-    { id: "prescription-templates", title: "Prescription Templates", url: "/admin/templates", icon: BookmarkCheck },
+    { id: "prescription-templates", title: "Clinical Templates", url: "/admin/templates", icon: BookmarkCheck },
   ];
 
   useEffect(() => {

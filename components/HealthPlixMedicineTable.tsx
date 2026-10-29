@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
   Trash2,
@@ -46,6 +46,88 @@ const WHEN_OPTIONS = ['After Food', 'Before Food', 'With Food', 'Empty Stomach',
 const WHERE_OPTIONS = ['', 'oral', 'face', 'scalp', 'affected area', 'skin', 'left eye', 'right eye', 'throat', 'joints', 'chest', 'back'];
 const FREQUENCY_OPTIONS = ['daily', 'alternate day', 'twice a week', 'thrice a week', 'weekly', 'once a month', 'SOS'];
 const DURATION_OPTIONS = ['3 days', '5 days', '7 days', '10 days', '15 days', '21 days', '25 days', '1 month', '2 months', '3 months'];
+
+export interface LinkedMedicineProfile {
+  name?: string;
+  dosage?: string;
+  unit?: string;
+  time?: string;
+  when?: string;
+  where?: string;
+  frequency?: string;
+  duration?: string;
+  details?: string;
+  notes?: string;
+}
+
+const DEFAULT_LINKED_MEDICINES: Record<string, LinkedMedicineProfile> = {
+  PARACETAMOL: { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'नाश्ता / जेवणानंतर' },
+  'DOLO 650': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'ताप किंवा अंगदुखी असल्यास' },
+  'PAN 40': { dosage: '1-0-0', unit: 'tab', time: 'Morning', when: 'Empty Stomach', where: 'oral', frequency: 'daily', duration: '15 days', notes: 'सकाळी उपाशीपोटी' },
+  'PANTOCID 40': { dosage: '1-0-0', unit: 'tab', time: 'Morning', when: 'Empty Stomach', where: 'oral', frequency: 'daily', duration: '15 days', notes: 'सकाळी उपाशीपोटी' },
+  'ZERODOL-SP': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'जेवणानंतर पाण्यासोबत' },
+  'ZERODOL-P': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'जेवणानंतर' },
+  'CHYMORAL FORTE': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'Before Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'सूज कमी होण्यासाठी' },
+  'SHELCAL 500': { dosage: '0-1-0', unit: 'tab', time: 'Afternoon', when: 'After Food', where: 'oral', frequency: 'daily', duration: '1 month', notes: 'दुपारी जेवणानंतर' },
+  TRAMADOL: { dosage: 'SOS', unit: 'tab', time: 'Night', when: 'After Food', where: 'oral', frequency: 'SOS', duration: '3 days', notes: 'तीव्र वेदना असल्यास' },
+  ULTRACET: { dosage: 'SOS', unit: 'tab', time: 'Night', when: 'After Food', where: 'oral', frequency: 'SOS', duration: '3 days', notes: 'तीव्र वेदनेसाठी' },
+  VOLINI: { dosage: '0-0-1', unit: 'ointment', time: 'Night', when: 'As Directed', where: 'affected area', frequency: 'daily', duration: '15 days', notes: 'Apply gently on affected joint' },
+  OMNIGEL: { dosage: '0-0-1', unit: 'ointment', time: 'Night', when: 'As Directed', where: 'affected area', frequency: 'daily', duration: '15 days', notes: 'Apply gently on affected area' },
+  THIOCHEST: { dosage: '1-0-1', unit: 'cap', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'स्नायूंच्या आखडणेवर' },
+  'AUGMENTIN 625': { dosage: '1-0-1', unit: 'tab', time: 'Morning & Night', when: 'After Food', where: 'oral', frequency: 'daily', duration: '5 days', notes: 'Full antibiotic course' },
+};
+
+const getCustomMedicineLinks = (): Record<string, LinkedMedicineProfile> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('cortex_custom_medicine_links_v1');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveCustomMedicineLink = (name: string, profile: Partial<LinkedMedicineProfile>) => {
+  if (typeof window === 'undefined' || !name.trim()) return;
+  try {
+    const map = getCustomMedicineLinks();
+    const key = name.trim().toUpperCase();
+    map[key] = { ...(map[key] || {}), ...profile };
+    localStorage.setItem('cortex_custom_medicine_links_v1', JSON.stringify(map));
+  } catch {}
+};
+
+const getLinkedMedicineDefaults = (name: string): LinkedMedicineProfile => {
+  const cleanName = name.trim().toUpperCase();
+  const customMap = getCustomMedicineLinks();
+
+  if (customMap[cleanName]) return customMap[cleanName];
+  if (DEFAULT_LINKED_MEDICINES[cleanName]) return DEFAULT_LINKED_MEDICINES[cleanName];
+
+  for (const [k, v] of Object.entries(customMap)) {
+    if (cleanName.includes(k) || k.includes(cleanName)) return v;
+  }
+  for (const [k, v] of Object.entries(DEFAULT_LINKED_MEDICINES)) {
+    if (cleanName.includes(k) || k.includes(cleanName)) return v;
+  }
+
+  const isLotion = cleanName.includes('LOTION') || cleanName.includes('GEL') || cleanName.includes('OINTMENT');
+  const isCap = cleanName.includes('CAP');
+  const isDrops = cleanName.includes('DROP');
+  const isSyp = cleanName.includes('SYP') || cleanName.includes('SYRUP');
+
+  return {
+    dosage: '0-0-1',
+    unit: isLotion ? 'ointment' : isCap ? 'cap' : isDrops ? 'drops' : isSyp ? 'ml' : 'tab',
+    time: '',
+    when: 'After Food',
+    where: isLotion ? 'affected area' : 'oral',
+    frequency: 'daily',
+    duration: '15 days',
+    details: '',
+    notes: '',
+  };
+};
 
 const NOTE_PRESETS = [
   'केसांच्या मुळाशी',
@@ -184,6 +266,16 @@ export default function HealthPlixMedicineTable({
   const [medSearchQuery, setMedSearchQuery] = useState('');
   const [savedMedTemplates, setSavedMedTemplates] = useState<ClinicalSectionPreset[]>([]);
   const [medToastMessage, setMedToastMessage] = useState<string | null>(null);
+  const [medSaveStatus, setMedSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const medStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerMedAutoSaved = useCallback(() => {
+    setMedSaveStatus('saved');
+    if (medStatusTimerRef.current) clearTimeout(medStatusTimerRef.current);
+    medStatusTimerRef.current = setTimeout(() => {
+      setMedSaveStatus('idle');
+    }, 2200);
+  }, []);
 
   const loadSavedMedTemplates = useCallback(() => {
     const list = getSectionCustomTemplates('medicines');
@@ -361,93 +453,136 @@ export default function HealthPlixMedicineTable({
     }
 
     onChange(updated);
+
+    // Auto-save linkage of all 10 related fields for this medicine
+    if (target.name) {
+      saveCustomMedicineLink(target.name, {
+        dosage: sch.dosage,
+        unit: sch.unit,
+        time: sch.time,
+        when: sch.when,
+        where: sch.where,
+        frequency: sch.frequency,
+        duration: sch.duration,
+        details: sch.details || target.composition,
+        notes: sch.notes || target.note,
+      });
+      triggerMedAutoSaved();
+    }
   };
 
   // Add new medicine from bottom row
   const handleSelectNewMedicine = (med: Medicine) => {
-    const defaultUnit = med.name.toLowerCase().includes('lotion')
-      ? 'lotion'
-      : med.name.toLowerCase().includes('cap')
-      ? 'cap'
-      : med.name.toLowerCase().includes('drops')
-      ? 'drops'
-      : med.name.toLowerCase().includes('syp') || med.name.toLowerCase().includes('syrup')
-      ? 'ml'
-      : 'tab';
+    const linked = getLinkedMedicineDefaults(med.name);
+    const defaultDuration = linked.duration || '15 days';
 
     const newEntry: MedicineEntry = {
       name: med.name.toUpperCase(),
-      dosage: '0-0-1',
-      unit: defaultUnit,
-      frequency: 'daily',
-      duration: '25 days',
-      when: 'After Food',
-      where: med.name.toLowerCase().includes('lotion') ? 'face' : '',
-      composition: med.composition || '',
-      note: '',
+      dosage: linked.dosage || '0-0-1',
+      unit: linked.unit || 'tab',
+      frequency: linked.frequency || 'daily',
+      duration: defaultDuration,
+      when: linked.when || 'After Food',
+      where: linked.where || 'oral',
+      composition: med.composition || linked.details || '',
+      note: linked.notes || '',
       start_from: prescriptionDate,
-      to_date: calculateEndDate(prescriptionDate, '25 days'),
+      to_date: calculateEndDate(prescriptionDate, defaultDuration),
       schedules: [
         {
           id: `sch_${Date.now()}`,
-          dosage: '0-0-1',
-          unit: defaultUnit,
-          time: '',
-          when: 'After Food',
-          where: med.name.toLowerCase().includes('lotion') ? 'face' : '',
-          frequency: 'daily',
-          duration: '25 days',
+          dosage: linked.dosage || '0-0-1',
+          unit: linked.unit || 'tab',
+          time: linked.time || '',
+          when: linked.when || 'After Food',
+          where: linked.where || 'oral',
+          frequency: linked.frequency || 'daily',
+          duration: defaultDuration,
           start_from: prescriptionDate,
-          to_date: calculateEndDate(prescriptionDate, '25 days'),
-          details: '',
-          notes: '',
+          to_date: calculateEndDate(prescriptionDate, defaultDuration),
+          details: med.composition || linked.details || '',
+          notes: linked.notes || '',
         },
       ],
     };
 
     onChange([...medicines, newEntry]);
     setNewMedSearch('');
+
+    // Auto-save all related fields linked to this medicine
+    saveCustomMedicineLink(med.name, {
+      dosage: newEntry.dosage,
+      unit: newEntry.unit,
+      time: linked.time,
+      when: newEntry.when,
+      where: newEntry.where,
+      frequency: newEntry.frequency,
+      duration: newEntry.duration,
+      details: newEntry.composition,
+      notes: newEntry.note,
+    });
+
     if (onAutoSaveMedicine) {
       onAutoSaveMedicine(med.name.toUpperCase(), med.composition || '');
     }
+    triggerMedAutoSaved();
   };
 
   const handleAddNewCustomMedicine = (name: string) => {
     if (!name.trim()) return;
+    const linked = getLinkedMedicineDefaults(name);
+    const defaultDuration = linked.duration || '15 days';
+
     const newEntry: MedicineEntry = {
       name: name.trim().toUpperCase(),
-      dosage: '0-0-1',
-      unit: 'tab',
-      frequency: 'daily',
-      duration: '15 days',
-      when: 'After Food',
-      where: '',
-      composition: '',
-      note: '',
+      dosage: linked.dosage || '0-0-1',
+      unit: linked.unit || 'tab',
+      frequency: linked.frequency || 'daily',
+      duration: defaultDuration,
+      when: linked.when || 'After Food',
+      where: linked.where || 'oral',
+      composition: linked.details || '',
+      note: linked.notes || '',
       start_from: prescriptionDate,
-      to_date: calculateEndDate(prescriptionDate, '15 days'),
+      to_date: calculateEndDate(prescriptionDate, defaultDuration),
       schedules: [
         {
           id: `sch_${Date.now()}`,
-          dosage: '0-0-1',
-          unit: 'tab',
-          time: '',
-          when: 'After Food',
-          where: '',
-          frequency: 'daily',
-          duration: '15 days',
+          dosage: linked.dosage || '0-0-1',
+          unit: linked.unit || 'tab',
+          time: linked.time || '',
+          when: linked.when || 'After Food',
+          where: linked.where || 'oral',
+          frequency: linked.frequency || 'daily',
+          duration: defaultDuration,
           start_from: prescriptionDate,
-          to_date: calculateEndDate(prescriptionDate, '15 days'),
-          details: '',
-          notes: '',
+          to_date: calculateEndDate(prescriptionDate, defaultDuration),
+          details: linked.details || '',
+          notes: linked.notes || '',
         },
       ],
     };
+
     onChange([...medicines, newEntry]);
     setNewMedSearch('');
+
+    // Auto-save all related fields linked to this medicine
+    saveCustomMedicineLink(name, {
+      dosage: newEntry.dosage,
+      unit: newEntry.unit,
+      time: linked.time,
+      when: newEntry.when,
+      where: newEntry.where,
+      frequency: newEntry.frequency,
+      duration: newEntry.duration,
+      details: newEntry.composition,
+      notes: newEntry.note,
+    });
+
     if (onAutoSaveMedicine) {
       onAutoSaveMedicine(name.trim().toUpperCase(), '');
     }
+    triggerMedAutoSaved();
   };
 
   return (
@@ -459,7 +594,15 @@ export default function HealthPlixMedicineTable({
             <tr className="bg-[#eef2f7] text-slate-800 font-bold border-b border-slate-300 text-[13px]">
               <th className="py-3 px-3 border-r border-slate-300/70 w-[24%]">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-900 font-bold text-sm">Medicine *</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-900 font-bold text-sm">Medicine *</span>
+                    {medSaveStatus === 'saved' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition">
+                        <Check className="w-2.5 h-2.5" />
+                        Auto-saved
+                      </span>
+                    )}
+                  </div>
                   <SectionTemplatePicker
                     sectionKey="medicines"
                     sectionTitle="Medical"

@@ -81,8 +81,33 @@ const DEPARTMENTS = [
 
 const getTodayString = () => {
   const d = new Date();
-  const tzOffset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - tzOffset).toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const getItemLocalDate = (dateStr?: string) => {
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr.split("T")[0];
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  } catch {
+    return (dateStr || "").split("T")[0];
+  }
+};
+
+const shiftDate = (currentDateStr: string, deltaDays: number) => {
+  const parts = currentDateStr.split("-").map(Number);
+  const d = new Date(parts[0], parts[1] - 1, parts[2] + deltaDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 
 const STORAGE_KEY = "cortex_opd_queue_v1";
@@ -153,7 +178,7 @@ export default function OPDManagementPage() {
     return queue.find(
       (q) =>
         q.appointmentId === appt._id ||
-        (q.phone && appt.phone && q.phone === appt.phone && q.registeredAt.startsWith(todayStr))
+        (q.phone && appt.phone && q.phone === appt.phone && getItemLocalDate(q.registeredAt) === todayStr)
     );
   };
 
@@ -218,7 +243,7 @@ export default function OPDManagementPage() {
             let dbPatients: any[] = [];
             try {
               dbPatients = await getPatients();
-            } catch (_) {}
+            } catch (_) { }
 
             const phoneToRef = new Map(
               dbPatients.map((p) => [p.phone_number?.trim(), p.reference_number?.replace(/^CH/i, "CRX")])
@@ -254,7 +279,7 @@ export default function OPDManagementPage() {
             if (changed) {
               try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-              } catch (_) {}
+              } catch (_) { }
             }
           }
         }
@@ -385,7 +410,7 @@ export default function OPDManagementPage() {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('cortex_active_doctor', doctorName);
-      } catch (e) {}
+      } catch (e) { }
     }
   };
 
@@ -438,7 +463,7 @@ export default function OPDManagementPage() {
 
       // 2. Next Token number for the day
       const today = getTodayString();
-      const todayCount = queue.filter((q) => (q.registeredAt || "").startsWith(today)).length;
+      const todayCount = queue.filter((q) => getItemLocalDate(q.registeredAt) === today).length;
       const tokenNumber = String(todayCount + 1).padStart(2, "0");
 
       const newItem: OPDQueueItem = {
@@ -530,7 +555,7 @@ export default function OPDManagementPage() {
         if (pt.age) age = String(pt.age);
         if (pt.sex) sex = pt.sex as any;
       }
-    } catch (_) {}
+    } catch (_) { }
     setCheckInVitals({
       age,
       sex,
@@ -567,7 +592,7 @@ export default function OPDManagementPage() {
         uhid = await getNextPatientReference();
       }
 
-      const todayCount = queue.filter((q) => q.registeredAt.startsWith(today)).length;
+      const todayCount = queue.filter((q) => getItemLocalDate(q.registeredAt) === today).length;
       const tokenNumber = String(todayCount + 1).padStart(2, "0");
 
       const docName = appt.doctor_name || DOCTORS[0].name;
@@ -701,7 +726,7 @@ export default function OPDManagementPage() {
 
   // Today count
   const todayQueueCount = useMemo(() => {
-    return queue.filter((item) => (item.registeredAt || "").split("T")[0] === todayStr).length;
+    return queue.filter((item) => getItemLocalDate(item.registeredAt) === todayStr).length;
   }, [queue, todayStr]);
 
   // Filtered queue (Filters by selectedQueueDate, doctor, status, search)
@@ -710,7 +735,7 @@ export default function OPDManagementPage() {
     const list = queue.filter((item) => {
       // 1. Filter by Date (Defaults to Today)
       if (selectedQueueDate) {
-        const itemDate = (item.registeredAt || "").split("T")[0];
+        const itemDate = getItemLocalDate(item.registeredAt);
         if (itemDate && itemDate !== selectedQueueDate) return false;
       }
       // 2. Doctor Filter
@@ -784,22 +809,20 @@ export default function OPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => handleDoctorChange('Dr. Vipeen Raut')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition ${
-                        formData.doctor === 'Dr. Vipeen Raut'
+                      className={`px-2.5 py-1 rounded-md font-bold transition ${formData.doctor === 'Dr. Vipeen Raut'
                           ? 'bg-blue-600 text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       Dr. Vipeen Raut (Ortho)
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDoctorChange('Dr. Shillpa Raut')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition ${
-                        formData.doctor === 'Dr. Shillpa Raut'
+                      className={`px-2.5 py-1 rounded-md font-bold transition ${formData.doctor === 'Dr. Shillpa Raut'
                           ? 'bg-blue-600 text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       Dr. Shillpa Raut (Gynae)
                     </button>
@@ -812,11 +835,10 @@ export default function OPDManagementPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveTab("register")}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition ${
-                activeTab === "register"
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition ${activeTab === "register"
                   ? "bg-blue-600 text-white hover:bg-blue-700"
                   : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-              }`}
+                }`}
             >
               <UserPlus className="w-4 h-4" />
               + Add New Patient / OPD
@@ -846,11 +868,10 @@ export default function OPDManagementPage() {
         <div className="flex gap-2 mt-6 border-b border-slate-100 pb-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab("queue")}
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${
-              activeTab === "queue"
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${activeTab === "queue"
                 ? "bg-slate-900 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             <Clock className="w-4 h-4" />
             Today&apos;s OPD Queue ({todayQueueCount})
@@ -858,21 +879,19 @@ export default function OPDManagementPage() {
 
           <button
             onClick={() => setActiveTab("appointments")}
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${
-              activeTab === "appointments"
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${activeTab === "appointments"
                 ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             <Calendar className="w-4 h-4" />
             Appointments
             {todayAppointments.length > 0 && (
               <span
-                className={`text-[11px] font-bold px-1.5 py-0.2 rounded-full ${
-                  activeTab === "appointments"
+                className={`text-[11px] font-bold px-1.5 py-0.2 rounded-full ${activeTab === "appointments"
                     ? "bg-white text-blue-600"
                     : "bg-blue-100 text-blue-700"
-                }`}
+                  }`}
               >
                 {todayAppointments.length}
               </span>
@@ -881,11 +900,10 @@ export default function OPDManagementPage() {
 
           <button
             onClick={() => setActiveTab("register")}
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${
-              activeTab === "register"
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${activeTab === "register"
                 ? "bg-blue-600 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             <UserPlus className="w-4 h-4" />
             Register Patient (Walk-in)
@@ -893,11 +911,10 @@ export default function OPDManagementPage() {
 
           <button
             onClick={() => setActiveTab("directory")}
-            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${
-              activeTab === "directory"
+            className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${activeTab === "directory"
                 ? "bg-slate-900 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
+              }`}
           >
             <Users className="w-4 h-4" />
             Patient Directory
@@ -1012,11 +1029,7 @@ export default function OPDManagementPage() {
               <div className="flex items-center gap-1 bg-slate-50 border border-slate-300 rounded-lg p-1 text-xs">
                 <button
                   type="button"
-                  onClick={() => {
-                    const d = new Date(selectedQueueDate);
-                    d.setDate(d.getDate() - 1);
-                    setSelectedQueueDate(d.toISOString().split("T")[0]);
-                  }}
+                  onClick={() => setSelectedQueueDate(shiftDate(selectedQueueDate, -1))}
                   className="p-1 hover:bg-slate-200 rounded text-slate-600 transition"
                   title="Previous Day"
                 >
@@ -1036,11 +1049,7 @@ export default function OPDManagementPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    const d = new Date(selectedQueueDate);
-                    d.setDate(d.getDate() + 1);
-                    setSelectedQueueDate(d.toISOString().split("T")[0]);
-                  }}
+                  onClick={() => setSelectedQueueDate(shiftDate(selectedQueueDate, 1))}
                   className="p-1 hover:bg-slate-200 rounded text-slate-600 transition"
                   title="Next Day"
                 >
@@ -1163,13 +1172,12 @@ export default function OPDManagementPage() {
               {filteredQueue.map((item) => (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-xl border p-4 shadow-sm hover:shadow transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                    item.status === "In Consultation"
+                  className={`bg-white rounded-xl border p-4 shadow-sm hover:shadow transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${item.status === "In Consultation"
                       ? "border-blue-300 bg-blue-50/20"
                       : item.status === "Completed"
-                      ? "border-emerald-200 bg-emerald-50/10"
-                      : "border-slate-200"
-                  }`}
+                        ? "border-emerald-200 bg-emerald-50/10"
+                        : "border-slate-200"
+                    }`}
                 >
                   {/* Left: Token & Basic Details */}
                   <div className="flex items-start gap-3">
@@ -1186,11 +1194,10 @@ export default function OPDManagementPage() {
                         </span>
                         {item.priority !== "Normal" && (
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                              item.priority === "Emergency"
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${item.priority === "Emergency"
                                 ? "bg-red-100 text-red-800"
                                 : "bg-amber-100 text-amber-800"
-                            }`}
+                              }`}
                           >
                             {item.priority}
                           </span>
@@ -1226,20 +1233,19 @@ export default function OPDManagementPage() {
                     <select
                       value={item.status}
                       onChange={(e) => updateStatus(item.id, e.target.value as any)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-lg border focus:outline-none transition ${
-                        item.status === "Waiting"
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg border focus:outline-none transition ${item.status === "Waiting"
                           ? "bg-amber-50 text-amber-800 border-amber-300"
                           : item.status === "In Consultation"
-                          ? "bg-blue-50 text-blue-800 border-blue-300"
-                          : "bg-emerald-50 text-emerald-800 border-emerald-300"
-                      }`}
+                            ? "bg-blue-50 text-blue-800 border-blue-300"
+                            : "bg-emerald-50 text-emerald-800 border-emerald-300"
+                        }`}
                     >
                       <option value="Waiting">Waiting</option>
                       <option value="In Consultation">In Consultation</option>
                       <option value="Completed">Completed</option>
                     </select>
 
-                    <button
+                    {/* <button
                       type="button"
                       onClick={() => printOPDCard(item)}
                       className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
@@ -1247,7 +1253,7 @@ export default function OPDManagementPage() {
                     >
                       <Printer className="w-3.5 h-3.5" />
                       Card
-                    </button>
+                    </button> */}
 
                     {item.status === "Completed" ? (
                       <button
@@ -1275,11 +1281,10 @@ export default function OPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => startPrescription(item)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${
-                        item.status === "Completed"
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${item.status === "Completed"
                           ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
                           : "bg-blue-600 hover:bg-blue-700 text-white"
-                      }`}
+                        }`}
                     >
                       <FileText className="w-3.5 h-3.5" />
                       {item.status === "Completed" ? "View Rx" : "Prescription"}
@@ -1304,11 +1309,10 @@ export default function OPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedApptDate(todayStr)}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition ${
-                    selectedApptDate === todayStr
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition ${selectedApptDate === todayStr
                       ? "bg-white text-blue-600 shadow-xs"
                       : "text-slate-600 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   Today
                 </button>
@@ -1320,11 +1324,10 @@ export default function OPDManagementPage() {
                     const tzOffset = d.getTimezoneOffset() * 60000;
                     setSelectedApptDate(new Date(d.getTime() - tzOffset).toISOString().split("T")[0]);
                   }}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${
-                    selectedApptDate !== todayStr
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${selectedApptDate !== todayStr
                       ? "text-slate-700 hover:text-slate-900"
                       : "text-slate-500 hover:text-slate-800"
-                  }`}
+                    }`}
                 >
                   Tomorrow
                 </button>
@@ -1421,9 +1424,8 @@ export default function OPDManagementPage() {
                 return (
                   <div
                     key={appt._id}
-                    className={`bg-white rounded-xl border p-4 shadow-sm hover:shadow transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                      inQueue ? "border-emerald-200 bg-emerald-50/10" : "border-slate-200"
-                    }`}
+                    className={`bg-white rounded-xl border p-4 shadow-sm hover:shadow transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${inQueue ? "border-emerald-200 bg-emerald-50/10" : "border-slate-200"
+                      }`}
                   >
                     {/* Time Slot & Patient Details */}
                     <div className="flex items-start gap-3">

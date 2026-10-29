@@ -400,6 +400,27 @@ export const CLINICAL_SECTION_PRESETS: Record<string, ClinicalSectionPreset[]> =
     },
   ],
 
+  systemic_examinations: [
+    {
+      id: 'se_normal',
+      name: 'Normal Systemic Examination (CVS, RS, CNS, GI)',
+      category: 'Systemic Exam',
+      data: 'CVS: S1 S2 heard, regular rate and rhythm, no murmurs.\nRespiratory System: Bilateral air entry clear, normal vesicular breath sounds, no wheeze or crepitations.\nAbdomen: Soft, non-tender, no organomegaly or guarding, bowel sounds present.\nCNS: Higher functions intact, Cranial nerves gross exam intact, Motor tone & power 5/5 all limbs, Sensory intact.',
+    },
+    {
+      id: 'se_respiratory_bronchial',
+      name: 'Respiratory System - Asthmatic / Bronchitis',
+      category: 'Respiratory',
+      data: 'RS: Bilateral air entry equal, expiratory wheezing present in both lower zones, scattered ronchi present, no dullness on percussion.',
+    },
+    {
+      id: 'se_spine_neuro',
+      name: 'Neurological & Spine Motor Exam',
+      category: 'Neurological',
+      data: 'Spine & Lower Extremity Neuro: L2-S1 dermatomal sensations intact. Motor power 5/5 bilateral hip flexors, quadriceps, extensor hallucis longus (EHL), and gastrocnemius. Knee jerks ++ bilateral, Ankle jerks ++ bilateral, Plantars flexor.',
+    },
+  ],
+
   past_medications: [
     {
       id: 'pm_cardio_htn',
@@ -833,6 +854,159 @@ export const CLINICAL_SECTION_PRESETS: Record<string, ClinicalSectionPreset[]> =
 };
 
 const SECTION_STORAGE_PREFIX = 'cortex_section_tmpl_';
+
+export interface ClinicalSectionMeta {
+  key: string;
+  title: string;
+  category: string;
+  description: string;
+  dataType: 'text' | 'complaints' | 'tests' | 'diagnosis' | 'medicines' | 'procedure';
+}
+
+export const ALL_CLINICAL_SECTION_KEYS = [
+  'complaints',
+  'findings',
+  'diagnosis',
+  'procedure_done',
+  'dr_notes',
+  'quick_notes',
+  'advice',
+  'tests_requested',
+  'diet_exercise',
+  'investigations',
+  'general_examinations',
+  'systemic_examinations',
+  'past_medications',
+  'drawing_board',
+  'medicines',
+] as const;
+
+export const SECTION_METADATA: Record<string, ClinicalSectionMeta> = {
+  complaints: {
+    key: 'complaints',
+    title: 'Complaints',
+    category: 'Clinical History',
+    description: 'Patient symptoms and complaints',
+    dataType: 'complaints',
+  },
+  findings: {
+    key: 'findings',
+    title: 'Findings',
+    category: 'Physical Examination',
+    description: 'Clinical findings and signs',
+    dataType: 'text',
+  },
+  diagnosis: {
+    key: 'diagnosis',
+    title: 'Diagnosis',
+    category: 'Clinical Diagnosis',
+    description: 'SNOMED & provisional diagnoses',
+    dataType: 'diagnosis',
+  },
+  procedure_done: {
+    key: 'procedure_done',
+    title: 'Procedure Done',
+    category: 'Treatments',
+    description: 'Procedures and clinical interventions',
+    dataType: 'procedure',
+  },
+  dr_notes: {
+    key: 'dr_notes',
+    title: 'Dr Notes (Private)',
+    category: 'Internal Notes',
+    description: 'Private physician remarks, not printed on prescription',
+    dataType: 'text',
+  },
+  quick_notes: {
+    key: 'quick_notes',
+    title: 'Quick Notes',
+    category: 'Clinical Notes',
+    description: 'Quick progress observations',
+    dataType: 'text',
+  },
+  advice: {
+    key: 'advice',
+    title: 'Advice',
+    category: 'Patient Instructions',
+    description: 'General instructions, precautions, and patient advice',
+    dataType: 'text',
+  },
+  tests_requested: {
+    key: 'tests_requested',
+    title: 'Tests Requested',
+    category: 'Diagnostics',
+    description: 'Laboratory and radiology requisitions',
+    dataType: 'tests',
+  },
+  diet_exercise: {
+    key: 'diet_exercise',
+    title: 'Diet & Exercise',
+    category: 'Lifestyle',
+    description: 'Nutritional and exercise protocols',
+    dataType: 'text',
+  },
+  investigations: {
+    key: 'investigations',
+    title: 'Investigations',
+    category: 'Diagnostics',
+    description: 'Lab & imaging interpretations and findings',
+    dataType: 'text',
+  },
+  general_examinations: {
+    key: 'general_examinations',
+    title: 'General Examinations',
+    category: 'Physical Examination',
+    description: 'Pallor, icterus, cyanosis, clubbing, edema, etc.',
+    dataType: 'text',
+  },
+  systemic_examinations: {
+    key: 'systemic_examinations',
+    title: 'Systemic Examination',
+    category: 'Physical Examination',
+    description: 'CVS, RS, CNS, GI physical examination',
+    dataType: 'text',
+  },
+  past_medications: {
+    key: 'past_medications',
+    title: 'Past Medications',
+    category: 'Clinical History',
+    description: 'Chronic medications & drug allergies',
+    dataType: 'text',
+  },
+  drawing_board: {
+    key: 'drawing_board',
+    title: 'Drawing Board',
+    category: 'Diagrams',
+    description: 'Anatomical sketches & annotations',
+    dataType: 'text',
+  },
+  medicines: {
+    key: 'medicines',
+    title: 'Medicines',
+    category: 'Prescription',
+    description: 'Medicine sets & dosages',
+    dataType: 'medicines',
+  },
+};
+
+export function getAllCustomSectionTemplates(): Array<
+  ClinicalSectionPreset & { sectionKey: string; sectionTitle: string }
+> {
+  if (typeof window === 'undefined') return [];
+  const results: Array<ClinicalSectionPreset & { sectionKey: string; sectionTitle: string }> = [];
+  for (const key of ALL_CLINICAL_SECTION_KEYS) {
+    const customList = getSectionCustomTemplates(key);
+    const meta = SECTION_METADATA[key] || { title: key };
+    for (const item of customList) {
+      results.push({
+        ...item,
+        sectionKey: key,
+        sectionTitle: meta.title,
+      });
+    }
+  }
+  return results;
+}
 
 export function getSectionCustomTemplates(sectionKey: string): ClinicalSectionPreset[] {
   if (typeof window === 'undefined') return [];

@@ -12,6 +12,7 @@ import {
 interface DiagnosisSearchInputProps {
   value: string;
   onChange: (val: string) => void;
+  onSelectDiagnosisRow?: (diagnosis: string) => void;
   prescriptionId?: string | null;
   placeholder?: string;
   className?: string;
@@ -21,6 +22,7 @@ interface DiagnosisSearchInputProps {
 export default function DiagnosisSearchInput({
   value,
   onChange,
+  onSelectDiagnosisRow,
   prescriptionId,
   placeholder = 'Type diagnosis here (e.g. Dental Caries wrt 16, Closed Fracture, Acute Pulpitis)...',
   className = '',
@@ -222,6 +224,7 @@ export default function DiagnosisSearchInput({
     setIsOpen(false);
     saveDiagnosis(suggestion);
     triggerAutoSave(newText);
+    onSelectDiagnosisRow?.(suggestion);
 
     // Reposition cursor right after the inserted suggestion
     setTimeout(() => {

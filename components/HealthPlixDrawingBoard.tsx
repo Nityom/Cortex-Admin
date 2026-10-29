@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { PenTool, Eraser, Paperclip, FilePlus, Image as ImageIcon, Maximize2, Minimize2, Trash2, LayoutTemplate } from 'lucide-react';
-import { DIAGRAM_SVG_PRESETS } from '@/services/diagramPresets';
+import { PenTool, Eraser, Paperclip, FilePlus, Image as ImageIcon, Maximize2, Minimize2, Trash2, LayoutTemplate, Undo2, Redo2 } from 'lucide-react';
 
 interface HealthPlixDrawingBoardProps {
   value?: string; // Data URL of the drawing
@@ -26,6 +25,17 @@ export default function HealthPlixDrawingBoard({
   const [canvasHeight, setCanvasHeight] = useState<number>(480);
   const [fitMode, setFitMode] = useState<'fill-width' | 'contain'>('fill-width');
   const activeImageSrcRef = useRef<string>('');
+  const originalImageSrcRef = useRef<string>('');
+
+  // Undo / Redo history stacks (using ImageData for instant, lossless, stroke-by-stroke undo)
+  const undoStackRef = useRef<ImageData[]>([]);
+  const redoStackRef = useRef<ImageData[]>([]);
+  const [undoCount, setUndoCount] = useState<number>(0);
+  const [redoCount, setRedoCount] = useState<number>(0);
+  const currentStrokeSnapshotRef = useRef<ImageData | null>(null);
+  const hasDrawnStrokeRef = useRef<boolean>(false);
+  const hasInitializedCanvasRef = useRef<boolean>(false);
+  const isInternalUpdateRef = useRef<boolean>(false);
 
   const colors = [
     { label: 'Black', value: '#000000' },
@@ -43,17 +53,16 @@ export default function HealthPlixDrawingBoard({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    activeImageSrcRef.current = src;
-
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
-      const containerWidth = container?.getBoundingClientRect().width || 1000;
-      const targetWidth = Math.max(containerWidth, 800);
+      const containerWidth = container?.clientWidth || 1000;
+      const targetWidth = containerWidth > 0 ? containerWidth : 1000;
 
       let targetHeight = 480;
-      if (mode === 'fill-width') {
-        // Dynamically size canvas height to match natural aspect ratio of the image!
+      if (mode === 'fill-width' && img.width > 0) {
         const calculated = Math.round(targetWidth * (img.height / img.width));
         targetHeight = Math.min(Math.max(calculated, 420), 850);
       } else {
@@ -71,13 +80,11 @@ export default function HealthPlixDrawingBoard({
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, targetWidth, targetHeight);
 
-      if (mode === 'fill-width') {
-        // Expand image across full width with high resolution
+      if (mode === 'fill-width' && img.width > 0) {
         const drawH = targetWidth * (img.height / img.width);
         const offsetY = (targetHeight - drawH) / 2;
         ctx.drawImage(img, 0, offsetY, targetWidth, drawH);
-      } else {
-        // Contain image within canvas
+      } else if (img.width > 0 && img.height > 0) {
         const hRatio = targetWidth / img.width;
         const vRatio = targetHeight / img.height;
         const ratio = Math.min(hRatio, vRatio);
@@ -95,9 +102,19 @@ export default function HealthPlixDrawingBoard({
           img.height * ratio
         );
       }
+
+      const dataUrl = canvas.toDataURL('image/png');
+      activeImageSrcRef.current = dataUrl;
+      try {
+        localStorage.setItem(storageKey, dataUrl);
+      } catch { }
+      isInternalUpdateRef.current = true;
+      if (onChange) {
+        onChange(dataUrl);
+      }
     };
     img.src = src;
-  }, []);
+  }, [storageKey, onChange]);
 
   // Initialize and resize canvas to match actual container dimensions
   const setupCanvas = useCallback(() => {
@@ -105,76 +122,96 @@ export default function HealthPlixDrawingBoard({
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    const rect = container.getBoundingClientRect();
-    const width = Math.max(rect.width || 800, 600);
+    const width = container.clientWidth || 800;
 
-    // If an image is currently loaded, redraw it to fit new width
-    if (activeImageSrcRef.current) {
-      drawImageOnCanvas(activeImageSrcRef.current, fitMode);
-      return;
-    }
-
-    if (canvas.width !== width || canvas.height !== canvasHeight) {
-      const prevData = canvas.toDataURL();
+    if (!hasInitializedCanvasRef.current) {
+      hasInitializedCanvasRef.current = true;
       canvas.width = width;
       canvas.height = canvasHeight;
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, canvasHeight);
+      }
+      return;
+    }
 
-        let initialSrc = value;
-        if (!initialSrc && typeof window !== 'undefined') {
-          try {
-            initialSrc = localStorage.getItem(storageKey) || '';
-          } catch {}
-        }
-        if (!initialSrc && prevData && prevData !== 'data:,') {
-          initialSrc = prevData;
-        }
-
-        if (initialSrc) {
-          drawImageOnCanvas(initialSrc, fitMode);
+    // On resize only if width actually changed significantly
+    if (Math.abs(canvas.width - width) > 10) {
+      if (originalImageSrcRef.current) {
+        drawImageOnCanvas(originalImageSrcRef.current, fitMode);
+      } else {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const prevData = canvas.toDataURL();
+          canvas.width = width;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, canvasHeight);
+          if (prevData && prevData !== 'data:,') {
+            const img = new Image();
+            img.onload = () => {
+              ctx.drawImage(img, 0, 0);
+            };
+            img.src = prevData;
+          }
         }
       }
     }
-  }, [value, storageKey, canvasHeight, fitMode, drawImageOnCanvas]);
+  }, [canvasHeight, fitMode, drawImageOnCanvas]);
 
   useEffect(() => {
     setupCanvas();
-    window.addEventListener('resize', setupCanvas);
-    return () => window.removeEventListener('resize', setupCanvas);
+    const handleResize = () => setupCanvas();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [setupCanvas]);
 
-  // Load from localStorage or value prop on initial mount
+  // Load from localStorage or value prop on initial mount ONLY
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
+      const savedBg = localStorage.getItem(storageKey + '_bg');
+      if (savedBg) {
+        originalImageSrcRef.current = savedBg;
+      }
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         setHasAttachedImage(true);
         activeImageSrcRef.current = saved;
+        if (!originalImageSrcRef.current) {
+          originalImageSrcRef.current = saved;
+        }
         drawImageOnCanvas(saved, 'fill-width');
         if (onChange && !value) {
           onChange(saved);
         }
       } else if (value) {
-        const srcToLoad = DIAGRAM_SVG_PRESETS[value] || value;
+        const srcToLoad = value;
         activeImageSrcRef.current = srcToLoad;
+        originalImageSrcRef.current = srcToLoad;
+        try {
+          localStorage.setItem(storageKey + '_bg', srcToLoad);
+        } catch { }
         setHasAttachedImage(true);
         drawImageOnCanvas(srcToLoad, 'fill-width');
       }
-    } catch {}
-  }, [storageKey, drawImageOnCanvas]);
+    } catch { }
+  }, []);
 
-  // Load initial drawing when value prop changes externally
+  // Load external value when changed outside (e.g. template preset selected)
   useEffect(() => {
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
+      return;
+    }
     if (value && value !== activeImageSrcRef.current) {
-      const srcToLoad = DIAGRAM_SVG_PRESETS[value] || value;
+      const srcToLoad = value;
       activeImageSrcRef.current = srcToLoad;
+      originalImageSrcRef.current = srcToLoad;
+      try {
+        localStorage.setItem(storageKey + '_bg', srcToLoad);
+      } catch { }
       setHasAttachedImage(true);
       drawImageOnCanvas(srcToLoad, fitMode);
     }
@@ -189,17 +226,36 @@ export default function HealthPlixDrawingBoard({
       const dataUrl = e.target?.result as string;
       if (!dataUrl) return;
 
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          try {
+            const prior = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            undoStackRef.current.push(prior);
+            if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+            redoStackRef.current = [];
+            setUndoCount(undoStackRef.current.length);
+            setRedoCount(0);
+          } catch { }
+        }
+      }
+
+      originalImageSrcRef.current = dataUrl;
       activeImageSrcRef.current = dataUrl;
       setHasAttachedImage(true);
+      try {
+        localStorage.setItem(storageKey + '_bg', dataUrl);
+      } catch { }
       drawImageOnCanvas(dataUrl, 'fill-width');
 
-      // Persist solely in browser localStorage
       try {
         localStorage.setItem(storageKey, dataUrl);
       } catch (err) {
         console.warn('LocalStorage quota or storage error for drawing image:', err);
       }
 
+      isInternalUpdateRef.current = true;
       if (onChange) {
         onChange(dataUrl);
       }
@@ -267,6 +323,14 @@ export default function HealthPlixDrawingBoard({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Save snapshot of canvas state BEFORE the new stroke starts
+    try {
+      currentStrokeSnapshotRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (err) {
+      console.warn('Snapshot error before stroke:', err);
+    }
+
+    hasDrawnStrokeRef.current = false;
     ctx.beginPath();
     ctx.moveTo(coords.x, coords.y);
     ctx.lineCap = 'round';
@@ -288,6 +352,7 @@ export default function HealthPlixDrawingBoard({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    hasDrawnStrokeRef.current = true;
     ctx.lineTo(coords.x, coords.y);
     ctx.stroke();
   };
@@ -297,9 +362,20 @@ export default function HealthPlixDrawingBoard({
     setIsDrawing(false);
     const canvas = canvasRef.current;
     if (canvas) {
+      // Record undo state from before the stroke ONLY if an actual stroke was drawn
+      if (hasDrawnStrokeRef.current && currentStrokeSnapshotRef.current) {
+        undoStackRef.current.push(currentStrokeSnapshotRef.current);
+        if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+        redoStackRef.current = [];
+        setUndoCount(undoStackRef.current.length);
+        setRedoCount(0);
+      }
+      currentStrokeSnapshotRef.current = null;
+      hasDrawnStrokeRef.current = false;
+
       const dataUrl = canvas.toDataURL('image/png');
       activeImageSrcRef.current = dataUrl;
-      // Store in localStorage only
+      isInternalUpdateRef.current = true;
       try {
         localStorage.setItem(storageKey, dataUrl);
       } catch (err) {
@@ -311,21 +387,127 @@ export default function HealthPlixDrawingBoard({
     }
   };
 
+  // Undo last action (stroke-by-stroke instant restoration)
+  const handleUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    try {
+      const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      redoStackRef.current.push(current);
+      if (redoStackRef.current.length > 50) redoStackRef.current.shift();
+
+      const prev = undoStackRef.current.pop();
+      if (prev) {
+        ctx.putImageData(prev, 0, 0);
+      }
+
+      setUndoCount(undoStackRef.current.length);
+      setRedoCount(redoStackRef.current.length);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      activeImageSrcRef.current = dataUrl;
+      isInternalUpdateRef.current = true;
+      try {
+        localStorage.setItem(storageKey, dataUrl);
+      } catch { }
+      if (onChange) onChange(dataUrl);
+    } catch (err) {
+      console.warn('Undo error:', err);
+    }
+  }, [storageKey, onChange]);
+
+  // Redo undone action
+  const handleRedo = useCallback(() => {
+    if (redoStackRef.current.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    try {
+      const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      undoStackRef.current.push(current);
+      if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+
+      const next = redoStackRef.current.pop();
+      if (next) {
+        ctx.putImageData(next, 0, 0);
+      }
+
+      setUndoCount(undoStackRef.current.length);
+      setRedoCount(redoStackRef.current.length);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      activeImageSrcRef.current = dataUrl;
+      isInternalUpdateRef.current = true;
+      try {
+        localStorage.setItem(storageKey, dataUrl);
+      } catch { }
+      if (onChange) onChange(dataUrl);
+    } catch (err) {
+      console.warn('Redo error:', err);
+    }
+  }, [storageKey, onChange]);
+
+  // Keyboard shortcuts (Cmd/Ctrl + Z, Cmd/Ctrl + Shift + Z, Cmd/Ctrl + Y)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
   const handleClear = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Save snapshot so clear can be undone stroke-by-stroke
+    try {
+      const prevData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      undoStackRef.current.push(prevData);
+      if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+      redoStackRef.current = [];
+      setUndoCount(undoStackRef.current.length);
+      setRedoCount(0);
+    } catch { }
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     activeImageSrcRef.current = '';
-    // Remove from localStorage
+    originalImageSrcRef.current = '';
+    setHasAttachedImage(false);
+
     try {
       localStorage.removeItem(storageKey);
-    } catch {}
+      localStorage.removeItem(storageKey + '_bg');
+    } catch { }
 
-    setHasAttachedImage(false);
+    isInternalUpdateRef.current = true;
     if (onChange) {
       onChange('');
     }
@@ -337,21 +519,33 @@ export default function HealthPlixDrawingBoard({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    try {
+      const prevData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      undoStackRef.current.push(prevData);
+      if (undoStackRef.current.length > 50) undoStackRef.current.shift();
+      redoStackRef.current = [];
+      setUndoCount(undoStackRef.current.length);
+      setRedoCount(0);
+    } catch { }
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     activeImageSrcRef.current = '';
+    originalImageSrcRef.current = '';
     setHasAttachedImage(false);
     setCanvasHeight(480);
 
     try {
       localStorage.removeItem(storageKey);
-    } catch {}
+      localStorage.removeItem(storageKey + '_bg');
+    } catch { }
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
 
+    isInternalUpdateRef.current = true;
     if (onChange) {
       onChange('');
     }
@@ -360,8 +554,9 @@ export default function HealthPlixDrawingBoard({
   const toggleFitMode = () => {
     const nextMode = fitMode === 'fill-width' ? 'contain' : 'fill-width';
     setFitMode(nextMode);
-    if (activeImageSrcRef.current) {
-      drawImageOnCanvas(activeImageSrcRef.current, nextMode);
+    const srcToDraw = originalImageSrcRef.current || activeImageSrcRef.current;
+    if (srcToDraw) {
+      drawImageOnCanvas(srcToDraw, nextMode);
     }
   };
 
@@ -386,11 +581,7 @@ export default function HealthPlixDrawingBoard({
         <div className="flex items-center gap-2 font-semibold">
           <ImageIcon className="w-4 h-4 text-blue-600" />
           <span>Image Annotation & Clinical Sketch Board</span>
-          {hasAttachedImage && (
-            <span className="px-2 py-0.5 text-[11px] bg-emerald-100 text-emerald-800 rounded-full font-bold border border-emerald-200 flex items-center gap-1">
-              ✓ Image Loaded
-            </span>
-          )}
+
         </div>
         <div className="flex items-center gap-2">
           {hasAttachedImage && (
@@ -399,7 +590,7 @@ export default function HealthPlixDrawingBoard({
                 type="button"
                 onClick={toggleFitMode}
                 className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-white border border-slate-200 rounded-md text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                title="Toggle between Fill Width (Large/Crisp) and Fit to Viewport"
+                title="Toggle between Fill Width and Fit View"
               >
                 {fitMode === 'fill-width' ? (
                   <>
@@ -409,7 +600,7 @@ export default function HealthPlixDrawingBoard({
                 ) : (
                   <>
                     <Maximize2 className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Fill Width (Large)</span>
+                    <span>Fill Width</span>
                   </>
                 )}
               </button>
@@ -425,14 +616,12 @@ export default function HealthPlixDrawingBoard({
               </button>
             </>
           )}
-          <span className="text-[11px] text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 font-semibold">
-            Stored in Local Storage Only • Not uploaded to database
-          </span>
+
         </div>
       </div>
 
-      {/* Dedicated Canvas Drawing Area (No floating toolbar covering the image) */}
-      <div className="relative touch-none overflow-x-auto bg-slate-100/60 flex items-center justify-center p-2 min-h-[440px]">
+      {/* Dedicated Canvas Drawing Area */}
+      <div className="relative touch-none overflow-hidden bg-slate-100/60 flex items-center justify-center p-2 min-h-[440px]">
         <canvas
           ref={canvasRef}
           width={1000}
@@ -456,11 +645,10 @@ export default function HealthPlixDrawingBoard({
           <button
             type="button"
             onClick={() => setTool('pen')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-              tool === 'pen'
-                ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
-                : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${tool === 'pen'
+              ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
+              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+              }`}
             title="Pen Tool"
           >
             <PenTool className="w-3.5 h-3.5" />
@@ -471,15 +659,46 @@ export default function HealthPlixDrawingBoard({
           <button
             type="button"
             onClick={() => setTool('eraser')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-              tool === 'eraser'
-                ? 'bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs'
-                : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${tool === 'eraser'
+              ? 'bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs'
+              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+              }`}
             title="Eraser Tool"
           >
             <Eraser className="w-3.5 h-3.5" />
             <span>Eraser</span>
+          </button>
+
+          {/* Undo Button */}
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={undoCount === 0}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer ${undoCount > 0
+              ? 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200 hover:bg-slate-100 shadow-2xs'
+              : 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
+              }`}
+            title="Undo stroke (Ctrl+Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Undo</span>
+            {undoCount > 0 && <span className="text-[10px] text-slate-400 font-semibold">({undoCount})</span>}
+          </button>
+
+          {/* Redo Button */}
+          <button
+            type="button"
+            onClick={handleRedo}
+            disabled={redoCount === 0}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer ${redoCount > 0
+              ? 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200 hover:bg-slate-100 shadow-2xs'
+              : 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
+              }`}
+            title="Redo stroke (Ctrl+Y / Ctrl+Shift+Z)"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Redo</span>
+            {redoCount > 0 && <span className="text-[10px] text-slate-400 font-semibold">({redoCount})</span>}
           </button>
 
           <div className="h-5 w-px bg-slate-300 mx-1" />
@@ -495,11 +714,10 @@ export default function HealthPlixDrawingBoard({
                   setSelectedColor(c.value);
                   setTool('pen');
                 }}
-                className={`w-5 h-5 rounded-full border transition cursor-pointer ${
-                  selectedColor === c.value && tool === 'pen'
-                    ? 'ring-2 ring-offset-2 ring-blue-500 scale-110 shadow-xs'
-                    : 'border-slate-300 hover:scale-105'
-                }`}
+                className={`w-5 h-5 rounded-full border transition cursor-pointer ${selectedColor === c.value && tool === 'pen'
+                  ? 'ring-2 ring-offset-2 ring-blue-500 scale-110 shadow-xs'
+                  : 'border-slate-300 hover:scale-105'
+                  }`}
                 style={{ backgroundColor: c.value }}
                 title={c.label}
               />
@@ -516,11 +734,10 @@ export default function HealthPlixDrawingBoard({
                 key={w}
                 type="button"
                 onClick={() => setLineWidth(w)}
-                className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition cursor-pointer ${
-                  lineWidth === w
-                    ? 'bg-slate-800 text-white shadow-2xs'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition cursor-pointer ${lineWidth === w
+                  ? 'bg-slate-800 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 {w}px
               </button>
@@ -529,44 +746,14 @@ export default function HealthPlixDrawingBoard({
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Anatomical Diagram Template Selector */}
-          <div className="flex items-center">
-            <select
-              onChange={(e) => {
-                const key = e.target.value;
-                if (key && DIAGRAM_SVG_PRESETS[key]) {
-                  const src = DIAGRAM_SVG_PRESETS[key];
-                  activeImageSrcRef.current = src;
-                  setHasAttachedImage(true);
-                  drawImageOnCanvas(src, 'fill-width');
-                  try {
-                    localStorage.setItem(storageKey, src);
-                  } catch {}
-                  if (onChange) onChange(src);
-                  e.target.value = '';
-                }
-              }}
-              defaultValue=""
-              title="Load Anatomical Diagram Template (Knee, Spine, Shoulder, Body)"
-              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 cursor-pointer shadow-2xs outline-none"
-            >
-              <option value="" disabled>📋 Diagram Template...</option>
-              <option value="knee_joint_preset">🦴 Knee Joint Anatomy</option>
-              <option value="spine_column_preset">🩻 Lumbar Spine & Discs</option>
-              <option value="shoulder_joint_preset">💪 Shoulder & Rotator Cuff</option>
-              <option value="body_silhouette_preset">🧍 Full Body Silhouette (Ant/Post)</option>
-            </select>
-          </div>
-
           {/* Upload / Attach Image Button (Stored strictly in local storage) */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
-              hasAttachedImage
-                ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border shadow-2xs ${hasAttachedImage
+              ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
             title="Attach image or photo from your computer (stored in Local Storage only)"
           >
             <Paperclip className="w-3.5 h-3.5" />
