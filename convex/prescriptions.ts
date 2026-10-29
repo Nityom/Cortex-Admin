@@ -243,6 +243,7 @@ export const create = mutation({
         selected_teeth: v.optional(v.any()), // JSON
         medicines: v.optional(v.any()), // JSON
         treatment_done: v.optional(v.any()), // JSON
+        dr_notes: v.optional(v.string()),
         advice: v.optional(v.string()),
         followup_date: v.optional(v.string()),
         doctor_name: v.optional(v.string()),
@@ -307,6 +308,10 @@ export const create = mutation({
             console.error("Auto crown record creation error:", err);
         }
 
+        if (args.diagnosis) {
+            await recordDiagnosesToCatalog(ctx, args.diagnosis);
+        }
+
         return newPrescriptionId;
     },
 });
@@ -336,6 +341,7 @@ export const update = mutation({
         selected_teeth: v.optional(v.any()), // JSON
         medicines: v.optional(v.any()), // JSON
         treatment_done: v.optional(v.any()), // JSON
+        dr_notes: v.optional(v.string()),
         advice: v.optional(v.string()),
         followup_date: v.optional(v.string()),
         doctor_name: v.optional(v.string()),
@@ -423,6 +429,10 @@ export const update = mutation({
             } catch (err) {
                 console.error("Auto crown record sync error on update:", err);
             }
+        }
+
+        if (updates.diagnosis) {
+            await recordDiagnosesToCatalog(ctx, updates.diagnosis);
         }
 
         return await ctx.db.get(id);
@@ -604,6 +614,284 @@ export const cleanErronousCrownCuttingRecords = mutation({
         }
 
         return { success: true, deletedCount };
+    },
+});
+
+/**
+ * Internal helper to record one or multiple diagnosis items to the `diagnoses` catalog
+ */
+async function recordDiagnosesToCatalog(ctx: any, diagnosisText?: string) {
+    if (!diagnosisText) return;
+    const parts = diagnosisText
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 2);
+    if (parts.length === 0) return;
+
+    try {
+        const now = Date.now();
+        const allDiagnoses = await ctx.db.query("diagnoses").collect();
+        for (const part of parts) {
+            const existing = allDiagnoses.find(
+                (d: any) => d.name.trim().toLowerCase() === part.toLowerCase()
+            );
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    count: (existing.count || 1) + 1,
+                    last_used_at: now,
+                });
+            } else {
+                const newId = await ctx.db.insert("diagnoses", {
+                    name: part,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                });
+                allDiagnoses.push({
+                    _id: newId,
+                    name: part,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Error auto-recording diagnosis:", err);
+    }
+}
+
+/**
+ * Auto-save a diagnosis into the diagnoses catalog
+ */
+export const saveDiagnosis = mutation({
+    args: {
+        name: v.string(),
+        category: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const trimmed = args.name.trim();
+        if (!trimmed || trimmed.length < 2) return null;
+
+        const now = Date.now();
+        const allDiagnoses = await ctx.db.query("diagnoses").collect();
+        const existing = allDiagnoses.find(
+            (d) => d.name.trim().toLowerCase() === trimmed.toLowerCase()
+        );
+
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                count: (existing.count || 1) + 1,
+                last_used_at: now,
+                category: args.category || existing.category,
+            });
+            return existing._id;
+        } else {
+            return await ctx.db.insert("diagnoses", {
+                name: trimmed,
+                count: 1,
+                last_used_at: now,
+                created_at: now,
+                category: args.category,
+            });
+        }
+    },
+});
+
+/**
+ * Auto-save multiple diagnoses (e.g. parsed from multiline or comma separated text)
+ */
+export const saveMultipleDiagnoses = mutation({
+    args: {
+        names: v.array(v.string()),
+        category: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const now = Date.now();
+        const allDiagnoses = await ctx.db.query("diagnoses").collect();
+        const savedIds: any[] = [];
+
+        for (const raw of args.names) {
+            const trimmed = raw.trim();
+            if (!trimmed || trimmed.length < 2) continue;
+
+            const existing = allDiagnoses.find(
+                (d) => d.name.trim().toLowerCase() === trimmed.toLowerCase()
+            );
+
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    count: (existing.count || 1) + 1,
+                    last_used_at: now,
+                });
+                savedIds.push(existing._id);
+            } else {
+                const newId = await ctx.db.insert("diagnoses", {
+                    name: trimmed,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                    category: args.category,
+                });
+                allDiagnoses.push({
+                    _id: newId,
+                    name: trimmed,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                    category: args.category,
+                } as any);
+                savedIds.push(newId);
+            }
+        }
+        return savedIds;
+    },
+});
+
+/**
+ * Query autocomplete suggestions for diagnoses.
+ * Merges diagnoses table + past prescriptions' diagnoses + built-in common presets.
+ */
+export const getDiagnosisSuggestions = query({
+    args: {
+        query: v.optional(v.string()),
+        limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const maxLimit = args.limit || 30;
+        const q = (args.query || "").trim().toLowerCase();
+
+        // 1. Fetch from diagnoses table
+        const savedDiagnoses = await ctx.db.query("diagnoses").collect();
+
+        // 2. Fetch past diagnoses from recent prescriptions as rich history
+        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(150);
+
+        const map = new Map<string, { name: string; count: number; lastUsed: number }>();
+
+        // Populate from saved diagnoses table
+        for (const item of savedDiagnoses) {
+            if (!item.name || !item.name.trim()) continue;
+            const key = item.name.trim().toLowerCase();
+            map.set(key, {
+                name: item.name.trim(),
+                count: item.count || 1,
+                lastUsed: item.last_used_at || item.created_at || 0,
+            });
+        }
+
+        // Populate from prescriptions (split by newline and comma)
+        for (const rx of recentPrescriptions) {
+            if (!rx.diagnosis) continue;
+            const parts = rx.diagnosis.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+            for (const part of parts) {
+                const key = part.toLowerCase();
+                const existing = map.get(key);
+                if (existing) {
+                    existing.count += 1;
+                } else {
+                    map.set(key, {
+                        name: part,
+                        count: 1,
+                        lastUsed: 0,
+                    });
+                }
+            }
+        }
+
+        // Add standard common presets as fallback if not present
+        const defaultPresets = [
+            "Dental Caries",
+            "Dental Caries involving pulp",
+            "Acute Pulpitis",
+            "Chronic Irreversible Pulpitis",
+            "Periapical Abscess",
+            "Root Stump",
+            "Grossly Decayed",
+            "Gingivitis",
+            "Periodontitis",
+            "Pericoronitis",
+            "Mobility",
+            "Stain and Calculus",
+            "Malocclusion",
+            "Impacted Third Molar",
+            "Closed Fracture",
+            "Knee Osteoarthritis",
+            "Lumbar Spondylosis",
+            "Cervical Spondylosis",
+            "ACL Tear",
+            "Ankle Sprain",
+            "Multiple Abrasions",
+            "Soft Tissue Injury",
+        ];
+
+        for (const preset of defaultPresets) {
+            const key = preset.toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, {
+                    name: preset,
+                    count: 0,
+                    lastUsed: 0,
+                });
+            }
+        }
+
+        const allItems = Array.from(map.values());
+
+        // Filter based on search query
+        let filtered = allItems;
+        if (q) {
+            filtered = allItems.filter((item) =>
+                item.name.toLowerCase().includes(q)
+            );
+            // Sort: exact match first, startsWith second, contains third, then by count / recency
+            filtered.sort((a, b) => {
+                const aName = a.name.toLowerCase();
+                const bName = b.name.toLowerCase();
+                const aExact = aName === q;
+                const bExact = bName === q;
+                if (aExact && !bExact) return -1;
+                if (!aExact && bExact) return 1;
+
+                const aStarts = aName.startsWith(q);
+                const bStarts = bName.startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+
+                if ((b.count || 0) !== (a.count || 0)) {
+                    return (b.count || 0) - (a.count || 0);
+                }
+                return (b.lastUsed || 0) - (a.lastUsed || 0);
+            });
+        } else {
+            // No query: sort by most used and recent
+            filtered.sort((a, b) => {
+                if ((b.count || 0) !== (a.count || 0)) {
+                    return (b.count || 0) - (a.count || 0);
+                }
+                return (b.lastUsed || 0) - (a.lastUsed || 0);
+            });
+        }
+
+        return filtered.slice(0, maxLimit).map((item) => item.name);
+    },
+});
+
+/**
+ * Auto-save diagnosis directly to an existing prescription document and to the catalog
+ */
+export const autoSavePrescriptionDiagnosis = mutation({
+    args: {
+        id: v.id("prescriptions"),
+        diagnosis: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.id, {
+            diagnosis: args.diagnosis,
+        });
+
+        await recordDiagnosesToCatalog(ctx, args.diagnosis);
+        return { success: true };
     },
 });
 

@@ -9,15 +9,39 @@ if (!convexUrl) {
 }
 const convex = new ConvexHttpClient(convexUrl);
 
+export interface DosageSchedule {
+  id?: string;
+  dosage: string;
+  unit?: string;
+  time?: string;
+  when?: string;
+  where?: string;
+  frequency?: string;
+  duration?: string;
+  start_from?: string;
+  to_date?: string;
+  details?: string;
+  notes?: string;
+}
+
 export interface MedicineEntry {
   name: string;
   dosage: string;
   duration?: string;
+  frequency?: string;
   quantity?: number;
   composition?: string;
   timing?: string;
+  time?: string;
   freq_duration?: string;
   note?: string;
+  unit?: string;
+  when?: string;
+  where?: string;
+  start_from?: string;
+  to_date?: string;
+  details?: string;
+  schedules?: DosageSchedule[];
 }
 
 export interface ToothData {
@@ -59,6 +83,7 @@ export interface Prescription {
   diagnosis?: string;
   treatment_plan?: any; // can be string[] (legacy) or TreatmentPlanItem[]
   oral_exam_notes?: string;
+  dr_notes?: string;
   selected_teeth?: ToothData[];
   medicines?: MedicineEntry[];
   treatment_done?: TreatmentItem[];
@@ -129,5 +154,45 @@ export const getPrescriptionWithBill = async (id: string) => {
 export const getPrescriptionsByPatient = async (patientId: string) => {
   const data = await convex.query(api.prescriptions.listByPatient, { reference_number: patientId });
   return data.map((item: any) => ({ ...item, id: item._id })) as Prescription[];
+};
+
+export const saveDiagnosis = async (name: string, category?: string) => {
+  try {
+    return await convex.mutation(api.prescriptions.saveDiagnosis, { name, category });
+  } catch (err) {
+    console.error('Error saving diagnosis:', err);
+    return null;
+  }
+};
+
+export const saveMultipleDiagnoses = async (names: string[], category?: string) => {
+  try {
+    return await convex.mutation(api.prescriptions.saveMultipleDiagnoses, { names, category });
+  } catch (err) {
+    console.error('Error saving multiple diagnoses:', err);
+    return [];
+  }
+};
+
+export const getDiagnosisSuggestions = async (query?: string, limit?: number): Promise<string[]> => {
+  try {
+    return await convex.query(api.prescriptions.getDiagnosisSuggestions, { query, limit });
+  } catch (err) {
+    console.error('Error fetching diagnosis suggestions:', err);
+    return [];
+  }
+};
+
+export const autoSavePrescriptionDiagnosis = async (id: string, diagnosis: string) => {
+  if (!id || id === 'undefined' || id === 'null' || id.toString().startsWith('TMP-')) {
+    return false;
+  }
+  try {
+    await convex.mutation(api.prescriptions.autoSavePrescriptionDiagnosis, { id: id as any, diagnosis });
+    return true;
+  } catch (err) {
+    console.error('Error auto-saving prescription diagnosis:', err);
+    return false;
+  }
 };
 

@@ -80,6 +80,7 @@ export default defineSchema({
     medicines: v.optional(v.any()), // JSON
     treatment_done: v.optional(v.any()), // JSON array
     advice: v.optional(v.string()),
+    dr_notes: v.optional(v.string()),
     followup_date: v.optional(v.string()), // YYYY-MM-DD
     doctor_name: v.optional(v.string()),
     vitals: v.optional(v.any()),
@@ -560,5 +561,15 @@ export default defineSchema({
   })
     .index("by_treatment_name", ["treatment_name"])
     .index("by_enabled", ["enabled"]),
+
+  diagnoses: defineTable({
+    name: v.string(),
+    count: v.optional(v.number()),
+    category: v.optional(v.string()),
+    last_used_at: v.optional(v.number()),
+    created_at: v.optional(v.number()),
+  })
+    .index("by_name", ["name"])
+    .index("by_last_used", ["last_used_at"]),
 });
 

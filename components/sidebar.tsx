@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Inbox, Menu, ChevronRight, Pill, FileText, LogOut, Wrench, TrendingUp, CreditCard, Package, Calendar, ClipboardList, Activity, UserCheck, Crown, ReceiptText, Link2, Bed } from "lucide-react";
+import { Inbox, Menu, ChevronRight, Pill, FileText, LogOut, Wrench, TrendingUp, CreditCard, Package, Calendar, ClipboardList, Activity, UserCheck, Crown, ReceiptText, Link2, Bed, BookmarkCheck } from "lucide-react";
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from "@/services/adminuser";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -160,6 +160,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
     ...(isAdmin ? [{ id: "sales-report", title: "Sales Report", url: "/admin/medicines/sales", icon: TrendingUp }] : []),
     { id: "installments", title: "Payment Installments", url: "/admin/installments", icon: CreditCard },
     { id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText },
+    { id: "prescription-templates", title: "Prescription Templates", url: "/admin/templates", icon: BookmarkCheck },
   ];
 
   useEffect(() => {

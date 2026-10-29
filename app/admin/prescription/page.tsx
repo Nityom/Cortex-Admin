@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { getAllMedicines, deductMedicineStock } from '@/services/medicine';
+import { getAllMedicines, deductMedicineStock, addMedicine as createMedicineService } from '@/services/medicine';
 import { Medicine } from '@/services/medicine';
+import { getAllTemplates, getTemplateById, saveTemplate as saveTemplateService, PrescriptionTemplate } from '@/services/templates';
 import { addPrescription, Prescription, getPrescriptionById, updatePrescription } from '@/services/prescription';
 import { getOrCreatePatient, getPatientByPhoneNumber, getPatientByReference, getNextPatientReference } from '@/services/patients';
 import { Patient } from '@/types/patient';
@@ -19,6 +20,39 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { generatePrescriptionPdfBlob } from '@/lib/generate-prescription-client';
 import MedicineSearchInput from '@/components/MedicineSearchInput';
+import DiagnosisSearchInput from '@/components/DiagnosisSearchInput';
+import HealthPlixMedicineTable from '@/components/HealthPlixMedicineTable';
+import HealthPlixDrawingBoard from '@/components/HealthPlixDrawingBoard';
+import SectionTemplatePicker from '@/components/SectionTemplatePicker';
+import { DosageSchedule } from '@/services/prescription';
+import {
+  Edit2,
+  Copy,
+  FileText,
+  Undo2,
+  Trash2,
+  Plus,
+  Search,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Video,
+  PhoneCall,
+  Save,
+  Printer,
+  MessageCircle,
+  Mail,
+  RotateCcw,
+  User,
+  Phone,
+  Activity,
+  CheckCircle2,
+  BookmarkPlus,
+  FolderOpen,
+  X,
+  BookmarkCheck,
+  ArrowRight,
+} from 'lucide-react';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -29,13 +63,20 @@ const convexClient = new ConvexHttpClient(convexUrl);
 interface MedicineEntry {
   name: string;
   dosage: string;
-  frequency?: string; // Stat, Daily, Weekly, Fortnight, Thrice weekly, Bi weekly, Monthly
+  frequency?: string;
   duration?: string;
-  quantity?: number; // Optional quantity
+  quantity?: number;
   composition?: string;
   timing?: string;
   freq_duration?: string;
   note?: string;
+  unit?: string;
+  when?: string;
+  where?: string;
+  start_from?: string;
+  to_date?: string;
+  details?: string;
+  schedules?: DosageSchedule[];
 }
 
 const MEDICINE_FREQUENCY_OPTIONS = [
@@ -108,30 +149,6 @@ const TEETH_BY_QUADRANT = {
     ...['A', 'B', 'C', 'D', 'E'].map((letter) => ({ number: letter, name: `Tooth ${letter}` }))
   ]
 };
-
-// Default dental procedures with prices (for Treatment Done section)
-const DEFAULT_DENTAL_PROCEDURES = [
-  { id: 1, name: 'Dental Checkup', price: 500 },
-  { id: 2, name: 'Teeth Cleaning', price: 1000 },
-  { id: 3, name: 'Root Canal / RCT', price: 5000 },
-  { id: 4, name: 'Tooth Extraction', price: 1500 },
-  { id: 5, name: 'Dental Filling', price: 1200 },
-  { id: 6, name: 'PFM Crown (Metal Ceramic) - ₹2500', price: 2500 },
-  { id: 7, name: 'PFM Crown (Metal Ceramic) - ₹3500', price: 3500 },
-  { id: 8, name: 'PFM Crown (Metal Ceramic) - ₹5000', price: 5000 },
-  { id: 9, name: 'Zirconia Crown (Metal Free) - ₹8000', price: 8000 },
-  { id: 10, name: 'Zirconia Crown (Metal Free) - ₹10000', price: 10000 },
-  { id: 11, name: 'Zirconia Crown (Metal Free) - ₹15000', price: 15000 },
-  { id: 12, name: 'Zirconia Crown (Metal Free) - ₹20000', price: 20000 },
-  { id: 13, name: 'Zirconia Crown (Metal Free) - ₹30000', price: 30000 },
-  { id: 14, name: 'Crown Cutting Done', price: 0 },
-  { id: 15, name: 'Cap Cutting Done', price: 0 },
-  { id: 16, name: 'Crown Fixed', price: 0 },
-  { id: 17, name: 'Dental Bridge', price: 15000 },
-  { id: 18, name: 'Dental Implant', price: 25000 },
-  { id: 19, name: 'Teeth Whitening', price: 4000 },
-  { id: 20, name: 'Braces Consultation', price: 1000 },
-];
 
 // Treatment plan item with catalog reference, cost, and optional notes
 interface TreatmentPlanItem {
@@ -286,6 +303,134 @@ const PrescriptionPage = () => {
   const [sugarCount, setSugarCount] = useState<number>(1);
   const XRAY_PRICE = 200;
 
+  // HealthPlix Complaints list
+  interface ComplaintRow {
+    id: string;
+    complaint: string;
+    frequency: string;
+    severity: string;
+    duration: string;
+    date: string;
+  }
+  const [complaintsList, setComplaintsList] = useState<ComplaintRow[]>([]);
+  const [newComplaintText, setNewComplaintText] = useState('');
+  const [newComplaintFreq, setNewComplaintFreq] = useState('');
+  const [newComplaintSeverity, setNewComplaintSeverity] = useState('');
+  const [newComplaintDuration, setNewComplaintDuration] = useState('');
+
+  // HealthPlix Findings text
+  const [findingsText, setFindingsText] = useState('');
+
+  // HealthPlix Vitals state
+  const [bpSystolic, setBpSystolic] = useState('');
+  const [bpDiastolic, setBpDiastolic] = useState('');
+  const [pulseVal, setPulseVal] = useState('');
+  const [heightVal, setHeightVal] = useState('');
+  const [weightVal, setWeightVal] = useState('');
+  const [tempVal, setTempVal] = useState('');
+  const [bmiVal, setBmiVal] = useState('');
+  const [waistHipVal, setWaistHipVal] = useState('');
+  const [spo2Val, setSpo2Val] = useState('');
+  const [lmpDate, setLmpDate] = useState('');
+  const [eddDate, setEddDate] = useState('');
+  const [gestationalWeeks, setGestationalWeeks] = useState('');
+  const [gestationalDays, setGestationalDays] = useState('');
+
+  // Auto-calculate BMI
+  useEffect(() => {
+    const h = parseFloat(heightVal);
+    const w = parseFloat(weightVal);
+    if (h > 0 && w > 0) {
+      const hM = h / 100;
+      setBmiVal((w / (hM * hM)).toFixed(1));
+    } else {
+      setBmiVal('');
+    }
+  }, [heightVal, weightVal]);
+
+  // HealthPlix Diagnoses list
+  interface DiagnosisRow {
+    id: string;
+    diagnosis: string;
+    snomed_code: string;
+    duration: string;
+    date: string;
+  }
+  const [diagnosesList, setDiagnosesList] = useState<DiagnosisRow[]>([]);
+  const [newDiagnosisCode, setNewDiagnosisCode] = useState('');
+  const [newDiagnosisDuration, setNewDiagnosisDuration] = useState('');
+
+  // HealthPlix Next Visit duration
+  const [followupCount, setFollowupCount] = useState<string>('25');
+  const [followupUnit, setFollowupUnit] = useState<'Days' | 'Weeks' | 'Months'>('Days');
+
+  // HealthPlix Notes
+  const [drNotes, setDrNotes] = useState('');
+  const [quickNotes, setQuickNotes] = useState('');
+  const [procedureAdvice, setProcedureAdvice] = useState('');
+
+  // HealthPlix Tests Requested
+  interface TestRow {
+    id: string;
+    name: string;
+    by_when: string;
+  }
+  const [testsRequested, setTestsRequested] = useState<TestRow[]>([]);
+  const [newTestName, setNewTestName] = useState('');
+  const [newTestByWhen, setNewTestByWhen] = useState('');
+
+  // HealthPlix Referral
+  const [referralDocName, setReferralDocName] = useState('');
+  const [referralSpeciality, setReferralSpeciality] = useState('Orthopaedics');
+  const [referralPhone, setReferralPhone] = useState('');
+  const [referralEmail, setReferralEmail] = useState('');
+
+  // HealthPlix Diet & Exercise
+  const [dietExercise, setDietExercise] = useState('');
+
+  // HealthPlix Investigations
+  const [investigationText, setInvestigationText] = useState('');
+
+  // HealthPlix Past Medication, Systemic Exam, General Exam
+  const [pastMedication, setPastMedication] = useState('');
+  const [systemicExam, setSystemicExam] = useState('');
+  const [generalExam, setGeneralExam] = useState('');
+
+  // HealthPlix Drawing Board
+  const [drawingDataUrl, setDrawingDataUrl] = useState('');
+
+  // Toggle dental arch
+  const [showDentalChart, setShowDentalChart] = useState(false);
+
+  // Active language in bottom bar
+  const [selectedLanguage, setSelectedLanguage] = useState('Marathi');
+
+  // HealthPlix active tab
+  const [activeTab, setActiveTab] = useState<'1st Visit' | 'View Past' | 'Record'>('1st Visit');
+
+  // Template Management States
+  const [isLoadTemplateModalOpen, setIsLoadTemplateModalOpen] = useState(false);
+  const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
+  const [templateNameInput, setTemplateNameInput] = useState('');
+  const [templateCategoryInput, setTemplateCategoryInput] = useState('Orthopaedics');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState('All');
+  const [savedTemplatesList, setSavedTemplatesList] = useState<PrescriptionTemplate[]>([]);
+  const [templateToast, setTemplateToast] = useState<string | null>(null);
+
+  const showTemplateToast = (msg: string) => {
+    setTemplateToast(msg);
+    setTimeout(() => setTemplateToast(null), 3500);
+  };
+
+  const refreshTemplates = useCallback(() => {
+    setSavedTemplatesList(getAllTemplates());
+  }, []);
+
+  useEffect(() => {
+    refreshTemplates();
+  }, [refreshTemplates]);
+
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isStaffUser, setIsStaffUser] = useState(false);
 
@@ -325,7 +470,7 @@ const PrescriptionPage = () => {
   const [dentalDiseases, setDentalDiseases] = useState<string[]>(DENTAL_DISEASES);
   const [newDiseaseName, setNewDiseaseName] = useState<string>('');
   const [showAddDiseaseForm, setShowAddDiseaseForm] = useState<boolean>(false);
-  const [dentalProcedures, setDentalProcedures] = useState<{ id: number; name: string; price: number }[]>(DEFAULT_DENTAL_PROCEDURES);
+  const [dentalProcedures, setDentalProcedures] = useState<{ id: number; name: string; price: number }[]>([]);
   const [newTreatmentName, setNewTreatmentName] = useState<string>('');
   const [newTreatmentPrice, setNewTreatmentPrice] = useState<string>('');
   const [showAddTreatmentForm, setShowAddTreatmentForm] = useState<boolean>(false);
@@ -366,6 +511,130 @@ const PrescriptionPage = () => {
       }
     }
   };
+
+  // Auto-save new medicine to central medicine database and memory list
+  const autoSaveMedicineIfNew = useCallback(async (medName: string, composition?: string) => {
+    const trimmed = (medName || '').trim();
+    if (!trimmed) return;
+    const exists = medicineOptions.some(m => m.name.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      try {
+        const newMed: Medicine = {
+          name: trimmed.toUpperCase(),
+          composition: composition?.trim() || '',
+          doctor_name: selectedDoctorName || 'Both Doctors',
+        };
+        await createMedicineService(newMed);
+        setMedicineOptions(prev => [...prev, newMed]);
+        showTemplateToast('Auto-saved new medicine: ' + newMed.name);
+      } catch (err) {
+        console.warn('Auto-saving new medicine failed:', err);
+      }
+    }
+  }, [medicineOptions, selectedDoctorName]);
+
+  // Apply a selected prescription template to the current consultation
+  const applyPrescriptionTemplate = useCallback((tmpl: PrescriptionTemplate) => {
+    if (!tmpl) return;
+
+    // 1. Diagnosis
+    if (tmpl.diagnosis) {
+      setFormData(prev => ({ ...prev, de: tmpl.diagnosis }));
+      setDiagnosesList(prev => {
+        if (!prev.some(d => d.diagnosis.toLowerCase() === tmpl.diagnosis.toLowerCase())) {
+          return [
+            ...prev,
+            {
+              id: String(Date.now()),
+              diagnosis: tmpl.diagnosis,
+              snomed_code: '',
+              duration: '',
+              date: formData.date || new Date().toISOString().slice(0, 10),
+            },
+          ];
+        }
+        return prev;
+      });
+    }
+
+    // 2. Medicines with complete schedules
+    if (tmpl.medicines && tmpl.medicines.length > 0) {
+      setMedicines(JSON.parse(JSON.stringify(tmpl.medicines)));
+      // Auto-save any medicine in this template to the medicine database if missing
+      tmpl.medicines.forEach(m => {
+        if (m.name) autoSaveMedicineIfNew(m.name, m.composition);
+      });
+    }
+
+    // 3. Complaints
+    if (tmpl.complaints && tmpl.complaints.length > 0) {
+      const cRows: ComplaintRow[] = tmpl.complaints.map((c, i) => ({
+        id: 'tc_' + Date.now() + '_' + i,
+        complaint: c.complaint,
+        frequency: c.frequency || '',
+        severity: c.severity || '',
+        duration: c.duration || '',
+        date: formData.date || new Date().toISOString().slice(0, 10),
+      }));
+      setComplaintsList(cRows);
+      setFormData(prev => ({ ...prev, cc: tmpl.complaints!.map(c => c.complaint).join(', ') }));
+    }
+
+    // 4. Advice, Findings, Vitals & Clinical Notes
+    if (tmpl.advice) setFormData(prev => ({ ...prev, advice: tmpl.advice! }));
+    if (tmpl.findings) setFindingsText(tmpl.findings);
+    if (tmpl.dr_notes) setDrNotes(tmpl.dr_notes);
+    if (tmpl.quick_notes) setQuickNotes(tmpl.quick_notes);
+    if (tmpl.procedure_advice) setProcedureAdvice(tmpl.procedure_advice);
+    if (tmpl.diet_exercise) setDietExercise(tmpl.diet_exercise);
+    if (tmpl.investigations) setInvestigationText(tmpl.investigations);
+    if (tmpl.general_examinations) setGeneralExam(tmpl.general_examinations);
+    if (tmpl.past_medications) setPastMedication(tmpl.past_medications);
+    if (tmpl.drawing_board) setDrawingDataUrl(tmpl.drawing_board);
+
+    // Vitals
+    if (tmpl.vitals) {
+      if (tmpl.vitals.bp_systolic) setBpSystolic(tmpl.vitals.bp_systolic);
+      if (tmpl.vitals.bp_diastolic) setBpDiastolic(tmpl.vitals.bp_diastolic);
+      if (tmpl.vitals.pulse) setPulseVal(tmpl.vitals.pulse);
+      if (tmpl.vitals.height) setHeightVal(tmpl.vitals.height);
+      if (tmpl.vitals.weight) setWeightVal(tmpl.vitals.weight);
+      if (tmpl.vitals.temperature) setTempVal(tmpl.vitals.temperature);
+      if (tmpl.vitals.bmi) setBmiVal(tmpl.vitals.bmi);
+      if (tmpl.vitals.waist_hip) setWaistHipVal(tmpl.vitals.waist_hip);
+      if (tmpl.vitals.spo2) setSpo2Val(tmpl.vitals.spo2);
+      if (tmpl.vitals.lmp) setLmpDate(tmpl.vitals.lmp);
+      if (tmpl.vitals.edd) setEddDate(tmpl.vitals.edd);
+      if (tmpl.vitals.gestational_weeks) setGestationalWeeks(tmpl.vitals.gestational_weeks);
+      if (tmpl.vitals.gestational_days) setGestationalDays(tmpl.vitals.gestational_days);
+    }
+
+    // 5. Tests
+    if (tmpl.tests_requested && tmpl.tests_requested.length > 0) {
+      setTestsRequested(tmpl.tests_requested.map((t, i) => ({
+        id: 'tt_' + Date.now() + '_' + i,
+        name: t.name,
+        by_when: t.by_when || '',
+      })));
+    }
+
+    // 6. Follow-up
+    if (tmpl.followup_count) {
+      setFollowupCount(tmpl.followup_count);
+      if (tmpl.followup_unit) setFollowupUnit(tmpl.followup_unit);
+      const num = parseInt(tmpl.followup_count, 10);
+      if (!isNaN(num) && num > 0) {
+        const d = new Date();
+        const unit = tmpl.followup_unit || 'Days';
+        if (unit === 'Days') d.setDate(d.getDate() + num);
+        else if (unit === 'Weeks') d.setDate(d.getDate() + num * 7);
+        else if (unit === 'Months') d.setMonth(d.getMonth() + num);
+        setFormData(prev => ({ ...prev, followupDate: d.toISOString().slice(0, 10) }));
+      }
+    }
+
+    showTemplateToast('Applied template: ' + tmpl.name);
+  }, [autoSaveMedicineIfNew, formData.date]);
 
   // On mount: remember last active doctor and prefill from OPD queue / URL params
   useEffect(() => {
@@ -416,6 +685,15 @@ const PrescriptionPage = () => {
           qRef = 'CRX0003';
         }
       }
+      // Check for templateId from query params
+      const qTmplId = params.get('templateId');
+      if (qTmplId) {
+        const tmpl = getTemplateById(qTmplId);
+        if (tmpl) {
+          setTimeout(() => applyPrescriptionTemplate(tmpl), 150);
+        }
+      }
+
       const qBp = params.get('bp');
       const qPulse = params.get('pulse');
       const qSpo2 = params.get('spo2');
@@ -471,10 +749,63 @@ const PrescriptionPage = () => {
     return doc.toLowerCase() === (selectedDoctorName || '').toLowerCase();
   });
 
-  // Consultation charge (Managed in Billing module, not in clinical prescription)
+  // Registration / Consultation charge & Doctor Discount (Forwarded to Billing, not printed on prescription)
   const [applyConsultationCharge, setApplyConsultationCharge] = useState<boolean>(false);
-  const [consultationCharge, setConsultationCharge] = useState<number>(0);
+  const [consultationCharge, setConsultationCharge] = useState<number>(400);
   const [consultationDiscount, setConsultationDiscount] = useState<number>(0);
+  const [isNewPatient, setIsNewPatient] = useState<boolean>(true);
+  const [treatmentDiscount, setTreatmentDiscount] = useState<number>(0);
+
+  // Treatment Done entry state
+  const [selectedTreatmentName, setSelectedTreatmentName] = useState<string>('');
+  const [selectedTreatmentPrice, setSelectedTreatmentPrice] = useState<string>('');
+  const [selectedTreatmentQty, setSelectedTreatmentQty] = useState<number>(1);
+  const [selectedTreatmentDate, setSelectedTreatmentDate] = useState<string>('');
+
+  // Save procedure name and charge to local custom procedure catalog
+  const saveProcedureToCatalog = useCallback((name: string, price: number) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setDentalProcedures((prev) => {
+      const existingIdx = prev.findIndex((p) => p.name.toLowerCase() === trimmed.toLowerCase());
+      let updated;
+      if (existingIdx >= 0) {
+        updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], price };
+      } else {
+        const newId = Math.max(...prev.map((p) => p.id), 0) + 1;
+        updated = [...prev, { id: newId, name: trimmed, price }];
+      }
+      try {
+        localStorage.setItem('cortex_custom_procedures_v1', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  }, []);
+
+  // Load custom procedures saved in localStorage on mount
+  useEffect(() => {
+    try {
+      const savedProcs = localStorage.getItem('cortex_custom_procedures_v1');
+      if (savedProcs) {
+        const parsed = JSON.parse(savedProcs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const validProcs = parsed
+            .filter((p: any) => p && p.name && p.name.trim())
+            .map((p: any) => ({
+              id: p.id || Math.random(),
+              name: p.name.trim(),
+              price: Number(p.price) || 0,
+            }));
+          setDentalProcedures(validProcs);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Treatment plan catalog search
   const [tpSearchQuery, setTpSearchQuery] = useState('');
@@ -575,6 +906,8 @@ const PrescriptionPage = () => {
         const existingPatient = await getPatientByPhoneNumber(phoneNumber);
 
         if (existingPatient) {
+          setIsNewPatient(false);
+          setConsultationCharge(200);
           let ref = (existingPatient.reference_number || '').replace(/^CH/i, 'CRX');
           if (ref === 'CRX0002' && existingPatient.name?.toLowerCase() !== 'testing') {
             ref = 'CRX0003';
@@ -644,6 +977,10 @@ const PrescriptionPage = () => {
           } catch (rxError) {
             console.error('Error fetching latest prescription for prefill:', rxError);
           }
+        } else {
+          // Patient not found in DB -> New patient
+          setIsNewPatient(true);
+          setConsultationCharge(400);
         }
       } catch (error) {
         console.error('Error fetching patient by phone:', error);
@@ -966,6 +1303,83 @@ const PrescriptionPage = () => {
 
         if (prescription.oral_exam_notes) {
           setOralExamNotes(prescription.oral_exam_notes);
+          setFindingsText(prescription.oral_exam_notes);
+          setDrNotes(prescription.oral_exam_notes);
+        }
+
+        if (prescription.investigation) {
+          setInvestigationText(prescription.investigation);
+        }
+
+        // Populate HealthPlix complaints
+        if (prescription.chief_complaint) {
+          const parts = prescription.chief_complaint.split(',').map((s: string) => s.trim()).filter(Boolean);
+          setComplaintsList(parts.map((p: string, i: number) => ({
+            id: `c_${i}`,
+            complaint: p,
+            frequency: '',
+            severity: '',
+            duration: '',
+            date: prescription.prescription_date || '',
+          })));
+        }
+
+        // Populate HealthPlix diagnoses
+        if (prescription.diagnosis) {
+          const parts = prescription.diagnosis.split(',').map((s: string) => s.trim()).filter(Boolean);
+          setDiagnosesList(parts.map((p: string, i: number) => ({
+            id: `d_${i}`,
+            diagnosis: p,
+            snomed_code: '',
+            duration: '',
+            date: prescription.prescription_date || '',
+          })));
+        }
+
+        // Populate HealthPlix vitals
+        const pv = prescription.vitals || {};
+        if (pv.bp) {
+          const bparts = String(pv.bp).split('/');
+          setBpSystolic(bparts[0]?.trim() || '');
+          setBpDiastolic(bparts[1]?.trim() || '');
+        } else {
+          setBpSystolic(pv.bp_systolic || '');
+          setBpDiastolic(pv.bp_diastolic || '');
+        }
+        setPulseVal(pv.pulse || '');
+        setHeightVal(pv.height || '');
+        setWeightVal(pv.weight || '');
+        setTempVal(pv.temperature || '');
+        setBmiVal(pv.bmi || '');
+        setWaistHipVal(pv.waist_hip || '');
+        setSpo2Val(pv.spo2 || '');
+        setLmpDate(pv.lmp || '');
+        setEddDate(pv.edd || '');
+
+        // Existing prescription -> patient is not new, consultation defaults to 200
+        setIsNewPatient(false);
+        setConsultationCharge(200);
+
+        try {
+          const bData = await getBillByPrescriptionId(id);
+          const b = Array.isArray(bData) ? bData[0] : bData;
+          if (b) {
+            if (b.discount_amount) setTreatmentDiscount(b.discount_amount);
+            const bItems = typeof b.items === 'string' ? JSON.parse(b.items) : (b.items || []);
+            const regItem = bItems.find(
+              (it: any) =>
+                it.item_type === 'consultation' ||
+                (it.description &&
+                  (it.description.toLowerCase().includes('consultation') ||
+                    it.description.toLowerCase().includes('registration')))
+            );
+            if (regItem) {
+              setApplyConsultationCharge(true);
+              setConsultationCharge(regItem.unit_price || regItem.total || 200);
+            }
+          }
+        } catch {
+          // ignore error fetching bill on initial load
         }
       }
     } catch (error) {
@@ -1019,6 +1433,13 @@ const PrescriptionPage = () => {
         }
       }
 
+      // Auto-save any newly typed medicines to the central medicine list
+      for (const med of medicines) {
+        if (med.name && med.name.trim()) {
+          await autoSaveMedicineIfNew(med.name, med.composition);
+        }
+      }
+
       // Update form data with the patient's reference number
       setFormData(prev => ({
         ...prev,
@@ -1027,6 +1448,10 @@ const PrescriptionPage = () => {
       setPatientReferenceNumber(patient.reference_number);
 
 
+      const bpFull = bpSystolic && bpDiastolic ? `${bpSystolic}/${bpDiastolic}` : (formData.bp || '');
+      const allComplaints = complaintsList.length > 0 ? complaintsList.map(c => c.complaint).join(', ') : formData.cc;
+      const allDiagnoses = diagnosesList.length > 0 ? diagnosesList.map(d => d.diagnosis).join(', ') : formData.de;
+
       const prescriptionData: Prescription = {
         patient_name: formData.patientName,
         phone_number: formData.phoneNumber,
@@ -1034,12 +1459,13 @@ const PrescriptionPage = () => {
         sex: formData.sex,
         reference_number: patient.reference_number,
         prescription_date: formData.date,
-        chief_complaint: formData.cc,
+        chief_complaint: allComplaints,
         medical_history: formData.mh,
-        investigation: formData.investigation,
-        diagnosis: formData.de,
+        investigation: investigationText || formData.investigation,
+        diagnosis: allDiagnoses,
         treatment_plan: formData.treatmentPlan,
-        oral_exam_notes: oralExamNotes,
+        oral_exam_notes: findingsText || oralExamNotes || undefined,
+        dr_notes: drNotes || undefined,
         selected_teeth: selectedTeeth,
         medicines: medicines,
         treatment_done: treatmentItems.map(item => ({
@@ -1056,12 +1482,19 @@ const PrescriptionPage = () => {
         opd_visit_id: opdVisitId || undefined,
         vitals: {
           ...(opdVisit?.vitals || {}),
-          ...(formData.bp ? { bp: formData.bp, bp_systolic: formData.bp.split('/')[0]?.trim(), bp_diastolic: formData.bp.split('/')[1]?.trim() } : {}),
-          ...(formData.spo2 ? { spo2: formData.spo2 } : {}),
-          ...(formData.height ? { height: formData.height } : {}),
-          ...(formData.weight ? { weight: formData.weight } : {}),
-          ...(formData.pulse ? { pulse: formData.pulse } : {}),
-          ...(formData.temperature ? { temperature: formData.temperature } : {}),
+          bp: bpFull,
+          bp_systolic: bpSystolic || formData.bp?.split('/')[0]?.trim(),
+          bp_diastolic: bpDiastolic || formData.bp?.split('/')[1]?.trim(),
+          pulse: pulseVal || formData.pulse,
+          height: heightVal || formData.height,
+          weight: weightVal || formData.weight,
+          temperature: tempVal || formData.temperature,
+          spo2: spo2Val || formData.spo2,
+          bmi: bmiVal,
+          waist_hip: waistHipVal,
+          lmp: lmpDate,
+          edd: eddDate,
+          gestational_age: gestationalWeeks ? `${gestationalWeeks}w ${gestationalDays}d` : '',
         },
       };
 
@@ -1285,7 +1718,7 @@ const PrescriptionPage = () => {
       if (savedPrescription?.id && patient?.id) {
         try {
           const consultationFee = applyConsultationCharge
-            ? Math.round(consultationCharge * (1 - consultationDiscount / 100) * 100) / 100
+            ? Number(consultationCharge) || 0
             : 0;
 
           // Treatment Done items
@@ -1318,14 +1751,14 @@ const PrescriptionPage = () => {
 
           const treatmentTotal = treatmentDoneItems.reduce((s, i) => s + i.total, 0);
           const medicineTotal = medicineItems.reduce((s, i) => s + i.total, 0);
-          const totalAmount = consultationFee + treatmentTotal + medicineTotal;
+          const grossAmount = consultationFee + treatmentTotal + medicineTotal;
+          const discountAmt = Math.min(Number(treatmentDiscount) || 0, grossAmount);
+          const totalAmount = Math.max(0, grossAmount - discountAmt);
 
           const billItems = [
             ...(consultationFee > 0 ? [{
               id: 1,
-              description: consultationDiscount > 0
-                ? `Consultation Fee (${consultationDiscount}% discount)`
-                : 'Consultation Fee',
+              description: isNewPatient ? 'New Patient Registration Fee' : 'Consultation Fee',
               quantity: 1,
               unit_price: consultationFee,
               total: consultationFee,
@@ -1346,6 +1779,7 @@ const PrescriptionPage = () => {
             // Update existing bill with new items and amounts
             await updateBill(existingBill.id, {
               total_amount: totalAmount,
+              discount_amount: discountAmt,
               items: billItems
             });
             console.log('Bill updated successfully with consultation fee, treatments, and medicines');
@@ -1358,6 +1792,7 @@ const PrescriptionPage = () => {
               total_amount: totalAmount,
               paid_amount: 0,
               payment_status: 'PENDING',
+              discount_amount: discountAmt,
               items: billItems
             };
 
@@ -1371,6 +1806,7 @@ const PrescriptionPage = () => {
       }
 
       setSaveSuccess(true);
+      return savedPrescription;
     } catch (err) {
       console.error('Failed to save prescription:', err);
 
@@ -1385,6 +1821,7 @@ const PrescriptionPage = () => {
       }
 
       alert('Failed to save prescription: ' + errorMessage);
+      return null;
     } finally {
       setSaving(false);
     }
@@ -1395,60 +1832,52 @@ const PrescriptionPage = () => {
     setLoading(true);
 
     try {
-      // Format teeth information for prescription in a more technical, concise way
-      const teethInfo = selectedTeeth.length > 0
-        ? selectedTeeth.reduce((acc, tooth) => {
-          const isGeneral = tooth.category === 'General' || String(tooth.id).startsWith('General');
-          const label = isGeneral ? tooth.disease : `#${getToothDropdownFormat(tooth.id)} (${tooth.disease})`;
-          return `${acc}${acc ? ', ' : ''}${label}`;
-        }, '')
-        : '';
-
-      // Prepare data for API, considering the pre-existing template fields
-      const prescriptionData = {
-        ...formData,
-        referenceNumber: formData.reference_number || patientReferenceNumber || '',
-        medicines: medicines.length > 0 ? medicines : undefined,
-        dentalNotation: teethInfo,
-        oralExamination: formData.de,
-        diagnosisNotes: oralExamNotes,
-        investigation: formData.investigation,
-        // Convert TreatmentPlanItem[] → string[] for the PDF generator
-        treatmentPlan: formData.treatmentPlan.map(item =>
-          `${item.name}${item.cost ? ` (Rs.${item.cost})` : ''}${item.notes ? ' - ' + item.notes : ''}`
-        ),
-        treatmentPlanTotal: formData.treatmentPlan.reduce((sum, item) => sum + (Number(item.cost) || 0), 0),
-        treatmentDone: treatmentItems.map(item => ({
-          description: item.description,
-          date: item.date,
-        })),
-      };
-
-      // Generate PDF client-side
-      const blob = await generatePrescriptionPdfBlob(prescriptionData as any);
-
-      // Clean up old URL if it exists
-      if (pdfUrl) {
-        window.URL.revokeObjectURL(pdfUrl);
-      }
-
-      // Create new URL
-      const url = window.URL.createObjectURL(blob);
-      setPdfUrl(url);
-
-      console.log('PDF generated successfully');
-
-      // After successfully generating PDF, also save to database
+      // 1. Save to database first to ensure the prescription record is secured
       await savePrescriptionToDatabase();
-    } catch (err) {
-      console.error('PDF generation error:', err);
 
-      // Extract error message
-      let errorMessage = 'Failed to generate prescription PDF. Please try again.';
+      // 2. Client-side PDF generation for hidden preview (non-blocking if fonts/unicode fail)
+      try {
+        const teethInfo = selectedTeeth.length > 0
+          ? selectedTeeth.reduce((acc, tooth) => {
+            const isGeneral = tooth.category === 'General' || String(tooth.id).startsWith('General');
+            const label = isGeneral ? tooth.disease : `#${getToothDropdownFormat(tooth.id)} (${tooth.disease})`;
+            return `${acc}${acc ? ', ' : ''}${label}`;
+          }, '')
+          : '';
+
+        const prescriptionData = {
+          ...formData,
+          referenceNumber: formData.reference_number || patientReferenceNumber || '',
+          medicines: medicines.length > 0 ? medicines : undefined,
+          dentalNotation: teethInfo,
+          oralExamination: formData.de,
+          diagnosisNotes: oralExamNotes,
+          investigation: formData.investigation,
+          treatmentPlan: formData.treatmentPlan.map(item =>
+            `${item.name}${item.cost ? ` (Rs.${item.cost})` : ''}${item.notes ? ' - ' + item.notes : ''}`
+          ),
+          treatmentPlanTotal: formData.treatmentPlan.reduce((sum, item) => sum + (Number(item.cost) || 0), 0),
+          treatmentDone: treatmentItems.map(item => ({
+            description: item.description,
+            date: item.date,
+          })),
+        };
+
+        const blob = await generatePrescriptionPdfBlob(prescriptionData as any);
+        if (pdfUrl) {
+          window.URL.revokeObjectURL(pdfUrl);
+        }
+        const url = window.URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (pdfErr) {
+        console.warn('PDF blob generation skipped or failed (hospital uses letterhead print):', pdfErr);
+      }
+    } catch (err) {
+      console.error('Prescription save error:', err);
+      let errorMessage = 'Failed to save prescription. Please try again.';
       if (err instanceof Error) {
         errorMessage = err.message;
       }
-
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -1475,15 +1904,80 @@ const PrescriptionPage = () => {
     }
   };
 
-  const handlePrintablePrescription = () => {
-    if (!prescriptionId) {
-      alert('Please save the prescription first.');
-      return;
-    }
+  const handlePrintablePrescription = async () => {
+    let currentId = prescriptionId;
+
     const docObj = availableDoctors.find((d) => d.name.toLowerCase() === (selectedDoctorName || '').toLowerCase());
     const docName = docObj?.name || selectedDoctorName || (selectedDoctor === 'anjali' ? 'Dr. Shillpa Raut' : 'Dr. Vipeen Raut');
     const sigFile = docObj?.signature_url || (docName.toLowerCase().includes('anjali') ? 'sign1.png' : 'sign.png');
-    window.open(`/print-prescription?prescriptionId=${prescriptionId}&signature=${encodeURIComponent(sigFile)}&doctorName=${encodeURIComponent(docName)}&includeSignature=${includeSignature}`, '_blank');
+
+    // Create printable snapshot for instant rendering / fallback
+    const printableSnapshot = {
+      id: currentId || 'draft',
+      patient_name: formData.patientName,
+      phone_number: formData.phoneNumber,
+      age: formData.age,
+      sex: formData.sex,
+      reference_number: formData.reference_number || patientReferenceNumber || '',
+      prescription_date: formData.date || new Date().toISOString().slice(0, 10),
+      chief_complaint: formData.cc,
+      medical_history: formData.mh,
+      investigation: formData.investigation,
+      diagnosis: formData.de,
+      treatment_plan: formData.treatmentPlan,
+      oral_exam_notes: oralExamNotes,
+      selected_teeth: selectedTeeth,
+      medicines: medicines,
+      treatment_done: treatmentItems.map((item) => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total: item.total,
+        date: item.date,
+      })),
+      advice: formData.advice,
+      followup_date: formData.followupDate,
+      doctor_name: docName,
+      vitals: {
+        ...(opdVisit?.vitals || {}),
+        ...(formData.bp ? { bp: formData.bp } : {}),
+        ...(formData.spo2 ? { spo2: formData.spo2 } : {}),
+        ...(formData.height ? { height: formData.height } : {}),
+        ...(formData.weight ? { weight: formData.weight } : {}),
+        ...(formData.pulse ? { pulse: formData.pulse } : {}),
+        ...(formData.temperature ? { temperature: formData.temperature } : {}),
+      },
+    };
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cortex_printable_prescription', JSON.stringify(printableSnapshot));
+      } catch (storageErr) {
+        console.warn('Could not store printable snapshot in localStorage:', storageErr);
+      }
+    }
+
+    // If not saved yet and patient name exists, auto-save first
+    if (!currentId && formData.patientName) {
+      try {
+        const saved = await savePrescriptionToDatabase();
+        if (saved?.id) {
+          currentId = saved.id;
+          printableSnapshot.id = saved.id;
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('cortex_printable_prescription', JSON.stringify(printableSnapshot));
+            } catch (_) { }
+          }
+        }
+      } catch (saveErr) {
+        console.warn('Auto-save before print encountered an error, falling back to local snapshot:', saveErr);
+      }
+    }
+
+    const finalId = currentId || prescriptionId || 'draft';
+    window.open(`/print-prescription?prescriptionId=${finalId}&signature=${encodeURIComponent(sigFile)}&doctorName=${encodeURIComponent(docName)}&includeSignature=${includeSignature}`, '_blank');
   };
 
   // Function to generate and print bill with payment details
@@ -1516,11 +2010,11 @@ const PrescriptionPage = () => {
         try {
           const consultationItem = applyConsultationCharge && consultationCharge > 0 ? [{
             id: 1,
-            description: `Consultation Charge (${selectedDoctorName})`,
+            description: isNewPatient ? 'New Patient Registration Fee' : `Consultation Fee (${selectedDoctorName})`,
             quantity: 1,
             unit_price: consultationCharge,
-            total: Number((consultationCharge * (1 - (consultationDiscount || 0) / 100)).toFixed(2)),
-            item_type: 'procedure' as const,
+            total: consultationCharge,
+            item_type: 'consultation' as const,
           }] : [];
           const planItems = formData.treatmentPlan
             .filter(tp => tp.cost > 0)
@@ -1543,10 +2037,12 @@ const PrescriptionPage = () => {
           }));
           const allItems = [...consultationItem, ...planItems, ...doneItems];
           if (allItems.length === 0) {
-            alert('Please enable consultation fee or add at least one treatment item before generating a bill.');
+            alert('Please enable registration/consultation fee or add at least one treatment item before generating a bill.');
             return;
           }
-          const total = allItems.reduce((s, i) => s + i.total, 0);
+          const gross = allItems.reduce((s, i) => s + i.total, 0);
+          const disc = Math.min(Number(treatmentDiscount) || 0, gross);
+          const total = Math.max(0, gross - disc);
           // Find patient id from a fresh patient lookup
           const pt = await getPatientByReference(patientReferenceNumber);
           if (!pt?.id) {
@@ -1560,6 +2056,7 @@ const PrescriptionPage = () => {
             total_amount: total,
             paid_amount: 0,
             payment_status: 'PENDING',
+            discount_amount: disc,
             items: allItems,
           });
           bill = created;
@@ -1781,7 +2278,7 @@ const PrescriptionPage = () => {
   }, [loadPrescriptionData]); // Include loadPrescriptionData as a dependency
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto mt-4 sm:mt-8 p-2 sm:p-4">
+    <div className="w-full max-w-[1850px] mx-auto mt-2 sm:mt-4 p-2 sm:p-4">
       {isStaffUser ? (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center p-8 bg-red-50 rounded-lg border border-red-200 max-w-2xl">
@@ -1956,8 +2453,8 @@ const PrescriptionPage = () => {
                 type="button"
                 onClick={() => handleDoctorSelect('Dr. Vipeen Raut')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${selectedDoctorName === 'Dr. Vipeen Raut'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                   }`}
               >
                 Dr. Vipeen Raut (Ortho)
@@ -1966,8 +2463,8 @@ const PrescriptionPage = () => {
                 type="button"
                 onClick={() => handleDoctorSelect('Dr. Shillpa Raut')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${selectedDoctorName === 'Dr. Shillpa Raut'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                   }`}
               >
                 Dr. Shillpa Raut (Gynae)
@@ -1975,1120 +2472,1957 @@ const PrescriptionPage = () => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Patient Information Section */}                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
-              <h3 className="text-xl font-semibold mb-4 text-blue-800">Patient Information</h3>                  {formData.reference_number && (
-                <div className="mb-4 p-3 bg-blue-100 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    Patient Reference: <span className="font-medium">{formData.reference_number}</span>
-                  </p>
+          {/* HealthPlix Doctor EHR Form Shell */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* HealthPlix Top Navigation Bar */}
+
+
+            {/* Patient Banner (HealthPlix IMG_0902) */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                    {formData.patientName || 'Patient Name'}
+                  </h2>
+                  <span className="text-sm font-semibold text-slate-600">
+                    ({formData.age || '—'} Y, {formData.sex || 'Male'})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tag = prompt('Add tag for patient (e.g. Diabetic, VIP, Ortho, ANC):');
+                      if (tag) alert('Tag added: ' + tag);
+                    }}
+                    className="text-xs px-2 py-0.5 border border-slate-300 rounded text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    + tag
+                  </button>
+                  {formData.phoneNumber && (
+                    <a
+                      href={'tel:' + formData.phoneNumber}
+                      className="text-xs px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-semibold hover:bg-blue-100 flex items-center gap-1 transition"
+                    >
+                      <PhoneCall className="w-3 h-3" /> Call
+                    </a>
+                  )}
                 </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
+                  <div>
+                    UHID / Ref:{' '}
+                    <span className="font-bold text-slate-800">
+                      {formData.reference_number || 'Auto-generated on save'}
+                    </span>
+                  </div>
+                  <div>
+                    Phone: <span className="font-bold text-slate-800">{formData.phoneNumber || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Patient Details Bar */}
+              <div className="pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase">Name *</label>
                   <input
                     type="text"
                     name="patientName"
                     value={formData.patientName}
                     onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                     required
-                    placeholder="Enter patient's full name"
+                    placeholder="Patient Name"
+                    className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase">Phone Number</label>
                   <input
-                    type="date"
-                    name="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    required
+                    type="text"
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handlePhoneNumberChange}
+                    placeholder="Phone Number"
+                    className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase">Age</label>
                   <input
                     type="number"
                     name="age"
                     value={formData.age}
                     onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    required
                     placeholder="Years"
+                    className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase">Gender</label>
                   <select
                     name="sex"
                     value={formData.sex}
                     onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    required
+                    className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
                   >
-                    <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
-
-                {/* Added Phone Number Field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase">Visit Date</label>
                   <input
-                    type="tel"
-                    id="phone_number"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={handlePhoneNumberChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    placeholder="Enter patient's phone number"
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Patient data will auto-fill if phone exists</p>
                 </div>
-
-                {/* Vital Signs (BP, SpO2, Height, Weight, Pulse) */}
-                <div className="col-span-1 md:col-span-2 pt-4 mt-2 border-t border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold text-blue-900">
-                      Vital Signs (BP, SpO₂, Height, Weight, Pulse)
-                    </label>
-
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">BP (mmHg)</label>
-                      <input
-                        type="text"
-                        name="bp"
-                        value={formData.bp || ''}
-                        onChange={handleChange}
-                        className="block w-full p-2.5 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                        placeholder="e.g. 120/80"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">SpO₂ (%)</label>
-                      <input
-                        type="text"
-                        name="spo2"
-                        value={formData.spo2 || ''}
-                        onChange={handleChange}
-                        className="block w-full p-2.5 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                        placeholder="e.g. 98"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Height (cm)</label>
-                      <input
-                        type="text"
-                        name="height"
-                        value={formData.height || ''}
-                        onChange={handleChange}
-                        className="block w-full p-2.5 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                        placeholder="e.g. 172"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Weight (kg)</label>
-                      <input
-                        type="text"
-                        name="weight"
-                        value={formData.weight || ''}
-                        onChange={handleChange}
-                        className="block w-full p-2.5 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                        placeholder="e.g. 68"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Pulse (/min)</label>
-                      <input
-                        type="text"
-                        name="pulse"
-                        value={formData.pulse || ''}
-                        onChange={handleChange}
-                        className="block w-full p-2.5 text-sm bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 font-mono"
-                        placeholder="e.g. 72"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase">Doctor</label>
+                  <select
+                    value={selectedDoctorName}
+                    onChange={(e) => handleDoctorSelect(e.target.value)}
+                    className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 bg-white focus:ring-1 focus:ring-teal-500"
+                  >
+                    {availableDoctors.map((doc) => (
+                      <option key={doc.id || doc._id || doc.name} value={doc.name}>
+                        {doc.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
 
+            {/* Sub-Banner Visit Controls (IMG_0902) */}
+            <div className="bg-slate-100/90 border border-slate-200 rounded-lg p-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('1st Visit')}
+                  className={activeTab === '1st Visit' ? 'px-3 py-1 rounded font-semibold transition bg-white text-slate-900 shadow-xs border border-slate-200' : 'px-3 py-1 rounded font-semibold transition text-slate-600 hover:text-slate-900'}
+                >
+                  1st Visit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('View Past')}
+                  className={activeTab === 'View Past' ? 'px-3 py-1 rounded font-semibold transition bg-white text-slate-900 shadow-xs border border-slate-200' : 'px-3 py-1 rounded font-semibold transition text-slate-600 hover:text-slate-900'}
+                >
+                  View Past
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('Record')}
+                  className="px-3 py-1 rounded font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1"
+                >
+                  🎙 Record
+                </button>
+              </div>
 
-
-            {/* Treatment Done Section (Removed / commented out per user request) */}
-            {/*
-            <div className="bg-teal-50 p-6 rounded-lg border border-teal-100">
-              <div className="flex items-center justify-between mb-4 gap-3">
-                <h3 className="text-xl font-semibold text-teal-800">Treatment Done</h3>
+              <div className="flex items-center gap-3 text-slate-600">
                 <button
                   type="button"
                   onClick={() => {
-                    setShowAddTreatmentForm(prev => !prev);
-                    if (showAddTreatmentForm) {
-                      setNewTreatmentName('');
-                      setNewTreatmentPrice('');
-                    }
+                    refreshTemplates();
+                    setIsLoadTemplateModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition border border-teal-300 font-medium whitespace-nowrap"
+                  className="hover:text-blue-700 flex items-center gap-1.5 font-bold transition text-xs"
                 >
-                  {showAddTreatmentForm ? 'Close' : '+ Add New Treatment'}
+                  <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Load template</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTemplateNameInput(formData.de ? formData.de + ' Protocol' : '');
+                    setIsSaveTemplateModalOpen(true);
+                  }}
+                  className="hover:text-purple-700 flex items-center gap-1.5 font-bold transition text-xs"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Save as template</span>
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mb-4">Add treatments/services completed during this visit. Bills will be auto-generated from these items.</p>
-
-              <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-                <h4 className="font-medium text-gray-700 mb-3">Add Service/Procedure</h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Service/Procedure</label>
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        const selected = dentalProcedures.find(p => p.name === e.target.value);
-                        if (selected) {
-                          const newItem: TreatmentItem = {
-                            id: treatmentItems.length + 1,
-                            description: selected.name,
-                            quantity: 1,
-                            unitPrice: selected.price,
-                            total: selected.price,
-                            date: new Date().toISOString().slice(0, 10)
-                          };
-                          setTreatmentItems([...treatmentItems, newItem]);
-                        }
-                      }}
-                      className="mt-1 block w-full p-3 border border-gray-300 rounded-lg"
-                    >
-                      <option value="">Select Service</option>
-                      {dentalProcedures.map(proc => (
-                        <option key={proc.id} value={proc.name}>{proc.name} - ₹{proc.price}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {treatmentItems.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 border">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price (₹)</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total (₹)</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {treatmentItems.map((item, index) => (
-                        <tr key={item.id || index}>
-                          <td className="px-4 py-3 whitespace-nowrap">{index + 1}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <input
-                              type="text"
-                              value={item.description}
-                              onChange={(e) => {
-                                const newItems = [...treatmentItems];
-                                newItems[index].description = e.target.value;
-                                setTreatmentItems(newItems);
-                              }}
-                              className="w-full p-1 border border-gray-300 rounded"
-                            />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <input
-                              type="date"
-                              value={item.date || ''}
-                              onChange={(e) => {
-                                const newItems = [...treatmentItems];
-                                newItems[index].date = e.target.value;
-                                setTreatmentItems(newItems);
-                              }}
-                              className="p-1 border border-gray-300 rounded text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) => {
-                                const newItems = [...treatmentItems];
-                                newItems[index].quantity = parseInt(e.target.value) || 1;
-                                newItems[index].total = newItems[index].quantity * newItems[index].unitPrice;
-                                setTreatmentItems(newItems);
-                              }}
-                              className="w-20 p-1 border border-gray-300 rounded"
-                              min="1"
-                            />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <input
-                              type="number"
-                              value={item.unitPrice}
-                              onChange={(e) => {
-                                const newItems = [...treatmentItems];
-                                newItems[index].unitPrice = parseFloat(e.target.value) || 0;
-                                newItems[index].total = newItems[index].quantity * newItems[index].unitPrice;
-                                setTreatmentItems(newItems);
-                              }}
-                              className="w-24 p-1 border border-gray-300 rounded"
-                              min="0"
-                            />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            ₹{item.total.toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTreatmentItems(treatmentItems.filter((_, i) => i !== index));
-                              }}
-                              className="text-red-600 hover:text-red-900 focus:outline-none"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={5} className="px-4 py-3 text-right font-bold">Total Amount:</td>
-                        <td colSpan={2} className="px-4 py-3 font-bold text-lg text-teal-700">
-                          ₹{treatmentItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
-
-              {showAddTreatmentForm && (
-                <div className="mt-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
-                  <h4 className="font-medium text-teal-800 mb-3">Add New Treatment to List:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={newTreatmentName}
-                      onChange={(e) => setNewTreatmentName(e.target.value)}
-                      placeholder="Treatment name"
-                      className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                      autoFocus
-                    />
-                    <input
-                      type="number"
-                      value={newTreatmentPrice}
-                      onChange={(e) => setNewTreatmentPrice(e.target.value)}
-                      placeholder="Price (₹)"
-                      className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                      min="0"
-                      step="0.01"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleAddNewTreatment}
-                        disabled={!newTreatmentName.trim() || !newTreatmentPrice.trim()}
-                        className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAddTreatmentForm(false);
-                          setNewTreatmentName('');
-                          setNewTreatmentPrice('');
-                        }}
-                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-
-                  {dentalProcedures.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {dentalProcedures.map((procedure) => (
-                        <div key={procedure.id} className="bg-white px-3 py-1 rounded-full border border-teal-300 flex items-center gap-2 text-sm">
-                          <span>{procedure.name} (₹{procedure.price})</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTreatment(procedure.id)}
-                            className="text-red-600 hover:text-red-800 font-bold"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-            */}
 
-            {/* Diagnosis Section — Placed Above Medicines */}
-            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <div>
-                  <label className="block text-base font-bold text-slate-900 flex items-center gap-2">
-                    <span className="p-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm">🩺</span>
-                    Diagnosis
-                  </label>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Enter clinical diagnosis or impression to be printed on the prescription
-                  </p>
-                </div>
-                {formData.de && (
+            {/* Main Clinical Two-Column / Stacked Layout */}
+            <div className="space-y-5">
+              {/* 1. History (Spacious Multi-line History with Quick Chips) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      History
+                    </label>
+                    <span className="text-[11px] text-slate-400">Medical / Surgical / Family history</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, de: '' }))}
-                    className="text-xs text-red-600 hover:text-red-700 font-medium"
+                    onClick={() => {
+                      const item = prompt('Add Medical / Surgical History item:');
+                      if (item) {
+                        setFormData(prev => ({
+                          ...prev,
+                          mh: prev.mh ? prev.mh + ', ' + item.trim() : item.trim()
+                        }));
+                      }
+                    }}
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs transition cursor-pointer"
+                    title="Add History item"
                   >
-                    Clear
+                    +
                   </button>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-                  Diagnosis Findings / Conditions
-                </label>
+                </div>
                 <textarea
-                  name="de"
-                  value={formData.de}
+                  name="mh"
+                  value={formData.mh}
                   onChange={handleChange}
-                  className="block w-full p-3.5 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white transition"
                   rows={3}
-                  placeholder="e.g. CLOSED FRACTURE RT GREAT TOE AND 2ND 3RD 4TH MT RT FOOT, CLOSED FRACTURE DISTAL TIBIA UNDISPLACED RT ANKLE, MULTIPLE ABRASIONS"
+                  placeholder="Record patient medical, surgical, allergy and drug history (e.g. Hypertension 5 yrs on Telmisartan, Type 2 Diabetes, NKDA, Previous appendectomy 2021)..."
+                  className="w-full min-h-[90px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white shadow-2xs"
                 />
-              </div>
-
-              {/* Quick Suggestions for one-click insertion */}
-              <div className="pt-1">
-                <span className="text-xs font-medium text-slate-500 block mb-1.5">Quick Suggestions (click to insert):</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    'Closed Fracture',
-                    'Knee Osteoarthritis',
-                    'Lumbar Spondylosis',
-                    'Cervical Spondylosis',
-                    'ACL Tear',
-                    'Ankle Sprain',
-                    'Multiple Abrasions',
-                    'Soft Tissue Injury',
-                    'Antenatal Care (ANC)',
-                    'PCOD / PCOS',
-                    'Pelvic Inflammatory Disease',
-                    'Dysmenorrhea',
-                  ].map((preset) => (
+                {/* History Quick-Select Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mr-1">Quick Add:</span>
+                  {['HTN', 'Type 2 Diabetes', 'Hypothyroidism', 'Asthma', 'CAD / IHD', 'Previous Surgery', 'NKDA (No Drug Allergies)'].map((chip) => (
                     <button
-                      key={preset}
+                      key={chip}
                       type="button"
                       onClick={() => {
-                        const current = (formData.de || '').trim();
-                        if (!current) {
-                          setFormData(prev => ({ ...prev, de: preset.toUpperCase() }));
-                        } else if (!current.toLowerCase().includes(preset.toLowerCase())) {
-                          setFormData(prev => ({ ...prev, de: `${current}, ${preset.toUpperCase()}` }));
+                        if (!formData.mh.includes(chip)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            mh: prev.mh ? `${prev.mh}, ${chip}` : chip
+                          }));
                         }
                       }}
-                      className="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 text-slate-700 transition"
+                      className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition cursor-pointer"
                     >
-                      + {preset}
+                      +{chip}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Medicines Section */}
-            <div className="bg-purple-50 p-6 rounded-2xl border border-purple-200">
-              <div className="flex justify-between items-center mb-3">
-                <div>
-                  <h3 className="text-xl font-bold text-purple-900 flex items-center gap-2">
-                    <span>💊</span> Prescribed Medicines
-                  </h3>
-                  <p className="text-xs text-purple-700 mt-0.5">
-                    Select medicine to auto-populate composition. All details will print directly on the prescription.
-                  </p>
+              {/* 2. Complaints Table (HealthPlix IMG_0902) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-bold text-slate-800">Complaints</label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Complaints" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Add Complaint Row"
+                        className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                        onClick={() => {
+                          if (!newComplaintText.trim()) return;
+                          setComplaintsList(prev => [
+                            ...prev,
+                            {
+                              id: String(Date.now()),
+                              complaint: newComplaintText.trim(),
+                              frequency: newComplaintFreq,
+                              severity: newComplaintSeverity,
+                              duration: newComplaintDuration,
+                              date: formData.date || new Date().toISOString().slice(0, 10),
+                            }
+                          ]);
+                          setNewComplaintText('');
+                          setNewComplaintFreq('');
+                          setNewComplaintSeverity('');
+                          setNewComplaintDuration('');
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="complaints"
+                        sectionTitle="Complaints"
+                        currentValue={complaintsList}
+                        onApplyPreset={(val) => {
+                          if (Array.isArray(val)) {
+                            setComplaintsList(prev => [
+                              ...prev,
+                              ...val.map((x: any, i: number) => ({
+                                id: 'tc_' + Date.now() + '_' + i,
+                                complaint: x.complaint,
+                                frequency: x.frequency || '',
+                                severity: x.severity || '',
+                                duration: x.duration || '',
+                                date: formData.date || new Date().toISOString().slice(0, 10),
+                              })),
+                            ]);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        title="Reset / Clear All Complaints"
+                        className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                        onClick={() => setComplaintsList([])}
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={addMedicine}
-                  className="px-4 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 transition shadow-sm font-semibold text-sm flex items-center gap-1.5"
-                >
-                  <span>+</span> Add Medicine
-                </button>
-              </div>
 
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-purple-200">
-                <div className="text-xs text-purple-800 font-semibold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                  <span>
-                    Medicines for: <strong className="text-purple-950">{selectedDoctorName}</strong> ({filteredMedicineOptions.length} available)
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAllMedicines(!showAllMedicines)}
-                  className="text-xs text-purple-700 hover:text-purple-950 underline font-semibold transition"
-                >
-                  {showAllMedicines ? 'Filter for Selected Doctor' : 'Show All Medicines'}
-                </button>
-              </div>
+                <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+                  <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
+                    <div className="col-span-1">#</div>
+                    <div className="col-span-4">Complaints</div>
+                    <div className="col-span-2">Frequency</div>
+                    <div className="col-span-2">Severity</div>
+                    <div className="col-span-2">Duration</div>
+                    <div className="col-span-1 text-right">Action</div>
+                  </div>
 
-              {medicines.length > 0 && (
-                <div className="space-y-4 mt-4">
-                  {medicines.map((medicine, index) => (
-                    <div key={index} className="p-4 border border-purple-200 rounded-xl bg-white shadow-sm space-y-3">
-                      {/* Row 1: Medicine Name & Composition */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Medicine Name #{index + 1}
-                          </label>
-                          <MedicineSearchInput
-                            index={index}
-                            value={medicine.name}
-                            options={filteredMedicineOptions}
-                            onChangeName={(name) => handleMedicineChange(index, 'name', name)}
-                            onSelectMedicine={(med) => {
-                              handleMedicineChange(index, 'name', med.name);
-                              if (med.composition) {
-                                handleMedicineChange(index, 'composition', med.composition);
-                              }
-                            }}
-                            placeholder="Search or enter medicine name..."
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Composition <span className="text-purple-600 font-normal lowercase">(printed on prescription)</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={medicine.composition || ''}
-                            onChange={(e) => handleMedicineChange(index, 'composition', e.target.value)}
-                            placeholder="e.g., ACECLOFENAC 100 MG + PARACETAMOL 325 MG"
-                            className="w-full p-2.5 border border-gray-300 rounded-lg text-sm font-mono text-gray-800 bg-purple-50/50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Row 2: Dosage, Frequency, Duration & Timing-Freq-Duration */}
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5">
-                        <div className="md:col-span-3">
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Dosage (Center Column)
-                          </label>
-                          <input
-                            type="text"
-                            value={medicine.dosage || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              handleMedicineChange(index, 'dosage', val);
-                              const derived = getTimingFromDosage(val);
-                              if (derived) {
-                                handleMedicineChange(index, 'timing', derived);
-                              }
-                            }}
-                            placeholder="e.g. 1-0-1 or 0-1-0 or Stat"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm font-bold text-center tracking-wider focus:ring-2 focus:ring-purple-500 transition"
-                          />
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {['1-0-1', '0-1-0', '1-1-1', '1-0-0', '0-0-1', 'Stat'].map((d) => (
-                              <button
-                                key={d}
-                                type="button"
-                                onClick={() => {
-                                  handleMedicineChange(index, 'dosage', d);
-                                  const derived = getTimingFromDosage(d);
-                                  if (derived) {
-                                    handleMedicineChange(index, 'timing', derived);
-                                  }
-                                }}
-                                className="px-1.5 py-0.5 text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 rounded font-semibold transition"
-                              >
-                                {d}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="md:col-span-3">
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Frequency
-                          </label>
-                          <select
-                            value={medicine.frequency || 'Daily'}
-                            onChange={(e) => handleMedicineChange(index, 'frequency', e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm font-semibold bg-white focus:ring-2 focus:ring-purple-500 transition"
-                          >
-                            {MEDICINE_FREQUENCY_OPTIONS.map((freq) => (
-                              <option key={freq} value={freq}>
-                                {freq}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {MEDICINE_FREQUENCY_OPTIONS.map((freq) => (
-                              <button
-                                key={freq}
-                                type="button"
-                                onClick={() => handleMedicineChange(index, 'frequency', freq)}
-                                className={`px-1.5 py-0.5 text-[11px] rounded font-medium transition ${
-                                  (medicine.frequency || 'Daily') === freq
-                                    ? 'bg-purple-600 text-white font-bold'
-                                    : 'bg-gray-100 hover:bg-purple-100 text-gray-700'
-                                }`}
-                              >
-                                {freq}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="md:col-span-3">
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Duration (How many days)
-                          </label>
-                          <input
-                            type="text"
-                            value={medicine.duration || ''}
-                            onChange={(e) => handleMedicineChange(index, 'duration', e.target.value)}
-                            placeholder="e.g. 5 days or 1 month"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-500 transition"
-                          />
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {DURATION_PRESETS.map((d) => (
-                              <button
-                                key={d.label}
-                                type="button"
-                                onClick={() => handleDurationSelect(index, d.value, d.marathiDays)}
-                                className={`px-1.5 py-0.5 text-[11px] rounded font-medium transition ${
-                                  medicine.duration === d.value
-                                    ? 'bg-purple-600 text-white font-bold shadow-2xs'
-                                    : 'bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200'
-                                }`}
-                              >
-                                {d.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="md:col-span-3">
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Timing - Freq. - Duration (Right Column)
-                          </label>
-                          <input
-                            type="text"
-                            value={medicine.freq_duration || ''}
-                            onChange={(e) => handleMedicineChange(index, 'freq_duration', e.target.value)}
-                            placeholder="e.g. जेवणानंतर - दररोज - 5 दिवस"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-500 transition"
-                          />
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {[
-                              'जेवणानंतर - दररोज - 5 दिवस',
-                              'जेवणाआधी - दररोज - 5 दिवस',
-                              'Stat - पुढील तारखे पर्यंत',
-                              'After Food - Daily - 5 Days',
-                            ].map((fd) => (
-                              <button
-                                key={fd}
-                                type="button"
-                                onClick={() => handleMedicineChange(index, 'freq_duration', fd)}
-                                className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-purple-100 text-gray-800 rounded font-medium transition"
-                              >
-                                {fd}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Row 3: Timing Details & Note & Remove */}
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start pt-2 border-t border-gray-100">
-                        <div className="md:col-span-6">
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Timing Details (Sub-line)
-                          </label>
-                          <input
-                            type="text"
-                            value={medicine.timing || ''}
-                            onChange={(e) => handleMedicineChange(index, 'timing', e.target.value)}
-                            placeholder="e.g. 1 - नाश्ता नंतर, 1 - रात्री जेवणानंतर"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 transition"
-                          />
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {[
-                              '1 - नाश्ता नंतर, 1 - रात्री जेवणानंतर',
-                              '1 - नाश्ता नंतर, 1 - दुपारी जेवणानंतर, 1 - रात्री जेवणानंतर',
-                              '1 - नाश्ता नंतर',
-                              '1 - दुपारी जेवणानंतर',
-                              '1 - रात्री जेवणानंतर',
-                              'जेवणाआधी (Before Food)',
-                              'जेवणानंतर (After Food)',
-                            ].map((presetTiming) => (
-                              <button
-                                key={presetTiming}
-                                type="button"
-                                onClick={() => handleMedicineChange(index, 'timing', presetTiming)}
-                                className="px-2 py-0.5 text-[11px] bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 rounded font-medium transition"
-                              >
-                                {presetTiming}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="md:col-span-4">
-                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                            Note <span className="font-normal text-gray-400 lowercase">(optional)</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={medicine.note || ''}
-                            onChange={(e) => handleMedicineChange(index, 'note', e.target.value)}
-                            placeholder="e.g. ALREADY RECVD"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 transition"
-                          />
-                        </div>
-
-                        <div className="md:col-span-2 text-right">
-                          <button
-                            type="button"
-                            onClick={() => removeMedicine(index)}
-                            className="w-full py-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-xs font-bold transition border border-red-200"
-                          >
-                            Remove
-                          </button>
-                        </div>
+                  {/* Existing Complaints */}
+                  {complaintsList.map((c, idx) => (
+                    <div key={c.id} className="grid grid-cols-12 items-center py-2 px-3 border-b border-slate-100 hover:bg-slate-50/50">
+                      <div className="col-span-1 text-slate-400">{idx + 1}</div>
+                      <div className="col-span-4 font-semibold text-slate-800">{c.complaint}</div>
+                      <div className="col-span-2 text-slate-600">{c.frequency || '—'}</div>
+                      <div className="col-span-2 text-slate-600">{c.severity || '—'}</div>
+                      <div className="col-span-2 text-slate-600">{c.duration || '—'}</div>
+                      <div className="col-span-1 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setComplaintsList(prev => prev.filter(x => x.id !== c.id))}
+                          className="text-rose-500 hover:text-rose-700"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
 
-            {/* Additional Information Section */}
-            <div className="bg-amber-50 p-6 rounded-lg border border-amber-100">
-              <h3 className="text-xl font-semibold mb-4 text-amber-800">Additional Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Advice Given</label>
+                  {/* Inline Add Complaint Row */}
+                  <div className="grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/30 gap-2">
+                    <div className="col-span-1 text-slate-400 font-mono">{complaintsList.length + 1}</div>
+                    <div className="col-span-4">
+                      <input
+                        type="text"
+                        value={newComplaintText}
+                        onChange={(e) => setNewComplaintText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (!newComplaintText.trim()) return;
+                            setComplaintsList(prev => [
+                              ...prev,
+                              {
+                                id: String(Date.now()),
+                                complaint: newComplaintText.trim(),
+                                frequency: newComplaintFreq,
+                                severity: newComplaintSeverity,
+                                duration: newComplaintDuration,
+                                date: formData.date || new Date().toISOString().slice(0, 10),
+                              }
+                            ]);
+                            setNewComplaintText('');
+                            setNewComplaintFreq('');
+                            setNewComplaintSeverity('');
+                            setNewComplaintDuration('');
+                          }
+                        }}
+                        placeholder="Add Complaints (e.g. Joint pain in right knee, fever, headache, back pain)..."
+                        className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white focus:ring-1 focus:ring-teal-500"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <select
+                        value={newComplaintFreq}
+                        onChange={(e) => setNewComplaintFreq(e.target.value)}
+                        className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white"
+                      >
+                        <option value="">Frequency...</option>
+                        <option value="Continuous">Continuous</option>
+                        <option value="Intermittent">Intermittent</option>
+                        <option value="Occasionally">Occasionally</option>
+                        <option value="Night time">Night time</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <select
+                        value={newComplaintSeverity}
+                        onChange={(e) => setNewComplaintSeverity(e.target.value)}
+                        className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white"
+                      >
+                        <option value="">Severity...</option>
+                        <option value="Mild">Mild</option>
+                        <option value="Moderate">Moderate</option>
+                        <option value="Severe">Severe</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        value={newComplaintDuration}
+                        onChange={(e) => setNewComplaintDuration(e.target.value)}
+                        placeholder="e.g. 3 days"
+                        className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white"
+                      />
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newComplaintText.trim()) return;
+                          setComplaintsList(prev => [
+                            ...prev,
+                            {
+                              id: String(Date.now()),
+                              complaint: newComplaintText.trim(),
+                              frequency: newComplaintFreq,
+                              severity: newComplaintSeverity,
+                              duration: newComplaintDuration,
+                              date: formData.date || new Date().toISOString().slice(0, 10),
+                            }
+                          ]);
+                          setNewComplaintText('');
+                          setNewComplaintFreq('');
+                          setNewComplaintSeverity('');
+                          setNewComplaintDuration('');
+                        }}
+                        className="px-2 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded font-bold text-xs"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Findings (HealthPlix IMG_0902) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    Findings
+                  </label>
+                  <div className="flex items-center gap-1 text-slate-400">
+                    <button type="button" title="Edit Findings" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <SectionTemplatePicker
+                      sectionKey="findings"
+                      sectionTitle="Findings"
+                      currentValue={findingsText}
+                      onApplyPreset={(val) => setFindingsText(prev => prev ? prev + '\n' + val : val)}
+                    />
+                    <button
+                      type="button"
+                      title="Reset / Clear Findings"
+                      className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                      onClick={() => setFindingsText('')}
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={findingsText}
+                  onChange={(e) => setFindingsText(e.target.value)}
+                  rows={3}
+                  placeholder="Clinical findings, general examination, range of motion, swelling, tenderness, systemic signs..."
+                  className="w-full p-3 text-xs border border-slate-200 rounded-lg text-slate-800 bg-white focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
+
+              {/* 4. Vitals Sequentially Arranged (HealthPlix IMG_0902) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    Vitals
+                  </label>
+                  <div className="flex items-center gap-1 text-slate-400">
+                    <button type="button" title="Edit Vitals" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Reset / Clear All Vitals"
+                      className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                      onClick={() => {
+                        setBpSystolic('');
+                        setBpDiastolic('');
+                        setPulseVal('');
+                        setHeightVal('');
+                        setWeightVal('');
+                        setTempVal('');
+                        setBmiVal('');
+                        setWaistHipVal('');
+                        setSpo2Val('');
+                        setLmpDate('');
+                        setEddDate('');
+                        setGestationalWeeks('');
+                        setGestationalDays('');
+                      }}
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3.5 text-xs">
+                  {/* Row 1: BP, Pulse, Height, Weight */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    {/* BP */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">BP (Blood Pressure)</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={bpSystolic}
+                          onChange={(e) => setBpSystolic(e.target.value)}
+                          placeholder="120"
+                          title="Systolic BP (mmHg)"
+                          className="w-1/2 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center text-slate-300 font-bold px-0.5 select-none">/</span>
+                        <input
+                          type="text"
+                          value={bpDiastolic}
+                          onChange={(e) => setBpDiastolic(e.target.value)}
+                          placeholder="80"
+                          title="Diastolic BP (mmHg)"
+                          className="w-1/2 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          mmHg
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Pulse */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Pulse</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={pulseVal}
+                          onChange={(e) => setPulseVal(e.target.value)}
+                          placeholder="72"
+                          title="Pulse Rate (bpm)"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          bpm
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Height */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Height</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={heightVal}
+                          onChange={(e) => setHeightVal(e.target.value)}
+                          placeholder="170"
+                          title="Height (cm)"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          cm
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Weight */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Weight</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={weightVal}
+                          onChange={(e) => setWeightVal(e.target.value)}
+                          placeholder="65"
+                          title="Weight (kg)"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          kg
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Temperature, BMI, Waist/Hip, SPO2, LMP */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Temperature</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={tempVal}
+                          onChange={(e) => setTempVal(e.target.value)}
+                          placeholder="98.4"
+                          title="Body Temperature (°F)"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          °F
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">BMI</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-slate-50/80 overflow-hidden shadow-xs">
+                        <input
+                          type="text"
+                          value={bmiVal}
+                          readOnly
+                          placeholder="—"
+                          title="Body Mass Index (Kg/m²)"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-extrabold text-teal-800 bg-transparent outline-none cursor-default"
+                        />
+                        <span className="inline-flex items-center px-2 py-2 bg-slate-100 border-l border-slate-200 text-xs font-semibold text-slate-500 select-none">
+                          Kg/m²
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Waist/Hip</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={waistHipVal}
+                          onChange={(e) => setWaistHipVal(e.target.value)}
+                          placeholder="0.85"
+                          title="Waist to Hip Ratio"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          ratio
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">SPO2</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="text"
+                          value={spo2Val}
+                          onChange={(e) => setSpo2Val(e.target.value)}
+                          placeholder="98"
+                          title="Blood Oxygen Saturation (SPO2 %)"
+                          className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
+                        />
+                        <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">LMP</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="date"
+                          value={lmpDate}
+                          onChange={(e) => setLmpDate(e.target.value)}
+                          title="Last Menstrual Period (LMP Date)"
+                          className="flex-1 min-w-0 py-2 px-3 text-xs font-bold text-slate-800 outline-none bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 3: EDD & Gestational Age */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">EDD (Estimated Due Date)</label>
+                      <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                        <input
+                          type="date"
+                          value={eddDate}
+                          onChange={(e) => setEddDate(e.target.value)}
+                          title="Estimated Due Date (EDD Date)"
+                          className="flex-1 min-w-0 py-2 px-3 text-xs font-bold text-slate-800 outline-none bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="sm:col-span-1 md:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Gestational Age</label>
+                      <div className="grid grid-cols-2 gap-3 max-w-md">
+                        <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                          <input
+                            type="text"
+                            value={gestationalWeeks}
+                            onChange={(e) => setGestationalWeeks(e.target.value)}
+                            placeholder="Weeks"
+                            title="Gestational Age (Weeks)"
+                            className="flex-1 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
+                          />
+                          <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                            Weeks
+                          </span>
+                        </div>
+                        <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                          <input
+                            type="text"
+                            value={gestationalDays}
+                            onChange={(e) => setGestationalDays(e.target.value)}
+                            placeholder="Days"
+                            title="Gestational Age (Days)"
+                            className="flex-1 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
+                          />
+                          <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                            Days
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Diagnosis (HealthPlix IMG_0902 & IMG_0905) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-bold text-slate-800">Diagnosis</label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Diagnosis" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Add Diagnosis"
+                        className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                        onClick={() => {
+                          const diag = prompt('Add Diagnosis:');
+                          if (diag) {
+                            setDiagnosesList(prev => [
+                              ...prev,
+                              {
+                                id: String(Date.now()),
+                                diagnosis: diag.trim(),
+                                snomed_code: '',
+                                duration: '',
+                                date: formData.date || new Date().toISOString().slice(0, 10),
+                              }
+                            ]);
+                            setFormData(prev => ({ ...prev, de: prev.de ? prev.de + ', ' + diag.trim() : diag.trim() }));
+                          }
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="diagnosis"
+                        sectionTitle="Diagnosis"
+                        currentValue={formData.de}
+                        onApplyPreset={(val) => {
+                          setFormData(prev => ({ ...prev, de: val }));
+                          setDiagnosesList(prev => [
+                            ...prev,
+                            {
+                              id: String(Date.now()),
+                              diagnosis: val,
+                              snomed_code: '',
+                              duration: '',
+                              date: formData.date || new Date().toISOString().slice(0, 10),
+                            }
+                          ]);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        title="Reset / Clear Diagnosis"
+                        className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                        onClick={() => {
+                          setDiagnosesList([]);
+                          setFormData(prev => ({ ...prev, de: '' }));
+                        }}
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Auto-suggest Diagnosis Input */}
+                <div className="mb-3">
+                  <DiagnosisSearchInput
+                    value={formData.de}
+                    onChange={(newVal) => {
+                      setFormData(prev => ({ ...prev, de: newVal }));
+                      if (newVal.trim() && !diagnosesList.some(d => d.diagnosis.toLowerCase() === newVal.trim().toLowerCase())) {
+                        setDiagnosesList(prev => [
+                          ...prev,
+                          {
+                            id: String(Date.now()),
+                            diagnosis: newVal.trim(),
+                            snomed_code: '',
+                            duration: '',
+                            date: formData.date || new Date().toISOString().slice(0, 10),
+                          }
+                        ]);
+                      }
+                    }}
+                    prescriptionId={prescriptionId || undefined}
+                    placeholder="Type to search diagnosis with autocomplete (e.g. Closed fracture distal tibia, Osteoarthritis right knee, ANC 24 weeks, Hypertension)..."
+                  />
+                </div>
+
+
+              </div>
+
+              {/* 6. Procedure Done (Treatment Done with billing sync & new patient fee) */}
+              <div className="bg-gradient-to-br from-teal-50/70 to-emerald-50/40 border border-teal-200 rounded-xl p-4 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-teal-200/80 gap-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-bold text-teal-900 flex items-center gap-1.5">
+                      <span title="Edit Procedure Done" className="inline-flex">
+                        <Edit2 className="w-4 h-4 text-teal-700" />
+                      </span>
+                      Procedure done / Treatment Done
+                    </label>
+                    <SectionTemplatePicker
+                      sectionKey="procedure_done"
+                      sectionTitle="Procedure Done"
+                      currentValue={dentalProcedures}
+                      onApplyPreset={(val) => {
+                        if (val && val.name) {
+                          setSelectedTreatmentName(val.name);
+                          setSelectedTreatmentPrice(String(val.price || 0));
+                          setSelectedTreatmentQty(val.qty || 1);
+                          saveProcedureToCatalog(val.name, val.price || 0);
+                        }
+                      }}
+                    />
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-300">
+                      Optional
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
+                      Forwarded to Billing Only
+                    </span>
+                  </div>
+                </div>
+
+                {/* Registration / Consultation Fee Checkbox */}
+                <div className="p-3 bg-white/95 rounded-lg border border-teal-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={applyConsultationCharge}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setApplyConsultationCharge(checked);
+                        if (checked && (!consultationCharge || consultationCharge === 0)) {
+                          setConsultationCharge(isNewPatient ? 400 : 200);
+                        }
+                      }}
+                      className="mt-0.5 w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">
+                          Add {isNewPatient ? 'New Patient Registration' : 'Follow-up Consultation'} Charge
+                        </span>
+                        <span
+                          className={isNewPatient ? 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-300' : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-800 border-blue-300'}
+                        >
+                          {isNewPatient ? 'New Patient (₹400)' : 'Re-visit / Existing Patient (₹200)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {isNewPatient
+                          ? 'Patient not in database — new registration fee defaults to ₹400.'
+                          : 'Patient already in database — follow-up consultation fee defaults to ₹200.'}
+                      </p>
+                    </div>
+                  </label>
+
+                  {applyConsultationCharge && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-600">Charge (₹):</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={consultationCharge || ''}
+                        onChange={(e) => setConsultationCharge(Math.max(0, parseFloat(e.target.value) || 0))}
+                        className="w-20 p-1.5 text-xs font-bold border border-slate-300 rounded text-slate-900 focus:ring-1 focus:ring-teal-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Procedure Entry Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end text-xs">
+                  <div className="sm:col-span-5">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                      Treatment / Procedure Name
+                    </label>
+                    <input
+                      type="text"
+                      list="clinical-procedure-datalist"
+                      value={selectedTreatmentName}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedTreatmentName(val);
+                        const matched = dentalProcedures.find(
+                          (p) => p.name.toLowerCase() === val.trim().toLowerCase()
+                        );
+                        if (matched && matched.price > 0) {
+                          setSelectedTreatmentPrice(String(matched.price));
+                        }
+                      }}
+                      placeholder="Type or select procedure (e.g. Joint Aspiration, POP Cast, USG Scan, Wound Dressing)..."
+                      className="w-full p-2 border border-slate-300 rounded-lg text-slate-800 bg-white"
+                    />
+                    <datalist id="clinical-procedure-datalist">
+                      {dentalProcedures.map((proc) => (
+                        <option key={proc.id} value={proc.name}>
+                          ₹{proc.price}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Charge (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={selectedTreatmentPrice}
+                      onChange={(e) => setSelectedTreatmentPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full p-2 border border-slate-300 rounded-lg font-bold text-slate-800 bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Qty</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={selectedTreatmentQty}
+                      onChange={(e) => setSelectedTreatmentQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      className="w-full p-2 border border-slate-300 rounded-lg font-semibold text-slate-800 bg-white text-center"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={selectedTreatmentDate || formData.date}
+                      onChange={(e) => setSelectedTreatmentDate(e.target.value)}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-slate-800 bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nameTrimmed = selectedTreatmentName.trim();
+                        if (!nameTrimmed) return;
+                        const priceNum = parseFloat(selectedTreatmentPrice) || 0;
+                        const qtyNum = Number(selectedTreatmentQty) || 1;
+
+                        const newItem: TreatmentItem = {
+                          id: Date.now(),
+                          description: nameTrimmed,
+                          quantity: qtyNum,
+                          unitPrice: priceNum,
+                          total: priceNum * qtyNum,
+                          date: selectedTreatmentDate || formData.date || new Date().toISOString().slice(0, 10),
+                        };
+
+                        setTreatmentItems([...treatmentItems, newItem]);
+                        saveProcedureToCatalog(nameTrimmed, priceNum);
+
+                        setSelectedTreatmentName('');
+                        setSelectedTreatmentPrice('');
+                        setSelectedTreatmentQty(1);
+                      }}
+                      disabled={!selectedTreatmentName.trim()}
+                      className="w-full py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-lg font-bold text-xs shadow-xs"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Treatment Items Table */}
+                {treatmentItems.length > 0 && (
+                  <div className="bg-white rounded-lg border border-teal-200 overflow-hidden text-xs">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-slate-50 text-slate-600 font-semibold uppercase text-[10px]">
+                        <tr>
+                          <th className="px-3 py-2 text-left">#</th>
+                          <th className="px-3 py-2 text-left">Treatment</th>
+                          <th className="px-3 py-2 text-left">Date</th>
+                          <th className="px-3 py-2 text-center">Qty</th>
+                          <th className="px-3 py-2 text-right">Unit Price</th>
+                          <th className="px-3 py-2 text-right">Total</th>
+                          <th className="px-3 py-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {treatmentItems.map((item, index) => (
+                          <tr key={item.id || index} className="hover:bg-slate-50/50">
+                            <td className="px-3 py-2 text-slate-400 font-mono">{index + 1}</td>
+                            <td className="px-3 py-2 font-semibold text-slate-800">{item.description}</td>
+                            <td className="px-3 py-2 text-slate-500">{item.date || formData.date}</td>
+                            <td className="px-3 py-2 text-center font-bold">{item.quantity}</td>
+                            <td className="px-3 py-2 text-right font-bold">₹{item.unitPrice}</td>
+                            <td className="px-3 py-2 text-right font-bold text-teal-800">₹{item.total}</td>
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setTreatmentItems(prev => prev.filter((_, i) => i !== index))}
+                                className="text-rose-500 hover:text-rose-700"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+
+              {/* 7. Medicine Table (HealthPlix IMG_0903, IMG_0904, IMG_0905, IMG_0910 with wide spreadsheet grid) */}
+              <div className="w-full">
+                <HealthPlixMedicineTable
+                  medicines={medicines}
+                  onChange={setMedicines}
+                  medicineOptions={filteredMedicineOptions}
+                  prescriptionDate={formData.date}
+                  onOpenLoadTemplate={() => {
+                    refreshTemplates();
+                    setIsLoadTemplateModalOpen(true);
+                  }}
+                  onOpenSaveTemplate={() => {
+                    setTemplateNameInput(formData.de ? formData.de + ' Protocol' : '');
+                    setIsSaveTemplateModalOpen(true);
+                  }}
+                  onAutoSaveMedicine={autoSaveMedicineIfNew}
+                />
+              </div>
+
+              {/* 8. Next Visit (HealthPlix IMG_0903) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    Next Visit
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <span className="text-slate-500 font-semibold">No of</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={followupCount}
+                    onChange={(e) => {
+                      const count = e.target.value;
+                      setFollowupCount(count);
+                      const num = parseInt(count, 10);
+                      if (!isNaN(num) && num > 0) {
+                        const d = new Date();
+                        if (followupUnit === 'Days') d.setDate(d.getDate() + num);
+                        else if (followupUnit === 'Weeks') d.setDate(d.getDate() + num * 7);
+                        else if (followupUnit === 'Months') d.setMonth(d.getMonth() + num);
+                        setFormData(prev => ({ ...prev, followupDate: d.toISOString().slice(0, 10) }));
+                      }
+                    }}
+                    className="w-16 p-2 border border-slate-200 rounded text-center font-bold text-slate-800"
+                  />
+
+                  <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+                    {(['Days', 'Weeks', 'Months'] as const).map((unit) => (
+                      <button
+                        key={unit}
+                        type="button"
+                        onClick={() => {
+                          setFollowupUnit(unit);
+                          const num = parseInt(followupCount, 10);
+                          if (!isNaN(num) && num > 0) {
+                            const d = new Date();
+                            if (unit === 'Days') d.setDate(d.getDate() + num);
+                            else if (unit === 'Weeks') d.setDate(d.getDate() + num * 7);
+                            else if (unit === 'Months') d.setMonth(d.getMonth() + num);
+                            setFormData(prev => ({ ...prev, followupDate: d.toISOString().slice(0, 10) }));
+                          }
+                        }}
+                        className={followupUnit === unit ? 'px-3 py-1 rounded text-xs font-semibold transition bg-white text-slate-900 shadow-xs' : 'px-3 py-1 rounded text-xs font-semibold transition text-slate-600 hover:text-slate-900'}
+                      >
+                        {unit}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span className="text-slate-400 font-semibold">Or</span>
+
+                  <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="date"
+                      value={formData.followupDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, followupDate: e.target.value }))}
+                      className="bg-transparent font-semibold text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 9. Dr Notes & Quick Notes (HealthPlix IMG_0903 & IMG_0904) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Dr Notes (Private doctor remarks - NOT printed on prescription) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        Dr Notes
+                      </label>
+                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        Private • Not printed on prescription
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Dr Notes" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="dr_notes"
+                        sectionTitle="Dr Notes"
+                        currentValue={drNotes}
+                        onApplyPreset={(val) => setDrNotes(prev => prev ? prev + '\n' + val : val)}
+                      />
+                      <button type="button" title="Reset / Clear Dr Notes" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setDrNotes('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={drNotes}
+                    onChange={(e) => setDrNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Doctor private remarks / internal clinical notes (e.g. Patient reluctant for surgery, follow up in OPD personally)..."
+                    className="w-full min-h-[85px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                  />
+                </div>
+
+                {/* Quick Notes */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Quick Notes
+                    </label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Quick Notes" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="quick_notes"
+                        sectionTitle="Quick Notes"
+                        currentValue={quickNotes}
+                        onApplyPreset={(val) => setQuickNotes(prev => prev ? prev + '\n' + val : val)}
+                      />
+                      <button type="button" title="Reset / Clear Quick Notes" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setQuickNotes('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={quickNotes}
+                    onChange={(e) => setQuickNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Brief clinical quick notes..."
+                    className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+
+              {/* 10. Procedure Advice & Advice (HealthPlix IMG_0904) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Procedure Advice */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Procedure Advice
+                    </label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Procedure Advice" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="procedure_done"
+                        sectionTitle="Procedure Advice"
+                        currentValue={procedureAdvice}
+                        onApplyPreset={(val) => {
+                          const text = typeof val === 'string' ? val : val.name ? `Procedure advice: ${val.name}` : '';
+                          setProcedureAdvice(prev => prev ? prev + '\n' + text : text);
+                        }}
+                      />
+                      <button type="button" title="Reset / Clear Procedure Advice" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setProcedureAdvice('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={procedureAdvice}
+                    onChange={(e) => setProcedureAdvice(e.target.value)}
+                    rows={3}
+                    placeholder="Pre/post procedure advice..."
+                    className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+
+                {/* General Advice */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Advice
+                    </label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Advice" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="advice"
+                        sectionTitle="Advice"
+                        currentValue={formData.advice}
+                        onApplyPreset={(val) => setFormData(prev => ({ ...prev, advice: prev.advice ? prev.advice + '\n' + val : val }))}
+                      />
+                      <button type="button" title="Reset / Clear Advice" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setFormData(prev => ({ ...prev, advice: '' }))}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                   <textarea
                     name="advice"
                     value={formData.advice}
                     onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                    rows={4}
-                    placeholder="Special instructions or advice for the patient"
+                    rows={3}
+                    placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids)..."
+                    className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500"
                   />
-                  <p className="mt-1.5 text-xs font-semibold text-rose-600 flex items-center gap-1">
+                  <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
                     <span>*</span> Prescription is valid for 30 days only
                   </p>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Follow-up Date</label>
-                  <input
-                    type="date"
-                    name="followupDate"
-                    value={formData.followupDate}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                  />
-                  <p className="mt-2 text-sm text-gray-500">Leave empty if no follow-up is required</p>
+              {/* 11. Tests Requested (HealthPlix IMG_0904) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    Tests Requested
+                  </label>
+                  <div className="flex items-center gap-1 text-slate-400">
+                    <button type="button" title="Edit Tests Requested" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <SectionTemplatePicker
+                      sectionKey="tests_requested"
+                      sectionTitle="Tests Requested"
+                      currentValue={testsRequested}
+                      onApplyPreset={(val) => {
+                        if (Array.isArray(val)) {
+                          setTestsRequested(prev => [
+                            ...prev,
+                            ...val.map((t: any, i: number) => ({ id: 'tt_' + Date.now() + '_' + i, name: t.name, by_when: t.by_when || 'Next Visit' }))
+                          ]);
+                        }
+                      }}
+                    />
+                    <button type="button" title="Reset / Clear Tests" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setTestsRequested([])}>
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+                  <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
+                    <div className="col-span-1">#</div>
+                    <div className="col-span-6">Tests Requested</div>
+                    <div className="col-span-4">By When</div>
+                    <div className="col-span-1 text-right">Action</div>
+                  </div>
+
+                  {testsRequested.map((t, idx) => (
+                    <div key={t.id} className="grid grid-cols-12 items-center py-2 px-3 border-b border-slate-100 hover:bg-slate-50/50">
+                      <div className="col-span-1 text-slate-400">{idx + 1}</div>
+                      <div className="col-span-6 font-semibold text-slate-800">{t.name}</div>
+                      <div className="col-span-4 text-slate-600">{t.by_when || '—'}</div>
+                      <div className="col-span-1 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setTestsRequested(prev => prev.filter(x => x.id !== t.id))}
+                          className="text-rose-500 hover:text-rose-700"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Inline Add Test */}
+                  <div className="grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/30 gap-2">
+                    <div className="col-span-1 text-slate-400 font-mono">{testsRequested.length + 1}</div>
+                    <div className="col-span-6">
+                      <input
+                        type="text"
+                        value={newTestName}
+                        onChange={(e) => setNewTestName(e.target.value)}
+                        placeholder="Add Tests (e.g. CBC, Blood Sugar, OPG)..."
+                        className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white"
+                      />
+                    </div>
+                    <div className="col-span-4">
+                      <input
+                        type="text"
+                        value={newTestByWhen}
+                        onChange={(e) => setNewTestByWhen(e.target.value)}
+                        placeholder="e.g. Next Visit or Before Monday"
+                        className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white"
+                      />
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newTestName.trim()) return;
+                          setTestsRequested(prev => [
+                            ...prev,
+                            { id: String(Date.now()), name: newTestName.trim(), by_when: newTestByWhen.trim() }
+                          ]);
+                          setNewTestName('');
+                          setNewTestByWhen('');
+                        }}
+                        className="px-2 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded font-bold text-xs"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Action Buttons */}
-            {/* Doctor / Signature Selector */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex items-center justify-between mb-3">
-                <label className="block text-sm font-bold text-gray-800">Attending / Signing Doctor</label>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {availableDoctors.map((doc) => {
-                  const isSelected = (selectedDoctorName || '').toLowerCase() === doc.name.toLowerCase();
-                  return (
-                    <div
-                      key={doc.id || doc._id || doc.name}
-                      onClick={() => {
-                        handleDoctorSelect(doc.name);
-                      }}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${isSelected
-                        ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-1 ring-blue-600'
-                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                        }`}
+              {/* 12. Referred To (HealthPlix IMG_0904 & IMG_0906) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    Referred to
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end text-xs">
+                  <div className="sm:col-span-4">
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Doctor Name</label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 font-semibold">Dr.</span>
+                      <input
+                        type="text"
+                        value={referralDocName}
+                        onChange={(e) => setReferralDocName(e.target.value)}
+                        placeholder="Doctor Name"
+                        className="w-full p-1.5 border border-slate-200 rounded font-semibold text-slate-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Speciality</label>
+                    <select
+                      value={referralSpeciality}
+                      onChange={(e) => setReferralSpeciality(e.target.value)}
+                      className="w-full p-1.5 border border-slate-200 rounded font-semibold text-slate-800 bg-white"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="doctor_selection_radio"
-                          checked={isSelected}
-                          onChange={() => { }}
-                          className="h-4 w-4 text-blue-600 cursor-pointer"
-                        />
-                        <div>
-                          <p className="text-sm font-bold text-gray-900 leading-tight">{doc.name}</p>
-                          <p className="text-[11px] text-blue-700 font-semibold mt-0.5">
-                            {doc.name.toLowerCase().includes('shillpa')
-                              ? 'Gynecologist & Obstetrician'
-                              : 'Orthopaedic & Joint Replacement Surgeon'}
-                          </p>
+                      <option value="Orthopaedics">Orthopaedics</option>
+                      <option value="Gynaecology">Gynaecology</option>
+                      <option value="General Medicine">General Medicine</option>
+                      <option value="General Surgery">General Surgery</option>
+                      <option value="Pediatrics">Pediatrics</option>
+                      <option value="Cardiology">Cardiology</option>
+                      <option value="Neurology">Neurology</option>
+                      <option value="ENT">ENT</option>
+                      <option value="Dermatology">Dermatology</option>
+                      <option value="Radiology">Radiology</option>
+                      <option value="Physiotherapy">Physiotherapy</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Phone No</label>
+                    <input
+                      type="text"
+                      value={referralPhone}
+                      onChange={(e) => setReferralPhone(e.target.value)}
+                      placeholder="+91 Number"
+                      className="w-full p-1.5 border border-slate-200 rounded font-semibold text-slate-800"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={referralEmail}
+                      onChange={(e) => setReferralEmail(e.target.value)}
+                      placeholder="Email"
+                      className="w-full p-1.5 border border-slate-200 rounded font-semibold text-slate-800"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (referralDocName.trim()) {
+                          alert('Referral to Dr. ' + referralDocName + ' (' + referralSpeciality + ') noted.');
+                        }
+                      }}
+                      className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded font-bold text-slate-700 text-xs"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 13. Diet and Exercise & Investigations (HealthPlix IMG_0904 & IMG_0906) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Diet & Exercise */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Diet and Exercise
+                    </label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Diet and Exercise" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="diet_exercise"
+                        sectionTitle="Diet & Exercise"
+                        currentValue={dietExercise}
+                        onApplyPreset={(val) => setDietExercise(prev => prev ? prev + '\n' + val : val)}
+                      />
+                      <button type="button" title="Reset / Clear Diet & Exercise" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setDietExercise('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={dietExercise}
+                    onChange={(e) => setDietExercise(e.target.value)}
+                    rows={3}
+                    placeholder="Soft diet, avoid sugary snacks, 30 min daily walk..."
+                    className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+
+                {/* Investigations */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                      Investigations
+                    </label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Investigations" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="investigations"
+                        sectionTitle="Investigations"
+                        currentValue={investigationText}
+                        onApplyPreset={(val) => setInvestigationText(prev => prev ? prev + '\n' + val : val)}
+                      />
+                      <button type="button" title="Reset / Clear Investigations" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setInvestigationText('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={investigationText}
+                    onChange={(e) => setInvestigationText(e.target.value)}
+                    rows={2}
+                    placeholder="e.g. OPG, IOPAR wrt 16, CBCT, Blood sugar..."
+                    className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500"
+                  />
+
+                </div>
+              </div>
+
+              {/* 14. Past Medication & Examinations (HealthPlix IMG_0906) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Past Medication */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800">Past Medication</label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Past Medication" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="past_medications"
+                        sectionTitle="Past Medication"
+                        currentValue={pastMedication}
+                        onApplyPreset={(val) => setPastMedication(prev => prev ? prev + '\n' + val : val)}
+                      />
+                      <button type="button" title="Reset / Clear Past Medication" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setPastMedication('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={pastMedication}
+                    onChange={(e) => setPastMedication(e.target.value)}
+                    rows={2}
+                    placeholder="Past Medications..."
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg text-slate-800"
+                  />
+                </div>
+
+                {/* Systemic Examination */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800">Systemic Examination</label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit Systemic Examination" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" title="Reset / Clear Systemic Examination" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setSystemicExam('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={systemicExam}
+                    onChange={(e) => setSystemicExam(e.target.value)}
+                    rows={2}
+                    placeholder="CVS, RS, CNS findings..."
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg text-slate-800"
+                  />
+                </div>
+
+                {/* General Examinations */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold text-slate-800">General Examinations</label>
+                    <div className="flex items-center gap-1 text-slate-400">
+                      <button type="button" title="Edit General Examinations" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <SectionTemplatePicker
+                        sectionKey="general_examinations"
+                        sectionTitle="General Examinations"
+                        currentValue={generalExam}
+                        onApplyPreset={(val) => setGeneralExam(prev => prev ? prev + '\n' + val : val)}
+                      />
+                      <button type="button" title="Reset / Clear General Examinations" className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer" onClick={() => setGeneralExam('')}>
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={generalExam}
+                    onChange={(e) => setGeneralExam(e.target.value)}
+                    rows={2}
+                    placeholder="Pallor, Icterus, Cyanosis, Clubbing, Lymphadenopathy, Edema..."
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* 15. Drawing Board (HealthPlix IMG_0906 & IMG_0908) */}
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    Drawing Board
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <SectionTemplatePicker
+                      sectionKey="drawing_board"
+                      sectionTitle="Drawing Board"
+                      currentValue={drawingDataUrl}
+                      onApplyPreset={(val) => setDrawingDataUrl(val)}
+                    />
+                    <span className="text-xs text-slate-400">Sketch clinical diagrams or annotate anatomical regions</span>
+                  </div>
+                </div>
+
+                <HealthPlixDrawingBoard
+                  onChange={setDrawingDataUrl}
+                  value={drawingDataUrl}
+                  storageKey={prescriptionId ? `cortex_drawing_${prescriptionId}` : 'cortex_drawing_draft'}
+                />
+              </div>
+
+              {/* Doctor / Signature Selector Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Attending & Signing Doctor
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableDoctors.map((doc) => {
+                    const isSelected = (selectedDoctorName || '').toLowerCase() === doc.name.toLowerCase();
+                    return (
+                      <div
+                        key={doc.id || doc._id || doc.name}
+                        onClick={() => handleDoctorSelect(doc.name)}
+                        className={isSelected ? 'p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between border-blue-600 bg-blue-50/70 shadow-xs ring-1 ring-blue-600' : 'p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="doctor_selection_radio"
+                            checked={isSelected}
+                            onChange={() => { }}
+                            className="h-4 w-4 text-blue-600 cursor-pointer"
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 leading-tight">{doc.name}</p>
+                            <p className="text-[10px] text-blue-700 font-semibold">
+                              {doc.name.toLowerCase().includes('shillpa')
+                                ? 'Gynecologist & Obstetrician'
+                                : 'Orthopaedic & Joint Replacement Surgeon'}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      {doc.signature_url && (
-                        <div className="flex items-center pl-2">
+                        {doc.signature_url && (
                           <img
                             src={
                               doc.signature_url.startsWith('http') || doc.signature_url.startsWith('data:')
                                 ? doc.signature_url
-                                : `/${doc.signature_url.replace(/^\//, '')}`
+                                : '/' + doc.signature_url.replace(/^\//, '')
                             }
                             alt="Sign"
-                            className="h-6 max-w-[70px] object-contain opacity-75"
-                            title={`${doc.name} Signature`}
+                            className="h-5 max-w-[60px] object-contain opacity-75"
                           />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Doctor Signature Print Mode */}
-              <div className="mt-4 pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs font-bold text-gray-700 block">Prescription Printout Signature Option:</span>
-                  <span className="text-[11px] text-gray-500">Choose whether to include the graphical signature image or only the doctor's name</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setIncludeSignature(true)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${includeSignature
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                  >
-                    <span>✓ With Signature</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIncludeSignature(false)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1.5 ${!includeSignature
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                  >
-                    <span>Without Sign (Name Only)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-
-            {/* Medical Information Section (Commented out per user request) */}
-            {/*
-            <div className="bg-green-50 p-6 rounded-lg border border-green-100 mb-6">
-              <h3 className="text-xl font-semibold mb-4 text-green-800">Medical Information</h3>
-              <div className="grid grid-cols-1 gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Chief Complaint (C/C)</label>
-                    <textarea
-                      name="cc"
-                      value={formData.cc}
-                      onChange={handleChange}
-                      onBlur={handleCCBlur}
-                      className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                      rows={3}
-                      placeholder="Patient's main complaint"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Medical/Dental History (M/H)</label>
-                    <textarea
-                      name="mh"
-                      value={formData.mh}
-                      onChange={handleChange}
-                      className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                      rows={3}
-                      placeholder="Relevant medical history"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Investigation <span className="text-gray-500 text-xs">(Optional)</span>
-                    </label>
-                    <span className="text-[11px] text-blue-600 font-medium">Auto-extracted to OPG & IOPAR Register</span>
-                  </div>
-                  <textarea
-                    name="investigation"
-                    value={formData.investigation}
-                    onChange={handleChange}
-                    className="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                    rows={2}
-                    placeholder="Any investigations or tests recommended (e.g., OPG, IOPAR wrt 16, CBCT, Blood tests)"
-                  />
-
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    <span className="text-xs font-semibold text-gray-500 mr-1">Quick Add:</span>
-                    {[
-                      { label: '+ OPG', text: 'OPG' },
-                      { label: '+ CBCT', text: 'CBCT' },
-                      { label: '+ Lateral Ceph', text: 'Lateral Ceph' },
-                      { label: '+ TMJ View', text: 'TMJ View' },
-                      { label: '+ Biopsy / Histopath', text: 'Biopsy / Histopath' },
-                    ].map((item) => (
-                      <button
-                        key={item.text}
-                        type="button"
-                        onClick={() => {
-                          const current = (formData.investigation || '').trim();
-                          if (!current) {
-                            setFormData((prev) => ({ ...prev, investigation: item.text }));
-                          } else if (!current.toLowerCase().includes(item.text.toLowerCase())) {
-                            setFormData((prev) => ({ ...prev, investigation: `${current}, ${item.text}` }));
-                          }
-                        }}
-                        className="px-2.5 py-1 text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            */}
-
-
-
-            {/* Treatment Plan Section (Commented out per user request) */}
-            {/*
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Treatment Plan <span className="text-gray-500 text-xs">(Optional)</span>
-              </label>
-
-              {formData.treatmentPlan.length > 0 && (
-                <div className="mb-3 space-y-2">
-                  {formData.treatmentPlan.map((item, index) => (
-                    <div key={index} className="flex items-start gap-2 p-3 bg-white border border-gray-200 rounded-lg">
-                      <span className="text-sm text-gray-500 mt-1 w-5 flex-shrink-0">{index + 1}.</span>
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <input
-                          type="text"
-                          value={item.name}
-                          onChange={(e) => {
-                            const newPlan = [...formData.treatmentPlan];
-                            newPlan[index] = { ...newPlan[index], name: e.target.value };
-                            setFormData({ ...formData, treatmentPlan: newPlan });
-                          }}
-                          className="p-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Treatment name"
-                        />
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
-                          <input
-                            type="number"
-                            value={item.cost || ''}
-                            onChange={(e) => {
-                              const newPlan = [...formData.treatmentPlan];
-                              newPlan[index] = { ...newPlan[index], cost: parseFloat(e.target.value) || 0 };
-                              setFormData({ ...formData, treatmentPlan: newPlan });
-                            }}
-                            className="w-full pl-6 p-2 border border-gray-300 rounded-lg text-sm"
-                            placeholder="Cost"
-                            min="0"
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          value={item.notes || ''}
-                          onChange={(e) => {
-                            const newPlan = [...formData.treatmentPlan];
-                            newPlan[index] = { ...newPlan[index], notes: e.target.value };
-                            setFormData({ ...formData, treatmentPlan: newPlan });
-                          }}
-                          className="p-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Notes (optional)"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newPlan = formData.treatmentPlan.filter((_, i) => i !== index);
-                          setFormData({ ...formData, treatmentPlan: newPlan });
-                        }}
-                        className="text-red-500 hover:text-red-700 mt-1 text-lg leading-none flex-shrink-0"
-                        title="Remove"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="relative">
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={tpSearchQuery}
-                      onChange={(e) => {
-                        setTpSearchQuery(e.target.value);
-                        setTpPendingName(e.target.value);
-                        setShowTpDropdown(true);
-                      }}
-                      onFocus={() => setShowTpDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowTpDropdown(false), 150)}
-                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Search or type treatment name..."
-                    />
-                    {showTpDropdown && tpSearchQuery.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {dentalProcedures
-                          .filter(p => p.name.toLowerCase().includes(tpSearchQuery.toLowerCase()))
-                          .map(proc => (
-                            <button
-                              key={proc.id}
-                              type="button"
-                              onMouseDown={() => {
-                                setTpPendingName(proc.name);
-                                setTpPendingCost(proc.price);
-                                setTpSearchQuery(proc.name);
-                                setShowTpDropdown(false);
-                              }}
-                              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm flex justify-between"
-                            >
-                              <span>{proc.name}</span>
-                              <span className="text-gray-500">₹{proc.price}</span>
-                            </button>
-                          ))}
-                        {dentalProcedures.filter(p => p.name.toLowerCase().includes(tpSearchQuery.toLowerCase())).length === 0 && (
-                          <div className="px-3 py-2 text-xs text-gray-500">No match — will add as custom</div>
                         )}
                       </div>
-                    )}
+                    );
+                  })}
+                </div>
+
+                {/* Doctor Signature Print Mode */}
+                <div className="mt-3 pt-2.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="font-semibold text-slate-600">Prescription Print Signature Mode:</span>
+                  <div className="flex items-center gap-1.5 bg-white p-1 rounded border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setIncludeSignature(true)}
+                      className={includeSignature ? 'px-2.5 py-1 rounded text-xs font-semibold transition bg-blue-600 text-white shadow-xs' : 'px-2.5 py-1 rounded text-xs font-semibold transition text-slate-600 hover:bg-slate-100'}
+                    >
+                      ✓ With Signature
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIncludeSignature(false)}
+                      className={!includeSignature ? 'px-2.5 py-1 rounded text-xs font-semibold transition bg-blue-600 text-white shadow-xs' : 'px-2.5 py-1 rounded text-xs font-semibold transition text-slate-600 hover:bg-slate-100'}
+                    >
+                      Without Sign (Name Only)
+                    </button>
                   </div>
-                  <div className="relative w-28">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
-                    <input
-                      type="number"
-                      value={tpPendingCost || ''}
-                      onChange={(e) => setTpPendingCost(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-6 p-2 border border-gray-300 rounded-lg text-sm"
-                      placeholder="Cost"
-                      min="0"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    value={tpPendingNotes}
-                    onChange={(e) => setTpPendingNotes(e.target.value)}
-                    className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
-                    placeholder="Notes (optional)"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const name = tpPendingName.trim() || tpSearchQuery.trim();
-                      if (!name) return;
-                      const newItem: TreatmentPlanItem = { name, cost: tpPendingCost, notes: tpPendingNotes.trim() };
-                      setFormData({ ...formData, treatmentPlan: [...formData.treatmentPlan, newItem] });
-                      setTpSearchQuery('');
-                      setTpPendingName('');
-                      setTpPendingCost(0);
-                      setTpPendingNotes('');
-                    }}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm whitespace-nowrap"
-                  >
-                    + Add
-                  </button>
                 </div>
               </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {dentalProcedures.slice(0, 6).map(proc => (
-                  <button
-                    key={proc.id}
-                    type="button"
-                    onClick={() => {
-                      const newItem: TreatmentPlanItem = { name: proc.name, cost: proc.price, notes: '' };
-                      setFormData({ ...formData, treatmentPlan: [...formData.treatmentPlan, newItem] });
-                    }}
-                    className="px-2 py-1 text-xs bg-green-50 border border-green-200 text-green-700 rounded-full hover:bg-green-100 transition"
-                    title={`₹${proc.price}`}
-                  >
-                    + {proc.name}
-                  </button>
-                ))}
-              </div>
-
-              {formData.treatmentPlan.length > 0 && (
-                <div className="mt-3 flex justify-end">
-                  <div className="px-4 py-2 bg-green-100 border border-green-300 rounded-lg text-sm font-semibold text-green-800">
-                    Estimated Cost: ₹{formData.treatmentPlan.reduce((sum, item) => sum + (Number(item.cost) || 0), 0).toLocaleString('en-IN')}
-                  </div>
-                </div>
-              )}
             </div>
-            */}
-            <div className="flex flex-col items-center gap-3 mt-4">
-              <div className="flex flex-col sm:flex-row justify-center gap-4 w-full">
+
+            {/* Action Buttons (Restored to clean original layout) */}
+            <div className="flex flex-col items-center gap-3 mt-8 pb-10">
+              <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-xl">
                 <button
                   type="submit"
-                  className="px-8 py-3 bg-blue-600 text-white text-lg font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md"
                   disabled={loading || saving}
+                  className="flex-1 px-8 py-3.5 bg-blue-600 text-white text-base font-bold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
+                  <Save className="w-5 h-5" />
                   {loading ? 'Saving...' : saving ? 'Saving Prescription...' : isEditMode ? 'Update Prescription' : 'Save Prescription'}
                 </button>
 
                 <button
                   type="button"
                   onClick={handlePrintablePrescription}
-                  disabled={!prescriptionId}
-                  className="px-8 py-3 bg-purple-600 text-white text-lg font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center"
+                  disabled={loading || saving}
+                  className="flex-1 px-8 py-3.5 bg-purple-600 text-white text-base font-bold rounded-xl hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
+                  <Printer className="w-5 h-5" />
                   Print Prescription
                 </button>
               </div>
-
-              {/* Signature Mode Quick Toggle */}
-
             </div>
+            {/* Toast Notification */}
+            {templateToast && (
+              <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-bold border border-slate-700 animate-bounce">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>{templateToast}</span>
+              </div>
+            )}
+
+            {/* Load Template Modal */}
+            {isLoadTemplateModalOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col max-h-[85vh] overflow-hidden">
+                  <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">Load Prescription Template</h3>
+                        <p className="text-[11px] text-slate-500">Select a template to auto-populate diagnosis, medicines, and advice.</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsLoadTemplateModalOpen(false)}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={templateSearchQuery}
+                        onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                        placeholder="Search template name, diagnosis, medicine..."
+                        className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                      />
+                    </div>
+                    <select
+                      value={templateCategoryFilter}
+                      onChange={(e) => setTemplateCategoryFilter(e.target.value)}
+                      className="p-1.5 border border-slate-200 rounded-lg text-xs bg-white font-semibold"
+                    >
+                      <option value="All">All Specialties</option>
+                      <option value="Orthopaedics">Orthopaedics</option>
+                      <option value="Gynaecology">Gynaecology</option>
+                      <option value="General Medicine">General Medicine</option>
+                    </select>
+                  </div>
+
+                  <div className="p-4 overflow-y-auto space-y-2.5 flex-1 max-h-[50vh]">
+                    {savedTemplatesList
+                      .filter(t => {
+                        if (templateCategoryFilter !== 'All' && t.category !== templateCategoryFilter) return false;
+                        if (!templateSearchQuery.trim()) return true;
+                        const q = templateSearchQuery.toLowerCase();
+                        return t.name.toLowerCase().includes(q) || (t.diagnosis || '').toLowerCase().includes(q) || (t.medicines || []).some(m => m.name.toLowerCase().includes(q));
+                      })
+                      .map((tmpl) => (
+                        <div
+                          key={tmpl.id}
+                          className="p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 transition flex items-center justify-between gap-3 group"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                {tmpl.category || 'General'}
+                              </span>
+                              <h4 className="font-bold text-slate-900 text-xs truncate group-hover:text-blue-600">
+                                {tmpl.name}
+                              </h4>
+                            </div>
+                            <p className="text-[11px] text-slate-600 truncate">
+                              <strong>Diag:</strong> {tmpl.diagnosis || 'None'} • <strong>Meds:</strong> {tmpl.medicines?.length || 0} drugs
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              applyPrescriptionTemplate(tmpl);
+                              setIsLoadTemplateModalOpen(false);
+                            }}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shrink-0 transition"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      ))}
+                    {savedTemplatesList.length === 0 && (
+                      <p className="text-center py-6 text-slate-400 text-xs">No templates found.</p>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
+                    <a
+                      href="/admin/templates"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1"
+                    >
+                      Manage All Templates in Full View <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsLoadTemplateModalOpen(false)}
+                      className="px-4 py-1.5 border border-slate-300 rounded-lg font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Save Template Modal */}
+            {isSaveTemplateModalOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+                  <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <BookmarkPlus className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">Save as Prescription Template</h3>
+                        <p className="text-[11px] text-slate-500">Save current medicines, diagnosis, and advice as a reusable template.</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsSaveTemplateModalOpen(false)}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-5 space-y-4 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                        Template Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={templateNameInput}
+                        onChange={(e) => setTemplateNameInput(e.target.value)}
+                        placeholder="e.g. Knee OA Standard Protocol"
+                        className="w-full p-2.5 border border-slate-300 rounded-lg font-bold text-slate-800 focus:ring-1 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                          Specialty
+                        </label>
+                        <select
+                          value={templateCategoryInput}
+                          onChange={(e) => setTemplateCategoryInput(e.target.value)}
+                          className="w-full p-2 border border-slate-300 rounded-lg font-semibold bg-white"
+                        >
+                          <option value="Orthopaedics">Orthopaedics</option>
+                          <option value="Gynaecology">Gynaecology</option>
+                          <option value="General Medicine">General Medicine</option>
+                          <option value="Pediatrics">Pediatrics</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                          Doctor
+                        </label>
+                        <input
+                          type="text"
+                          readOnly
+                          value={selectedDoctorName}
+                          className="w-full p-2 border border-slate-200 bg-slate-100 rounded-lg font-semibold text-slate-700"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200 space-y-1.5 text-[11px]">
+                      <span className="font-bold text-purple-900 block">Template Content Preview:</span>
+                      <p className="text-slate-700"><strong>Diagnosis:</strong> {formData.de || 'None'}</p>
+                      <p className="text-slate-700"><strong>Medicines:</strong> {medicines.length} items with dosages & schedules</p>
+                      <p className="text-slate-700"><strong>Advice:</strong> {formData.advice ? formData.advice.slice(0, 60) + '...' : 'None'}</p>
+                      <p className="text-slate-700"><strong>Follow-up:</strong> {followupCount} {followupUnit}</p>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-end gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsSaveTemplateModalOpen(false)}
+                        className="px-4 py-2 border border-slate-300 rounded-lg font-semibold text-slate-600 hover:bg-slate-100"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!templateNameInput.trim()) {
+                            alert('Please enter a template name.');
+                            return;
+                          }
+                          const saved = saveTemplateService({
+                            name: templateNameInput.trim(),
+                            category: templateCategoryInput,
+                            doctor_name: selectedDoctorName,
+                            diagnosis: formData.de || '',
+                            medicines: medicines,
+                            complaints: complaintsList.map(c => ({
+                              complaint: c.complaint,
+                              frequency: c.frequency,
+                              severity: c.severity,
+                              duration: c.duration,
+                            })),
+                            findings: findingsText,
+                            vitals: {
+                              bp_systolic: bpSystolic,
+                              bp_diastolic: bpDiastolic,
+                              pulse: pulseVal,
+                              height: heightVal,
+                              weight: weightVal,
+                              temperature: tempVal,
+                              bmi: bmiVal,
+                              waist_hip: waistHipVal,
+                              spo2: spo2Val,
+                              lmp: lmpDate,
+                              edd: eddDate,
+                              gestational_weeks: gestationalWeeks,
+                              gestational_days: gestationalDays,
+                            },
+                            advice: formData.advice,
+                            dr_notes: drNotes,
+                            quick_notes: quickNotes,
+                            procedure_advice: procedureAdvice,
+                            diet_exercise: dietExercise,
+                            investigations: investigationText,
+                            general_examinations: generalExam,
+                            past_medications: pastMedication,
+                            drawing_board: drawingDataUrl,
+                            tests_requested: testsRequested.map(t => ({ name: t.name, by_when: t.by_when })),
+                            followup_count: followupCount,
+                            followup_unit: followupUnit,
+                          });
+                          refreshTemplates();
+                          setIsSaveTemplateModalOpen(false);
+                          showTemplateToast('Template "' + saved.name + '" saved successfully!');
+                        }}
+                        className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-lg font-bold shadow-xs transition"
+                      >
+                        Save Template
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </form>
 
           {/* Prescription Preview Section - Exact 1-to-1 Printable Letterhead Replica */}
@@ -3105,7 +4439,7 @@ const PrescriptionPage = () => {
               <button
                 type="button"
                 onClick={handlePrintablePrescription}
-                disabled={!prescriptionId}
+                disabled={loading || saving}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

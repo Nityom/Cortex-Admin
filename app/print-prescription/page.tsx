@@ -5,6 +5,20 @@ import { useSearchParams } from 'next/navigation';
 import { getPrescriptionById } from '@/services/prescription';
 import { doctorService } from '@/services/doctors';
 
+interface DosageSchedule {
+  dosage: string;
+  unit?: string;
+  time?: string;
+  when?: string;
+  where?: string;
+  frequency?: string;
+  duration?: string;
+  start_from?: string;
+  to_date?: string;
+  details?: string;
+  notes?: string;
+}
+
 interface MedicineEntry {
   name: string;
   dosage: string;
@@ -15,6 +29,10 @@ interface MedicineEntry {
   timing?: string;
   freq_duration?: string;
   note?: string;
+  unit?: string;
+  when?: string;
+  where?: string;
+  schedules?: DosageSchedule[];
 }
 
 interface PrescriptionData {
@@ -42,7 +60,7 @@ interface PrescriptionData {
 }
 
 const getSignatureSrc = (sig?: string) => {
-  if (!sig) return '/sign.png';
+  if (!sig || typeof sig !== 'string') return '/sign.png';
   if (sig.startsWith('data:') || sig.startsWith('http://') || sig.startsWith('https://')) {
     return sig;
   }
@@ -98,7 +116,7 @@ function formatFollowup(followupDate?: string, prescriptionDate?: string): strin
 }
 
 function getTimingFromDosage(dosage?: string): string {
-  if (!dosage) return '';
+  if (!dosage || typeof dosage !== 'string') return '';
   const trimmed = dosage.trim();
   const parts = trimmed.split('-').map(p => p.trim());
   if (parts.length === 3) {
@@ -125,7 +143,7 @@ function getTimingFromDosage(dosage?: string): string {
 
 function PrintPrescriptionContent() {
   const searchParams = useSearchParams();
-  const prescriptionId = searchParams.get('prescriptionId');
+  const prescriptionId = searchParams.get('prescriptionId') || searchParams.get('id');
   const signatureParam = searchParams.get('signature') || 'sign.png';
   const doctorNameParam = searchParams.get('doctorName') || 'Dr. Vipeen Raut';
   const includeSigParam = searchParams.get('includeSignature');
@@ -138,48 +156,167 @@ function PrintPrescriptionContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchPrescriptionData = async () => {
-      if (!prescriptionId) {
-        setError('No prescription ID provided');
-        setLoading(false);
-        return;
-      }
-
       try {
-        const data = await getPrescriptionById(prescriptionId);
-        setPrescriptionData(data as PrescriptionData);
+        let data: any = null;
 
-        const docName = searchParams.get('doctorName') || (data as any)?.doctor_name || doctorNameParam;
-        setResolvedDoctorName(docName);
-
-        const paramSig = searchParams.get('signature');
-        if (paramSig && paramSig !== 'sign.png') {
-          setResolvedSignature(paramSig);
-        } else {
+        // 1. Try fetching from Convex if valid ID provided
+        if (prescriptionId && prescriptionId !== 'draft' && prescriptionId !== 'null' && prescriptionId !== 'undefined') {
           try {
-            const doctors = await doctorService.list();
-            const match = doctors.find((d) => d.name.toLowerCase() === docName.toLowerCase());
-            if (match?.signature_url) {
-              setResolvedSignature(match.signature_url);
-            } else if (docName.toLowerCase().includes('shillpa') || docName.toLowerCase().includes('anjali')) {
-              setResolvedSignature('sign1.png');
-            } else {
-              setResolvedSignature('sign.png');
+            data = await getPrescriptionById(prescriptionId);
+          } catch (fetchErr) {
+            console.warn('Could not fetch prescription from Convex:', fetchErr);
+          }
+        }
+
+        // 2. If Convex returned null or prescriptionId is draft/unsaved, fallback to localStorage
+        if (!data && typeof window !== 'undefined') {
+          try {
+            const localRaw = localStorage.getItem('cortex_printable_prescription');
+            if (localRaw) {
+              const parsedLocal = JSON.parse(localRaw);
+              if (
+                !prescriptionId ||
+                prescriptionId === 'draft' ||
+                parsedLocal.id === prescriptionId ||
+                parsedLocal._id === prescriptionId ||
+                !parsedLocal.id
+              ) {
+                data = parsedLocal;
+              }
             }
-          } catch {
-            setResolvedSignature(paramSig || (docName.toLowerCase().includes('shillpa') || docName.toLowerCase().includes('anjali') ? 'sign1.png' : 'sign.png'));
+          } catch (storageErr) {
+            console.warn('Could not load prescription snapshot from localStorage:', storageErr);
+          }
+        }
+
+        if (!data) {
+          if (!prescriptionId) {
+            setError('No prescription ID provided');
+          } else {
+            setError('Prescription not found');
+          }
+          if (isMounted) setLoading(false);
+          return;
+        }
+
+        // 3. Helper to safely parse JSON strings
+        const safeParseJson = (val: any, fallback: any = []) => {
+          if (typeof val === 'string') {
+            try {
+              const res = JSON.parse(val);
+              return res ?? fallback;
+            } catch {
+              return fallback;
+            }
+          }
+          return val ?? fallback;
+        };
+
+        // 4. Normalize data to prevent any .map() or rendering type errors
+        const rawMedicines = safeParseJson(data.medicines, []);
+        const rawSelectedTeeth = safeParseJson(data.selected_teeth, []);
+        const rawTreatmentPlan = safeParseJson(data.treatment_plan, []);
+        const rawTreatmentDone = safeParseJson(data.treatment_done, []);
+        const rawVitals = typeof data.vitals === 'string'
+          ? safeParseJson(data.vitals, {})
+          : (data.vitals || (data as any).vital_signs || {});
+
+        const normalizedMedicines: MedicineEntry[] = Array.isArray(rawMedicines)
+          ? rawMedicines.map((m: any) => {
+              if (typeof m === 'string') return { name: m, dosage: '' };
+              return {
+                name: String(m?.name || ''),
+                dosage: String(m?.dosage || ''),
+                frequency: m?.frequency ? String(m.frequency) : undefined,
+                duration: m?.duration ? String(m.duration) : undefined,
+                quantity: typeof m?.quantity === 'number' ? m.quantity : undefined,
+                composition: m?.composition ? String(m.composition) : undefined,
+                timing: m?.timing ? String(m.timing) : undefined,
+                freq_duration: m?.freq_duration ? String(m.freq_duration) : undefined,
+                note: m?.note ? String(m.note) : undefined,
+              };
+            })
+          : [];
+
+        const normalizedSelectedTeeth = Array.isArray(rawSelectedTeeth)
+          ? rawSelectedTeeth.map((t: any) => ({
+              id: t?.id ?? '',
+              type: t?.type || 'Permanent',
+              category: t?.category || '',
+              disease: t?.disease || '',
+            }))
+          : [];
+
+        const normalizedData: PrescriptionData = {
+          ...data,
+          id: data.id || data._id || prescriptionId || '',
+          patient_name: data.patient_name || data.patientName || '',
+          phone_number: data.phone_number || data.phoneNumber || '',
+          age: String(data.age || ''),
+          sex: data.sex || '',
+          reference_number: data.reference_number || data.referenceNumber || '',
+          prescription_date: data.prescription_date || data.date || new Date().toISOString(),
+          chief_complaint: data.chief_complaint || data.cc || '',
+          medical_history: data.medical_history || data.mh || '',
+          investigation: data.investigation || '',
+          diagnosis: data.diagnosis || data.de || '',
+          treatment_plan: Array.isArray(rawTreatmentPlan) ? rawTreatmentPlan : [],
+          oral_exam_notes: data.oral_exam_notes || data.diagnosisNotes || '',
+          selected_teeth: normalizedSelectedTeeth,
+          medicines: normalizedMedicines,
+          treatment_done: Array.isArray(rawTreatmentDone) ? rawTreatmentDone : [],
+          advice: data.advice || '',
+          followup_date: data.followup_date || data.followupDate || '',
+          doctor_name: data.doctor_name || data.doctorName || '',
+          vitals: rawVitals,
+        };
+
+        if (isMounted) {
+          setPrescriptionData(normalizedData);
+
+          const docName = searchParams.get('doctorName') || normalizedData.doctor_name || doctorNameParam;
+          setResolvedDoctorName(docName);
+
+          const paramSig = searchParams.get('signature');
+          if (paramSig && paramSig !== 'sign.png') {
+            setResolvedSignature(paramSig);
+          } else {
+            try {
+              const doctors = await doctorService.list();
+              const match = doctors.find((d) => d.name.toLowerCase() === docName.toLowerCase());
+              if (match?.signature_url) {
+                setResolvedSignature(match.signature_url);
+              } else if (docName.toLowerCase().includes('shillpa') || docName.toLowerCase().includes('anjali')) {
+                setResolvedSignature('sign1.png');
+              } else {
+                setResolvedSignature('sign.png');
+              }
+            } catch {
+              setResolvedSignature(paramSig || (docName.toLowerCase().includes('shillpa') || docName.toLowerCase().includes('anjali') ? 'sign1.png' : 'sign.png'));
+            }
           }
         }
       } catch (err) {
         console.error('Error fetching prescription:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load prescription data');
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load prescription data');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchPrescriptionData();
-  }, [prescriptionId, doctorNameParam, searchParams]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [prescriptionId, doctorNameParam, signatureParam]);
 
   // Auto-print when data is loaded
   useEffect(() => {
@@ -213,11 +350,10 @@ function PrintPrescriptionContent() {
     );
   }
 
-  // Derive diagnosis text
+  // Derive diagnosis text (Dr Notes are strictly internal and excluded from prescription printout)
   const diagnosisText =
     prescriptionData.diagnosis ||
-    prescriptionData.oral_exam_notes ||
-    (prescriptionData.selected_teeth && prescriptionData.selected_teeth.length > 0
+    (Array.isArray(prescriptionData.selected_teeth) && prescriptionData.selected_teeth.length > 0
       ? prescriptionData.selected_teeth.map((t) => (t.disease ? `${t.disease}` : `#${t.id}`)).join(', ')
       : '');
 
@@ -930,7 +1066,7 @@ function PrintPrescriptionContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {prescriptionData.medicines && prescriptionData.medicines.length > 0 ? (
+                  {Array.isArray(prescriptionData.medicines) && prescriptionData.medicines.length > 0 ? (
                     prescriptionData.medicines.map((med, index) => (
                       <tr key={index} className="med-row">
                         {/* Medicine Name, Composition, Timing, Note */}
@@ -946,7 +1082,7 @@ function PrintPrescriptionContent() {
                             </div>
                           )}
                           {(() => {
-                            const timingVal = med.timing || getTimingFromDosage(med.dosage);
+                            const timingVal = med.timing || (typeof med.dosage === 'string' ? getTimingFromDosage(med.dosage) : '');
                             if (!timingVal) return null;
                             return (
                               <div className="med-sub-line">
@@ -967,36 +1103,60 @@ function PrintPrescriptionContent() {
 
                         {/* Dosage */}
                         <td>
-                          <div className="dosage-val">
-                            {med.dosage ? med.dosage.replace(/-/g, ' — ') : '—'}
-                          </div>
+                          {med.schedules && med.schedules.length > 1 ? (
+                            <div className="space-y-1">
+                              {med.schedules.map((s, si) => (
+                                <div key={si} className="dosage-val">
+                                  {s.dosage ? String(s.dosage).replace(/-/g, ' — ') : '—'}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="dosage-val">
+                              {med.dosage ? String(med.dosage).replace(/-/g, ' — ') : '—'}
+                            </div>
+                          )}
                         </td>
 
                         {/* Timing - Freq - Duration */}
                         <td>
-                          <div className="timing-val">
-                            {(() => {
-                              const parts: string[] = [];
-                              if (med.frequency && med.frequency !== 'Daily') {
-                                parts.push(med.frequency);
-                              }
-                              if (med.freq_duration) {
-                                parts.push(med.freq_duration);
-                              }
-                              if (
-                                med.duration &&
-                                (!med.freq_duration ||
-                                  (!med.freq_duration.toLowerCase().includes(med.duration.toLowerCase()) &&
-                                    !/दिवस|महिना|week|day/i.test(med.freq_duration)))
-                              ) {
-                                parts.push(`(${med.duration})`);
-                              }
-                              if (parts.length > 0) {
-                                return parts.join(' • ');
-                              }
-                              return med.freq_duration || med.duration || med.frequency || '—';
-                            })()}
-                          </div>
+                          {med.schedules && med.schedules.length > 1 ? (
+                            <div className="space-y-1.5">
+                              {med.schedules.map((s, si) => (
+                                <div key={si} className="timing-val text-[8.5pt]">
+                                  <span className="font-bold">{s.frequency || 'Daily'}</span>
+                                  {s.duration ? ` • ${s.duration}` : ''}
+                                  {s.when ? ` • ${s.when}` : ''}
+                                  {s.where ? ` • ${s.where}` : ''}
+                                  {s.notes ? ` (${s.notes})` : ''}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="timing-val">
+                              {(() => {
+                                const parts: string[] = [];
+                                if (med.frequency && med.frequency !== 'Daily') {
+                                  parts.push(String(med.frequency));
+                                }
+                                if (med.freq_duration) {
+                                  parts.push(String(med.freq_duration));
+                                }
+                                if (
+                                  med.duration &&
+                                  (!med.freq_duration ||
+                                    (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
+                                      !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
+                                ) {
+                                  parts.push(`(${med.duration})`);
+                                }
+                                if (parts.length > 0) {
+                                  return parts.join(' • ');
+                                }
+                                return med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
+                              })()}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))
