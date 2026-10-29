@@ -24,6 +24,7 @@ interface SectionTemplatePickerProps {
   currentValue?: any;
   onApplyPreset: (data: any) => void;
   className?: string;
+  align?: 'left' | 'right';
 }
 
 export default function SectionTemplatePicker({
@@ -32,6 +33,7 @@ export default function SectionTemplatePicker({
   currentValue,
   onApplyPreset,
   className = '',
+  align = 'left',
 }: SectionTemplatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'presets' | 'saved'>('presets');
@@ -141,7 +143,7 @@ export default function SectionTemplatePicker({
 
       {/* Popover */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 p-3 text-xs animate-in fade-in zoom-in-95 duration-100">
+        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-2xl z-[999] p-3 text-xs animate-in fade-in zoom-in-95 duration-100`}>
           {/* Header */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
             <div className="flex items-center gap-1.5 font-bold text-slate-800">

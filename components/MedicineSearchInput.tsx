@@ -25,6 +25,7 @@ export default function MedicineSearchInput({
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [debouncedQuery, setDebouncedQuery] = useState(value || '');
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +45,19 @@ export default function MedicineSearchInput({
       clearTimeout(handler);
     };
   }, [searchTerm]);
+
+  // Detect whether to open dropdown upwards if near bottom of viewport
+  useEffect(() => {
+    if (isOpen && containerRef.current && typeof window !== 'undefined') {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 260 && rect.top > 260) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
+  }, [isOpen, debouncedQuery]);
 
   // Filter options based on debounced search query
   const filteredOptions = useMemo(() => {
@@ -144,7 +158,7 @@ export default function MedicineSearchInput({
   };
 
   return (
-    <div ref={containerRef} className={`relative ${className}`} style={{ zIndex: isOpen ? 40 : 1 }}>
+    <div ref={containerRef} className={`relative ${className}`} style={{ zIndex: isOpen ? 99 : 1 }}>
       <div className="relative flex items-center">
         <div className="absolute left-3 text-gray-400 pointer-events-none">
           <Search size={15} />
@@ -176,7 +190,11 @@ export default function MedicineSearchInput({
 
       {/* Clean & Simple Search Dropdown */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-100 z-50">
+        <div
+          className={`absolute left-0 w-full min-w-[340px] max-w-lg bg-white border border-slate-300 rounded-xl shadow-2xl max-h-72 overflow-y-auto divide-y divide-slate-100 z-[100] ${
+            openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+          }`}
+        >
           {filteredOptions.length > 0 ? (
             <div>
               {filteredOptions.map((med, optIdx) => {

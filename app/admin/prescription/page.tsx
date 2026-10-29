@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { getAllMedicines, deductMedicineStock, addMedicine as createMedicineService } from '@/services/medicine';
 import { Medicine } from '@/services/medicine';
 import { getAllTemplates, getTemplateById, saveTemplate as saveTemplateService, PrescriptionTemplate } from '@/services/templates';
@@ -337,16 +337,21 @@ const PrescriptionPage = () => {
   const [gestationalDays, setGestationalDays] = useState('');
 
   // Auto-calculate BMI
-  useEffect(() => {
+  const displayBmi = useMemo(() => {
     const h = parseFloat(heightVal);
     const w = parseFloat(weightVal);
     if (h > 0 && w > 0) {
       const hM = h / 100;
-      setBmiVal((w / (hM * hM)).toFixed(1));
-    } else {
-      setBmiVal('');
+      return (w / (hM * hM)).toFixed(1);
     }
-  }, [heightVal, weightVal]);
+    return bmiVal || '';
+  }, [heightVal, weightVal, bmiVal]);
+
+  useEffect(() => {
+    if (displayBmi) {
+      setBmiVal(displayBmi);
+    }
+  }, [displayBmi]);
 
   // HealthPlix Diagnoses list
   interface DiagnosisRow {
@@ -3079,7 +3084,7 @@ const PrescriptionPage = () => {
                       <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-slate-50/80 overflow-hidden shadow-xs">
                         <input
                           type="text"
-                          value={bmiVal}
+                          value={displayBmi}
                           readOnly
                           placeholder="—"
                           title="Body Mass Index (Kg/m²)"
@@ -3224,13 +3229,18 @@ const PrescriptionPage = () => {
                         sectionKey="diagnosis"
                         sectionTitle="Diagnosis"
                         currentValue={formData.de}
+                        align="left"
                         onApplyPreset={(val) => {
-                          setFormData(prev => ({ ...prev, de: val }));
+                          const str = typeof val === 'string' ? val : (Array.isArray(val) ? val.join(', ') : JSON.stringify(val));
+                          setFormData(prev => ({
+                            ...prev,
+                            de: prev.de ? prev.de + ', ' + str : str,
+                          }));
                           setDiagnosesList(prev => [
                             ...prev,
                             {
                               id: String(Date.now()),
-                              diagnosis: val,
+                              diagnosis: str,
                               snomed_code: '',
                               duration: '',
                               date: formData.date || new Date().toISOString().slice(0, 10),
@@ -3253,8 +3263,53 @@ const PrescriptionPage = () => {
                   </div>
                 </div>
 
+                {/* HealthPlix Diagnosis Table (IMG_0902) */}
+                <div className="border border-slate-200 rounded-lg overflow-hidden text-xs mb-3">
+                  <div className="grid grid-cols-12 bg-slate-50 text-slate-700 font-semibold py-2 px-3 border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                    <div className="col-span-1">#</div>
+                    <div className="col-span-5">Diagnosis</div>
+                    <div className="col-span-2">SNOMED Code</div>
+                    <div className="col-span-2">Duration</div>
+                    <div className="col-span-1">Date</div>
+                    <div className="col-span-1 text-right">Action</div>
+                  </div>
+
+                  {diagnosesList.length === 0 ? (
+                    <div className="py-2.5 px-3 text-slate-400 italic text-xs bg-white">
+                      1 &nbsp;&nbsp; Add Diagnosis using the search bar below or presets icon above
+                    </div>
+                  ) : (
+                    diagnosesList.map((d, idx) => (
+                      <div key={d.id} className="grid grid-cols-12 items-center py-2 px-3 border-b border-slate-100 bg-white hover:bg-slate-50/50">
+                        <div className="col-span-1 text-slate-400 font-mono">{idx + 1}</div>
+                        <div className="col-span-5 font-bold text-slate-800">{d.diagnosis}</div>
+                        <div className="col-span-2 text-slate-500 font-mono text-[11px]">{d.snomed_code || '—'}</div>
+                        <div className="col-span-2 text-slate-600">{d.duration || '—'}</div>
+                        <div className="col-span-1 text-slate-600 text-[11px]">{d.date || formData.date}</div>
+                        <div className="col-span-1 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = diagnosesList.filter(x => x.id !== d.id);
+                              setDiagnosesList(updated);
+                              setFormData(prev => ({
+                                ...prev,
+                                de: updated.map(x => x.diagnosis).join(', '),
+                              }));
+                            }}
+                            className="text-rose-500 hover:text-rose-700 font-bold p-0.5 rounded cursor-pointer"
+                            title="Remove diagnosis"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
                 {/* Auto-suggest Diagnosis Input */}
-                <div className="mb-3">
+                <div className="mb-1">
                   <DiagnosisSearchInput
                     value={formData.de}
                     onChange={(newVal) => {
@@ -3507,14 +3562,6 @@ const PrescriptionPage = () => {
                   onChange={setMedicines}
                   medicineOptions={filteredMedicineOptions}
                   prescriptionDate={formData.date}
-                  onOpenLoadTemplate={() => {
-                    refreshTemplates();
-                    setIsLoadTemplateModalOpen(true);
-                  }}
-                  onOpenSaveTemplate={() => {
-                    setTemplateNameInput(formData.de ? formData.de + ' Protocol' : '');
-                    setIsSaveTemplateModalOpen(true);
-                  }}
                   onAutoSaveMedicine={autoSaveMedicineIfNew}
                 />
               </div>
@@ -4058,6 +4105,7 @@ const PrescriptionPage = () => {
                       sectionTitle="Drawing Board"
                       currentValue={drawingDataUrl}
                       onApplyPreset={(val) => setDrawingDataUrl(val)}
+                      align="right"
                     />
                     <span className="text-xs text-slate-400">Sketch clinical diagrams or annotate anatomical regions</span>
                   </div>

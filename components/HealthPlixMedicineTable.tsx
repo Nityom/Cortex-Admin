@@ -1,10 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, ChevronDown, Calendar, RotateCcw, Copy, BookmarkPlus, FolderOpen } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  ChevronDown,
+  Calendar,
+  RotateCcw,
+  Copy,
+  BookmarkPlus,
+  FolderOpen,
+  Search,
+  Check,
+  X,
+  Sparkles,
+  Layers,
+} from 'lucide-react';
 import MedicineSearchInput from './MedicineSearchInput';
+import SectionTemplatePicker from './SectionTemplatePicker';
 import { Medicine } from '@/services/medicine';
 import { MedicineEntry, DosageSchedule } from '@/services/prescription';
+import {
+  CLINICAL_SECTION_PRESETS,
+  ClinicalSectionPreset,
+  getSectionCustomTemplates,
+  saveSectionCustomTemplate,
+  deleteSectionCustomTemplate,
+} from '@/services/clinicalSectionPresets';
 
 interface HealthPlixMedicineTableProps {
   medicines: MedicineEntry[];
@@ -81,6 +104,64 @@ function calculateEndDate(startDateStr: string | undefined, durationStr: string 
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function normalizePresetMedicines(rawList: any[], baseDate?: string): MedicineEntry[] {
+  if (!Array.isArray(rawList)) return [];
+  const validBase = baseDate || new Date().toISOString().slice(0, 10);
+  return rawList.map((m, idx) => {
+    const dur = m.duration || '15 days';
+    const sFrom = m.start_from || validBase;
+    const sTo = m.to_date || calculateEndDate(sFrom, dur);
+    const schedules: DosageSchedule[] =
+      m.schedules && m.schedules.length > 0
+        ? m.schedules.map((s: any, sIdx: number) => ({
+            id: s.id || `sch_p_${Date.now()}_${idx}_${sIdx}`,
+            dosage: s.dosage || m.dosage || '1-0-1',
+            unit: s.unit || m.unit || 'tab',
+            time: s.time || m.time || '',
+            when: s.when || m.when || 'After Food',
+            where: s.where || m.where || '',
+            frequency: s.frequency || m.frequency || 'daily',
+            duration: s.duration || dur,
+            start_from: s.start_from || sFrom,
+            to_date: s.to_date || calculateEndDate(s.start_from || sFrom, s.duration || dur),
+            details: s.details || '',
+            notes: s.notes || s.note || m.note || m.notes || '',
+          }))
+        : [
+            {
+              id: `sch_p_${Date.now()}_${idx}`,
+              dosage: m.dosage || '1-0-1',
+              unit: m.unit || 'tab',
+              time: m.time || '',
+              when: m.when || 'After Food',
+              where: m.where || '',
+              frequency: m.frequency || 'daily',
+              duration: dur,
+              start_from: sFrom,
+              to_date: sTo,
+              details: m.details || '',
+              notes: m.note || m.notes || '',
+            },
+          ];
+
+    return {
+      name: m.name || '',
+      dosage: m.dosage || schedules[0].dosage || '1-0-1',
+      unit: m.unit || schedules[0].unit || 'tab',
+      when: m.when || schedules[0].when || 'After Food',
+      where: m.where || schedules[0].where || '',
+      frequency: m.frequency || schedules[0].frequency || 'daily',
+      duration: dur,
+      composition: m.composition || '',
+      note: m.note || m.notes || schedules[0].notes || '',
+      instructions: m.instructions || '',
+      start_from: sFrom,
+      to_date: sTo,
+      schedules,
+    };
+  });
+}
+
 export default function HealthPlixMedicineTable({
   medicines,
   onChange,
@@ -93,6 +174,74 @@ export default function HealthPlixMedicineTable({
   const [editingCompositionIndex, setEditingCompositionIndex] = useState<number | null>(null);
   const [compositionDraft, setCompositionDraft] = useState<string>('');
   const [newMedSearch, setNewMedSearch] = useState<string>('');
+
+  // Medical Template Dialog states
+  const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
+  const [isSaveMedicalModalOpen, setIsSaveMedicalModalOpen] = useState(false);
+  const [newMedTemplateName, setNewMedTemplateName] = useState('');
+  const [newMedTemplateCat, setNewMedTemplateCat] = useState('General Medicine');
+  const [medModalTab, setMedModalTab] = useState<'presets' | 'saved'>('presets');
+  const [medSearchQuery, setMedSearchQuery] = useState('');
+  const [savedMedTemplates, setSavedMedTemplates] = useState<ClinicalSectionPreset[]>([]);
+  const [medToastMessage, setMedToastMessage] = useState<string | null>(null);
+
+  const loadSavedMedTemplates = useCallback(() => {
+    const list = getSectionCustomTemplates('medicines');
+    setSavedMedTemplates(list);
+  }, []);
+
+  useEffect(() => {
+    if (isMedicalModalOpen || isSaveMedicalModalOpen) {
+      loadSavedMedTemplates();
+    }
+  }, [isMedicalModalOpen, isSaveMedicalModalOpen, loadSavedMedTemplates]);
+
+  const showMedToast = (msg: string) => {
+    setMedToastMessage(msg);
+    setTimeout(() => setMedToastMessage(null), 2500);
+  };
+
+  const handleApplyMedPreset = (presetData: any[], mode: 'replace' | 'append' = 'replace') => {
+    const normalized = normalizePresetMedicines(presetData, prescriptionDate);
+    if (mode === 'replace') {
+      onChange(normalized);
+      showMedToast(`Loaded ${normalized.length} medicines into table`);
+    } else {
+      onChange([...medicines, ...normalized]);
+      showMedToast(`Added ${normalized.length} medicines to table`);
+    }
+    setTimeout(() => {
+      setIsMedicalModalOpen(false);
+    }, 350);
+  };
+
+  const handleSaveMedTemplate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMedTemplateName.trim()) {
+      showMedToast('Please enter a medical template name');
+      return;
+    }
+    if (medicines.length === 0) {
+      showMedToast('No medicines to save in template');
+      return;
+    }
+    saveSectionCustomTemplate('medicines', newMedTemplateName.trim(), medicines, newMedTemplateCat);
+    loadSavedMedTemplates();
+    setNewMedTemplateName('');
+    showMedToast('Medical template saved successfully!');
+    setMedModalTab('saved');
+    setTimeout(() => {
+      setIsSaveMedicalModalOpen(false);
+    }, 500);
+  };
+
+  const handleDeleteMedTemplate = (id: string, name: string) => {
+    if (confirm(`Delete medical template "${name}"?`)) {
+      deleteSectionCustomTemplate('medicines', id);
+      loadSavedMedTemplates();
+      showMedToast(`Deleted "${name}"`);
+    }
+  };
 
   // Ensure every medicine has at least 1 schedule in its `schedules` array
   const normalizeMedicineSchedules = (med: MedicineEntry): DosageSchedule[] => {
@@ -302,14 +451,27 @@ export default function HealthPlixMedicineTable({
   };
 
   return (
-    <div className="w-full bg-white rounded-lg border border-slate-300/80 overflow-hidden shadow-2xs">
+    <div className="w-full bg-white rounded-xl border border-slate-300/80 shadow-xs min-h-[480px] flex flex-col justify-between">
       {/* Full-width Spreadsheet Table matching HealthPlix exact design */}
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto min-h-[420px] pb-40">
         <table className="w-full text-left text-sm border-collapse border-b border-slate-200">
           <thead>
             <tr className="bg-[#eef2f7] text-slate-800 font-bold border-b border-slate-300 text-[13px]">
               <th className="py-3 px-3 border-r border-slate-300/70 w-[24%]">
-                <span className="text-slate-900 font-bold text-sm">Medicine *</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-900 font-bold text-sm">Medicine *</span>
+                  <SectionTemplatePicker
+                    sectionKey="medicines"
+                    sectionTitle="Medical"
+                    currentValue={medicines}
+                    onApplyPreset={(presetMeds) => {
+                      if (Array.isArray(presetMeds) && presetMeds.length > 0) {
+                        onChange(normalizePresetMedicines(presetMeds, prescriptionDate));
+                      }
+                    }}
+                    align="left"
+                  />
+                </div>
               </th>
               <th className="py-3 px-2.5 border-r border-slate-300/70 w-[7%]">
                 <div className="flex items-center justify-between cursor-pointer">
@@ -703,6 +865,24 @@ export default function HealthPlixMedicineTable({
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-b border-slate-200 min-h-[48px] p-0"></td>
             </tr>
+
+            {/* Blank spreadsheet rows to provide generous height and ample room for suggestions */}
+            {Array.from({ length: Math.max(0, 4 - medicines.length) }).map((_, i) => (
+              <tr key={`blank-row-${i}`} className="h-12 border-b border-slate-100 hover:bg-slate-50/30">
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-r border-slate-200"></td>
+                <td className="border-b border-slate-200"></td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -732,24 +912,11 @@ export default function HealthPlixMedicineTable({
         <button
           type="button"
           onClick={() => {
-            if (onOpenLoadTemplate) {
-              onOpenLoadTemplate();
-            } else {
-              try {
-                const tmpl = localStorage.getItem('cortex_med_template_default');
-                if (tmpl) {
-                  const parsed = JSON.parse(tmpl);
-                  if (Array.isArray(parsed) && parsed.length > 0) {
-                    onChange(parsed);
-                  }
-                } else {
-                  alert('No saved medicine template found.');
-                }
-              } catch {}
-            }
+            loadSavedMedTemplates();
+            setIsMedicalModalOpen(true);
           }}
-          title="Load Master Prescription Template"
-          className="flex items-center gap-1 hover:text-blue-600 transition cursor-pointer"
+          title="Load Medical Template (Drug Regimen)"
+          className="flex items-center gap-1 hover:text-blue-600 transition cursor-pointer font-medium"
         >
           <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
           <span>Load template</span>
@@ -758,21 +925,15 @@ export default function HealthPlixMedicineTable({
         <button
           type="button"
           onClick={() => {
-            if (onOpenSaveTemplate) {
-              onOpenSaveTemplate();
-            } else {
-              if (medicines.length === 0) {
-                alert('Please add medicines before saving as template.');
-                return;
-              }
-              try {
-                localStorage.setItem('cortex_med_template_default', JSON.stringify(medicines));
-                alert('Medicines saved as default template successfully!');
-              } catch {}
+            if (medicines.length === 0) {
+              alert('Please add medicines before saving as medical template.');
+              return;
             }
+            setNewMedTemplateName('');
+            setIsSaveMedicalModalOpen(true);
           }}
-          title="Save Current Medicines as Prescription Template"
-          className="flex items-center gap-1 hover:text-blue-600 transition cursor-pointer"
+          title="Save Current Medicines as Medical Template"
+          className="flex items-center gap-1 hover:text-purple-600 transition cursor-pointer font-medium"
         >
           <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
           <span>Save as template</span>
@@ -792,6 +953,334 @@ export default function HealthPlixMedicineTable({
           <span>Clear All</span>
         </button>
       </div>
+
+      {/* 1. Medical Template Picker Modal */}
+      {isMedicalModalOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Medical Templates & Regimens</h3>
+                  <p className="text-xs text-slate-500">
+                    Apply standard or saved drug combinations to this prescription table
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMedicalModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Toast inside modal */}
+            {medToastMessage && (
+              <div className="mx-5 mt-3 p-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>{medToastMessage}</span>
+              </div>
+            )}
+
+            {/* Search and Tabs */}
+            <div className="px-5 pt-3 pb-2 border-b border-slate-100 space-y-2.5">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={medSearchQuery}
+                  onChange={(e) => setMedSearchQuery(e.target.value)}
+                  placeholder="Search medical templates by condition, category, or drug..."
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setMedModalTab('presets')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition text-center ${
+                    medModalTab === 'presets'
+                      ? 'bg-white text-blue-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Clinical Presets ({(CLINICAL_SECTION_PRESETS['medicines'] || []).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMedModalTab('saved')}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition text-center ${
+                    medModalTab === 'saved'
+                      ? 'bg-white text-purple-700 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Doctor Saved ({savedMedTemplates.length})
+                </button>
+              </div>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {medModalTab === 'presets' ? (
+                // Filtered Presets
+                (CLINICAL_SECTION_PRESETS['medicines'] || [])
+                  .filter((p) => {
+                    const q = medSearchQuery.toLowerCase().trim();
+                    if (!q) return true;
+                    return (
+                      p.name.toLowerCase().includes(q) ||
+                      (p.category && p.category.toLowerCase().includes(q)) ||
+                      (p.description && p.description.toLowerCase().includes(q)) ||
+                      (Array.isArray(p.data) &&
+                        p.data.some(
+                          (m: any) =>
+                            m.name?.toLowerCase().includes(q) ||
+                            m.composition?.toLowerCase().includes(q)
+                        ))
+                    );
+                  })
+                  .map((preset) => (
+                    <div
+                      key={preset.id}
+                      className="border border-slate-200 hover:border-blue-300 rounded-xl p-3.5 bg-white hover:bg-blue-50/30 transition shadow-xs"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-sm">{preset.name}</span>
+                            {preset.category && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                {preset.category}
+                              </span>
+                            )}
+                          </div>
+                          {preset.description && (
+                            <p className="text-xs text-slate-500 mt-0.5">{preset.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleApplyMedPreset(preset.data, 'replace')}
+                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
+                            title="Replace table with this regimen"
+                          >
+                            Apply Regimen
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyMedPreset(preset.data, 'append')}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs border border-slate-200 cursor-pointer transition"
+                            title="Append these drugs to current list"
+                          >
+                            + Add to Table
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Drug items preview */}
+                      <div className="bg-slate-50 rounded-lg p-2 space-y-1 text-xs">
+                        {Array.isArray(preset.data) &&
+                          preset.data.map((m: any, mIdx: number) => (
+                            <div key={mIdx} className="flex items-center justify-between text-slate-700">
+                              <span className="font-medium text-slate-800">
+                                • {m.name} {m.composition ? `(${m.composition})` : ''}
+                              </span>
+                              <span className="text-slate-500 font-mono text-[11px]">
+                                {m.dosage} | {m.when || m.frequency} | {m.duration}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                // Doctor Saved Templates
+                savedMedTemplates.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    <p className="font-semibold text-sm text-slate-600 mb-1">No saved medical templates</p>
+                    <p>Click &quot;Save as template&quot; in the medicine table footer to save your favorite combinations.</p>
+                  </div>
+                ) : (
+                  savedMedTemplates
+                    .filter((s) => {
+                      const q = medSearchQuery.toLowerCase().trim();
+                      if (!q) return true;
+                      return s.name.toLowerCase().includes(q);
+                    })
+                    .map((s) => (
+                      <div
+                        key={s.id}
+                        className="border border-purple-200 hover:border-purple-300 rounded-xl p-3.5 bg-white hover:bg-purple-50/20 transition shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 text-sm">{s.name}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                {s.category || 'Custom'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {Array.isArray(s.data) ? `${s.data.length} medicines` : 'Drug list'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleApplyMedPreset(s.data, 'replace')}
+                              className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
+                            >
+                              Apply Regimen
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleApplyMedPreset(s.data, 'append')}
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs border border-slate-200 cursor-pointer transition"
+                            >
+                              + Add
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMedTemplate(s.id, s.name)}
+                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg cursor-pointer"
+                              title="Delete template"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Drugs preview */}
+                        {Array.isArray(s.data) && (
+                          <div className="bg-purple-50/40 rounded-lg p-2 space-y-1 text-xs">
+                            {s.data.map((m: any, mIdx: number) => (
+                              <div key={mIdx} className="flex items-center justify-between text-slate-700">
+                                <span className="font-medium text-slate-800">• {m.name}</span>
+                                <span className="text-slate-500 font-mono text-[11px]">
+                                  {m.dosage} | {m.frequency || m.when} | {m.duration}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                )
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+              <span className="text-xs text-slate-500">
+                Medical templates strictly apply drugs only and never overwrite clinical notes or vitals.
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsMedicalModalOpen(false)}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Save Medical Template Modal */}
+      {isSaveMedicalModalOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-purple-50/50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+                  <BookmarkPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Save as Medical Template</h3>
+                  <p className="text-xs text-slate-500">Save current {medicines.length} medicines as a reusable drug regimen</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaveMedicalModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMedTemplate} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Medical Template Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newMedTemplateName}
+                  onChange={(e) => setNewMedTemplateName(e.target.value)}
+                  placeholder="e.g. Knee OA Meds, Viral Fever Regimen, Spondylosis Regimen..."
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Category / Specialty</label>
+                <select
+                  value={newMedTemplateCat}
+                  onChange={(e) => setNewMedTemplateCat(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 outline-none bg-white cursor-pointer"
+                >
+                  <option value="General Medicine">General Medicine</option>
+                  <option value="Orthopaedics">Orthopaedics</option>
+                  <option value="Gynaecology">Gynaecology</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="Paediatrics">Paediatrics</option>
+                  <option value="Cardiovascular">Cardiovascular</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+
+              {/* Medicines Preview */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Medicines to Save ({medicines.length}):</label>
+                <div className="max-h-40 overflow-y-auto bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5 text-xs">
+                  {medicines.map((m, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-slate-800">
+                      <span className="font-semibold text-slate-900">• {m.name}</span>
+                      <span className="text-slate-500 font-mono text-[11px]">{m.dosage} | {m.duration}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsSaveMedicalModalOpen(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-1.5"
+                >
+                  <BookmarkPlus className="w-4 h-4" />
+                  <span>Save Medical Template</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
