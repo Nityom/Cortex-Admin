@@ -1,34 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getCurrentUser } from '@/services/adminuser';
+import { getSession, UserRole } from '@/lib/auth';
 
 export function useIsAdmin() {
-  // Auth commented out for now - full admin access granted
-  return { isAdmin: true, loading: false };
-  /*
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
-    getCurrentUser()
-      .then((user) => {
-        if (mounted) setIsAdmin((user?.role || 'admin') === 'admin');
-      })
-      .catch(() => {
-        if (mounted) setIsAdmin(false);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+    const session = getSession();
+    if (session) {
+      setIsAdmin(session.role === 'admin');
+      setRole(session.role);
+    } else {
+      setIsAdmin(false);
+      setRole(null);
+    }
+    setLoading(false);
   }, []);
 
-  return { isAdmin, loading };
-  */
+  return { isAdmin, role, loading };
 }

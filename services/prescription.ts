@@ -77,6 +77,7 @@ export interface Prescription {
   sex: string;
   prescription_date: string;
   reference_number?: string;
+  email?: string;
   chief_complaint?: string;
   medical_history?: string;
   investigation?: string;

@@ -28,6 +28,7 @@ interface ChecklistItem {
 }
 
 const PRINT_SECTIONS_CHECKLIST: ChecklistItem[] = [
+  { key: 'header_footer', label: 'Hospital Header & Footer', desc: 'Hospital logo, doctor credentials, and bottom clinic footer banner (Uncheck for pre-printed letterhead paper)' },
   { key: 'vitals', label: 'Vitals Sequentially Arranged', desc: 'BP, Pulse, SpO₂, Temp, Height, Weight, BMI, LMP, EDD, Gestational Age' },
   { key: 'complaints', label: 'Chief Complaints', desc: 'Reported symptoms & onset history' },
   { key: 'diagnosis', label: 'Diagnosis / Conditions', desc: 'Snomed / ICD mapped clinical diagnoses' },
@@ -43,6 +44,7 @@ const PRINT_SECTIONS_CHECKLIST: ChecklistItem[] = [
 export const RX_PRINT_SECTIONS_STORAGE_KEY = 'cortex_rx_print_enabled_sections';
 
 export const DEFAULT_PRINT_ENABLED_SECTIONS: Record<string, boolean> = {
+  header_footer: true,
   vitals: true,
   complaints: true,
   diagnosis: true,
@@ -109,8 +111,16 @@ export default function PrescriptionPrintModal({
     const rawOrder: string[] = form?.rxSectionOrder || [];
     const itemMap = new Map(PRINT_SECTIONS_CHECKLIST.map((item) => [item.key, item]));
     const result: ChecklistItem[] = [];
+
+    // Always place Hospital Header & Footer at the very top of the checklist
+    const headerFooterItem = itemMap.get('header_footer');
+    if (headerFooterItem) {
+      result.push(headerFooterItem);
+      itemMap.delete('header_footer');
+    }
+
     for (const key of rawOrder) {
-      if (key === 'procedure') continue;
+      if (key === 'procedure' || key === 'header_footer') continue;
       const item = itemMap.get(key);
       if (item) {
         result.push(item);
@@ -205,9 +215,41 @@ export default function PrescriptionPrintModal({
                   </button>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 leading-tight">
-                Checkboxes control what appears on the printout. Unchecked sections are completely omitted.
-              </p>
+              {/* Letterhead Stationary vs Plain Paper Mode Quick Switch */}
+              <div className="p-2.5 bg-slate-100/90 border border-slate-200 rounded-xl space-y-1.5">
+                <div className="text-[10px] font-black uppercase text-slate-700 tracking-wider flex items-center justify-between">
+                  <span>Paper / Letterhead Mode</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${enabledSections.header_footer !== false ? 'bg-teal-100 text-teal-800' : 'bg-amber-100 text-amber-800'}`}>
+                    {enabledSections.header_footer !== false ? 'Plain Paper (Full)' : 'Letterhead (No Header)'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setEnabledSections((prev) => ({ ...prev, header_footer: true }))}
+                    className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      enabledSections.header_footer !== false
+                        ? 'bg-white border-teal-500 text-teal-800 shadow-2xs font-extrabold ring-1 ring-teal-500/30'
+                        : 'bg-transparent border-slate-200 text-slate-500 hover:bg-white/60'
+                    }`}
+                  >
+                    <CheckSquare className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+                    <span>With Header &amp; Footer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnabledSections((prev) => ({ ...prev, header_footer: false }))}
+                    className={`py-1.5 px-2 rounded-lg border text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      enabledSections.header_footer === false
+                        ? 'bg-amber-50 border-amber-500 text-amber-900 shadow-2xs font-extrabold ring-1 ring-amber-500/30'
+                        : 'bg-transparent border-slate-200 text-slate-500 hover:bg-white/60'
+                    }`}
+                  >
+                    <Square className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Without Header &amp; Footer</span>
+                  </button>
+                </div>
+              </div>
 
               {/* Dynamic Order Pill Banner */}
               <div className="p-2 bg-teal-50/80 border border-teal-200 rounded-lg text-[11px] text-teal-900 flex items-start gap-1.5">

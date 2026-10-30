@@ -106,6 +106,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [animateItems, setAnimateItems] = useState<boolean>(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("staff");
   const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
@@ -116,26 +117,16 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
       }
     };
 
-    /* Auth check commented out for now
-    const checkAuth = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (!user) {
-          router.push('/auth/login');
-          return;
-        }
-        if (user.email) {
-          setUserEmail(user.email);
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        router.push('/auth/login');
+    // Load user from localStorage session
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('cortex_auth_session') : null;
+      if (raw) {
+        const session = JSON.parse(raw);
+        if (session?.email) setUserEmail(session.email);
+        if (session?.role) setUserRole(session.role);
       }
-    };
+    } catch (_) {}
 
-    checkAuth();
-    */
-    setUserEmail('admin@cortexhospital.com');
     checkViewport();
     window.addEventListener('resize', checkViewport);
     setTimeout(() => setAnimateItems(true), 100);
@@ -159,8 +150,9 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
     // { id: "treatment-links", title: "Treatment Auto-Link", url: "/admin/treatment-links", icon: Link2 },
     ...(isAdmin ? [{ id: "sales-report", title: "Sales Report", url: "/admin/medicines/sales", icon: TrendingUp }] : []),
     { id: "installments", title: "Payment Installments", url: "/admin/installments", icon: CreditCard },
-    { id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText },
-    { id: "prescription-templates", title: "Clinical Templates", url: "/admin/templates", icon: BookmarkCheck },
+    // Admin-only: Prescription & Clinical Templates
+    ...(isAdmin ? [{ id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText }] : []),
+    ...(isAdmin ? [{ id: "prescription-templates", title: "Clinical Templates", url: "/admin/templates", icon: BookmarkCheck }] : []),
   ];
 
   useEffect(() => {
@@ -292,7 +284,12 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
                   <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
                 </div>
-                <p className="text-xs text-gray-700 truncate flex-1">{userEmail}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-700 truncate">{userEmail}</p>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {isAdmin ? 'Admin' : 'Staff'}
+                  </span>
+                </div>
               </div>
               <button
                 onClick={handleLogout}

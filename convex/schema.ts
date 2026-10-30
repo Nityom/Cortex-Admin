@@ -69,6 +69,7 @@ export default defineSchema({
     age: v.string(),
     sex: v.union(v.literal("Male"), v.literal("Female"), v.literal("Other")),
     reference_number: v.optional(v.string()),
+    email: v.optional(v.string()),
     prescription_date: v.string(), // YYYY-MM-DD
     chief_complaint: v.optional(v.string()),
     medical_history: v.optional(v.string()),

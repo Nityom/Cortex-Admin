@@ -54,7 +54,7 @@ export default function PrescriptionPatientBanner({
             className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border shadow-2xs shrink-0 ${
               isGynae
                 ? 'bg-pink-50 text-pink-700 border-pink-200'
-                : 'bg-teal-50 text-teal-700 border-teal-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
             }`}
           >
             ℞
@@ -68,7 +68,7 @@ export default function PrescriptionPatientBanner({
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   isGynae
                     ? 'bg-pink-50 text-pink-700 border-pink-200'
-                    : 'bg-teal-50 text-teal-800 border-teal-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
                 }`}
               >
                 {isGynae
@@ -92,24 +92,24 @@ export default function PrescriptionPatientBanner({
             onClick={() => handleDoctorSelect('Dr. Vipeen Raut')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
               !isGynae
-                ? 'bg-teal-700 text-white shadow-xs'
+                ? 'bg-blue-600 text-white shadow-xs hover:bg-blue-700'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
             <span>Dr. Vipeen Raut</span>
-            <span className={`text-[10px] ${!isGynae ? 'text-teal-200' : 'text-slate-400'}`}>(Ortho)</span>
+            <span className={`text-[10px] ${!isGynae ? 'text-blue-100' : 'text-slate-400'}`}>(Ortho)</span>
           </button>
           <button
             type="button"
             onClick={() => handleDoctorSelect('Dr. Shillpa Raut')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
               isGynae
-                ? 'bg-pink-600 text-white shadow-xs'
+                ? 'bg-pink-600 text-white shadow-xs hover:bg-pink-700'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
             <span>Dr. Shillpa Raut</span>
-            <span className={`text-[10px] ${isGynae ? 'text-pink-200' : 'text-slate-400'}`}>(Gynae / Obs)</span>
+            <span className={`text-[10px] ${isGynae ? 'text-pink-100' : 'text-slate-400'}`}>(Gynae / Obs)</span>
           </button>
         </div>
       </div>

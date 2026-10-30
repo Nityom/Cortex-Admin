@@ -63,6 +63,7 @@ interface OPDQueueItem {
   };
   consultationFee?: number;
   paymentMode?: "Cash" | "UPI" | "Card" | "Free / Exempt";
+  paymentStatus?: "PAID" | "PENDING" | "PARTIAL";
   registeredAt: string;
   time: string;
 }
@@ -78,6 +79,14 @@ const DEPARTMENTS = [
   "General Medicine",
   "Physiotherapy & Rehabilitation",
 ];
+
+const getDoctorKey = (docName?: string) => {
+  const clean = (docName || "").toLowerCase();
+  if (clean.includes("shilpa") || clean.includes("shillpa")) {
+    return "shillpa";
+  }
+  return "vipeen";
+};
 
 const getTodayString = () => {
   const d = new Date();
@@ -146,7 +155,21 @@ export default function OPDManagementPage() {
 
   const allAppointments = useQuery(api.appointments.list);
   const convexPatients = useQuery(api.patients.list);
+  const allBills = useQuery(api.bills.list, {});
   const updateAppointmentMutation = useMutation(api.appointments.update);
+
+  // Set of patient UHIDs with confirmed paid bills
+  const paidUhidSet = useMemo(() => {
+    const set = new Set<string>();
+    if (allBills && Array.isArray(allBills)) {
+      for (const b of allBills) {
+        if (b.payment_status === "PAID" && b.reference_number) {
+          set.add(b.reference_number.trim().toUpperCase());
+        }
+      }
+    }
+    return set;
+  }, [allBills]);
 
   const todayAppointments = useMemo(() => {
     if (!allAppointments) return [];
@@ -276,35 +299,27 @@ export default function OPDManagementPage() {
               return { ...item, uhid };
             });
 
-            // 2. Repair and deduplicate tokens per day (group by date, sort chronologically, guarantee unique sequential tokens)
-            const dateGroups = new Map<string, any[]>();
+            // 2. Repair and deduplicate tokens PER DOCTOR per day
+            // (group by date + doctor, sort chronologically, guarantee independent 01, 02, 03... per doctor)
+            const doctorDateGroups = new Map<string, any[]>();
             updated.forEach((item: any) => {
               const d = getItemLocalDate(item.registeredAt) || "nodate";
-              if (!dateGroups.has(d)) dateGroups.set(d, []);
-              dateGroups.get(d)!.push(item);
+              const docKey = getDoctorKey(item.doctor);
+              const groupKey = `${d}_${docKey}`;
+              if (!doctorDateGroups.has(groupKey)) doctorDateGroups.set(groupKey, []);
+              doctorDateGroups.get(groupKey)!.push(item);
             });
 
-            dateGroups.forEach((items) => {
-              const tokenSet = new Set<string>();
-              let hasDuplicates = false;
-              for (const it of items) {
-                if (tokenSet.has(it.token)) {
-                  hasDuplicates = true;
-                  break;
+            doctorDateGroups.forEach((items) => {
+              // Sort chronologically (earliest first)
+              items.sort((a, b) => new Date(a.registeredAt || 0).getTime() - new Date(b.registeredAt || 0).getTime());
+              items.forEach((it, idx) => {
+                const expectedToken = String(idx + 1).padStart(2, "0");
+                if (it.token !== expectedToken) {
+                  it.token = expectedToken;
+                  changed = true;
                 }
-                tokenSet.add(it.token);
-              }
-              if (hasDuplicates) {
-                // Sort chronologically (earliest first)
-                items.sort((a, b) => new Date(a.registeredAt || 0).getTime() - new Date(b.registeredAt || 0).getTime());
-                items.forEach((it, idx) => {
-                  const expectedToken = String(idx + 1).padStart(2, "0");
-                  if (it.token !== expectedToken) {
-                    it.token = expectedToken;
-                    changed = true;
-                  }
-                });
-              }
+              });
             });
             setQueue(updated);
             if (changed) {
@@ -503,8 +518,11 @@ export default function OPDManagementPage() {
         }
       } catch {}
 
-      const todayItems = freshQueue.filter((q) => getItemLocalDate(q.registeredAt) === today);
-      const existingTokens = todayItems
+      const targetDocKey = getDoctorKey(formData.doctor);
+      const doctorTodayItems = freshQueue.filter(
+        (q) => getItemLocalDate(q.registeredAt) === today && getDoctorKey(q.doctor) === targetDocKey
+      );
+      const existingTokens = doctorTodayItems
         .map((q) => parseInt(q.token, 10))
         .filter((n) => !isNaN(n) && n > 0);
       const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
@@ -588,6 +606,24 @@ export default function OPDManagementPage() {
     saveQueue(updated);
   };
 
+  // Payment status toggle for queue items
+  const togglePaymentStatus = (id: string) => {
+    setQueue((prevQueue) => {
+      const updated = prevQueue.map((item) => {
+        if (item.id === id) {
+          const isCurrentlyPaid =
+            item.paymentStatus === "PAID" ||
+            (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
+          const nextStatus = isCurrentlyPaid ? "PENDING" : "PAID";
+          return { ...item, paymentStatus: nextStatus as any };
+        }
+        return item;
+      });
+      saveQueue(updated);
+      return updated;
+    });
+  };
+
   // Open Check-In Modal with prefilled patient data
   const openCheckInModal = async (appt: any) => {
     setCheckInModalAppt(appt);
@@ -645,14 +681,17 @@ export default function OPDManagementPage() {
         }
       } catch {}
 
-      const todayItems = freshQueue.filter((q) => getItemLocalDate(q.registeredAt) === today);
-      const existingTokens = todayItems
+      const docName = appt.doctor_name || DOCTORS[0].name;
+      const targetDocKey = getDoctorKey(docName);
+      const doctorTodayItems = freshQueue.filter(
+        (q) => getItemLocalDate(q.registeredAt) === today && getDoctorKey(q.doctor) === targetDocKey
+      );
+      const existingTokens = doctorTodayItems
         .map((q) => parseInt(q.token, 10))
         .filter((n) => !isNaN(n) && n > 0);
       const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
       const tokenNumber = String(nextToken).padStart(2, "0");
 
-      const docName = appt.doctor_name || DOCTORS[0].name;
       const dept = docName.toLowerCase().includes("shillpa")
         ? "Obstetrics & Gynaecology"
         : "Orthopaedics & Joint Replacement";
@@ -747,6 +786,9 @@ export default function OPDManagementPage() {
 
   // Launch Hospital Billing pre-filled from OPD (Consultation charge added in Billing)
   const startBilling = (item: OPDQueueItem) => {
+    const isGynae = (item.doctor || "").toLowerCase().includes("shilpa") || (item.doctor || "").toLowerCase().includes("shillpa");
+    const isFollowUp = item.visitType === "Routine Follow-up" || item.visitType === "Post-Op Review";
+    const fee = isGynae ? (isFollowUp ? "100" : "200") : (isFollowUp ? "200" : "400");
     const params = new URLSearchParams({
       tab: "opd",
       patientName: item.name,
@@ -755,8 +797,10 @@ export default function OPDManagementPage() {
       sex: item.sex,
       doctorName: item.doctor,
       uhid: item.uhid,
+      token: item.token,
+      visitType: isFollowUp ? "Follow-up Visit" : "OPD Visit 1",
       opdVisitId: item.id,
-      consultationFee: "400",
+      consultationFee: fee,
     });
     router.push(`/admin/billing?${params.toString()}`);
   };
@@ -800,7 +844,13 @@ export default function OPDManagementPage() {
         if (itemDate && itemDate !== selectedQueueDate) return false;
       }
       // 2. Doctor Filter
-      if (selectedDoctorFilter !== "All" && item.doctor !== selectedDoctorFilter) return false;
+      if (selectedDoctorFilter !== "All") {
+        const itemDoc = (item.doctor || "").toLowerCase().replace(/l+/g, "l");
+        const filterDoc = selectedDoctorFilter.toLowerCase().replace(/l+/g, "l");
+        if (!itemDoc.includes(filterDoc) && !filterDoc.includes(itemDoc)) {
+          return false;
+        }
+      }
       // 3. Status Filter
       if (selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) return false;
       // 4. Search Filter
@@ -869,21 +919,42 @@ export default function OPDManagementPage() {
                   <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
                     <button
                       type="button"
-                      onClick={() => handleDoctorChange('Dr. Vipeen Raut')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition ${formData.doctor === 'Dr. Vipeen Raut'
+                      onClick={() => {
+                        setSelectedDoctorFilter('All');
+                      }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition cursor-pointer ${
+                        selectedDoctorFilter === 'All'
+                          ? 'bg-slate-800 text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      All Doctors
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDoctorFilter('Dr. Vipeen Raut');
+                        handleDoctorChange('Dr. Vipeen Raut');
+                      }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition cursor-pointer ${
+                        selectedDoctorFilter === 'Dr. Vipeen Raut'
                           ? 'bg-blue-600 text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                      }`}
                     >
                       Dr. Vipeen Raut (Ortho)
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDoctorChange('Dr. Shillpa Raut')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition ${formData.doctor === 'Dr. Shillpa Raut'
-                          ? 'bg-blue-600 text-white shadow-sm'
+                      onClick={() => {
+                        setSelectedDoctorFilter('Dr. Shillpa Raut');
+                        handleDoctorChange('Dr. Shillpa Raut');
+                      }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition cursor-pointer ${
+                        selectedDoctorFilter === 'Dr. Shillpa Raut'
+                          ? 'bg-pink-600 text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
-                        }`}
+                      }`}
                     >
                       Dr. Shillpa Raut (Gynae)
                     </button>
@@ -1128,21 +1199,6 @@ export default function OPDManagementPage() {
                 )}
               </div>
 
-              {/* Doctor Filter */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                <Filter className="w-3.5 h-3.5" />
-                <span>Doctor:</span>
-                <select
-                  value={selectedDoctorFilter}
-                  onChange={(e) => setSelectedDoctorFilter(e.target.value)}
-                  className="p-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none"
-                >
-                  <option value="All">All Doctors</option>
-                  {DOCTORS.map((d) => (
-                    <option key={d.name} value={d.name}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
 
               {/* Status Filter */}
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
@@ -1271,7 +1327,18 @@ export default function OPDManagementPage() {
                           <Phone className="w-3 h-3 text-slate-400" />
                           {item.phone}
                         </span>
-                        <span>Doc: <strong className="text-slate-800">{item.doctor}</strong></span>
+                        <span>
+                          Doc:{' '}
+                          <strong
+                            className={
+                              item.doctor?.toLowerCase().includes("shilpa") || item.doctor?.toLowerCase().includes("shillpa")
+                                ? "text-pink-700 font-bold"
+                                : "text-blue-700 font-bold"
+                            }
+                          >
+                            {item.doctor}
+                          </strong>
+                        </span>
                         <span className="text-slate-400">({item.time})</span>
                       </div>
 
@@ -1305,6 +1372,28 @@ export default function OPDManagementPage() {
                       <option value="In Consultation">In Consultation</option>
                       <option value="Completed">Completed</option>
                     </select>
+
+                    {/* Payment Done / Pending Badge */}
+                    {(() => {
+                      const isPaid =
+                        item.paymentStatus === "PAID" ||
+                        (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => togglePaymentStatus(item.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition shadow-2xs cursor-pointer border ${
+                            isPaid
+                              ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200"
+                          }`}
+                          title={isPaid ? "Payment received (Click to toggle)" : "Click to mark Payment as Done"}
+                        >
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${isPaid ? "text-emerald-600" : "text-slate-400"}`} />
+                          <span>{isPaid ? "Payment Done" : "Payment Pending"}</span>
+                        </button>
+                      );
+                    })()}
 
                     {/* <button
                       type="button"

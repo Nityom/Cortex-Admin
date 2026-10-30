@@ -54,6 +54,14 @@ export const getPatientByPhoneNumber = async (phoneNumber: string): Promise<Pati
 export const getOrCreatePatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'>): Promise<Patient> => {
     const existingPatient = await getPatientByPhoneNumber(patient.phone_number);
     if (existingPatient) {
+        if ((patient as any).email && (patient as any).email.trim() && (patient as any).email.trim() !== (existingPatient as any).email) {
+            try {
+                await updatePatient(existingPatient.id, { email: (patient as any).email.trim() });
+                (existingPatient as any).email = (patient as any).email.trim();
+            } catch (err) {
+                console.error("Failed to update patient email in getOrCreatePatient:", err);
+            }
+        }
         return existingPatient;
     }
 

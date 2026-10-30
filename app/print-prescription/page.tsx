@@ -166,13 +166,48 @@ function PrintPrescriptionContent() {
   const signatureParam = searchParams.get('signature') || 'sign.png';
   const doctorNameParam = searchParams.get('doctorName') || 'Dr. Vipeen Raut';
   const includeSigParam = searchParams.get('includeSignature');
+  const headerFooterParam = searchParams.get('headerFooter');
 
   const [prescriptionData, setPrescriptionData] = useState<PrescriptionData | null>(null);
   const [includeSignature, setIncludeSignature] = useState<boolean>(includeSigParam !== 'false');
+  const [includeHeaderFooter, setIncludeHeaderFooter] = useState<boolean>(() => {
+    if (headerFooterParam !== null) return headerFooterParam !== 'false';
+    return true;
+  });
+
+  // Configurable letterhead paper margins in mm
+  const [margins, setMargins] = useState<{ top: number; bottom: number; left: number; right: number }>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cortex_rx_letterhead_margins');
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return { top: 38, bottom: 15, left: 7, right: 7 };
+  });
+
+  const updateMargin = (key: 'top' | 'bottom' | 'left' | 'right', val: number) => {
+    setMargins((prev) => {
+      const next = { ...prev, [key]: val };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cortex_rx_letterhead_margins', JSON.stringify(next));
+        } catch {}
+      }
+      return next;
+    });
+  };
+
   const [resolvedSignature, setResolvedSignature] = useState<string>(signatureParam);
   const [resolvedDoctorName, setResolvedDoctorName] = useState<string>(doctorNameParam);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (prescriptionData?.enabled_sections?.header_footer !== undefined && headerFooterParam === null) {
+      setIncludeHeaderFooter(prescriptionData.enabled_sections.header_footer !== false);
+    }
+  }, [prescriptionData, headerFooterParam]);
 
   useEffect(() => {
     let isMounted = true;
@@ -760,7 +795,7 @@ function PrintPrescriptionContent() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 5mm 6mm 5mm 6mm;
+            margin: ${includeHeaderFooter ? '5mm 6mm 5mm 6mm' : `${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm`};
           }
 
           html, body {
@@ -785,9 +820,9 @@ function PrintPrescriptionContent() {
           .prescription-sheet {
             width: 100% !important;
             max-width: 100% !important;
-            height: 268mm !important;
-            max-height: 268mm !important;
-            min-height: 268mm !important;
+            height: ${includeHeaderFooter ? '268mm' : `calc(297mm - ${margins.top + margins.bottom}mm)`} !important;
+            max-height: ${includeHeaderFooter ? '268mm' : `calc(297mm - ${margins.top + margins.bottom}mm)`} !important;
+            min-height: ${includeHeaderFooter ? '268mm' : `calc(297mm - ${margins.top + margins.bottom}mm)`} !important;
             margin: 0 !important;
             padding: 0 !important;
             box-shadow: none !important;
@@ -806,8 +841,8 @@ function PrintPrescriptionContent() {
 
           .sheet-content {
             height: 100% !important;
-            max-height: 268mm !important;
-            min-height: 268mm !important;
+            max-height: ${includeHeaderFooter ? '268mm' : `calc(297mm - ${margins.top + margins.bottom}mm)`} !important;
+            min-height: ${includeHeaderFooter ? '268mm' : `calc(297mm - ${margins.top + margins.bottom}mm)`} !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
@@ -816,7 +851,7 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: auto !important;
+            margin-top: ${includeHeaderFooter ? 'auto' : '10px'} !important;
             page-break-inside: avoid !important;
             padding-top: 4px !important;
           }
@@ -831,7 +866,7 @@ function PrintPrescriptionContent() {
         @media screen {
           body {
             background: #cbd5e1;
-            padding: 16px 0;
+            padding: 24px 0 60px 0;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -840,29 +875,30 @@ function PrintPrescriptionContent() {
 
           .prescription-sheet {
             width: 210mm;
-            min-height: 285mm;
-            max-height: 297mm;
+            min-height: 297mm;
             max-width: 210mm;
-            margin: 0 auto;
+            margin: 0 auto 40px auto;
             background: #ffffff;
             box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-            padding: 5mm 7mm 5mm 7mm;
+            padding: ${includeHeaderFooter ? '5mm 7mm 8mm 7mm' : `${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm`};
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            position: relative;
           }
 
           .sheet-content {
             height: 100%;
-            min-height: calc(285mm - 10mm);
+            min-height: calc(297mm - ${includeHeaderFooter ? '10mm' : `${margins.top + margins.bottom}mm`});
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            box-sizing: border-box;
           }
 
           .sheet-bottom-section {
-            margin-top: auto;
+            margin-top: ${includeHeaderFooter ? 'auto' : '16px'};
             padding-top: 6px;
           }
         }
@@ -1342,81 +1378,91 @@ function PrintPrescriptionContent() {
         .footer-hms-branding {
           display: flex;
           align-items: center;
-          justify-content: flex-end;
-          gap: 4px;
-          margin-top: 3px;
-          font-size: 7pt;
-          color: #6b7280;
+          justify-content: center;
+          gap: 5px;
+          margin-top: 10px;
+          padding-top: 4px;
+          font-size: 7.5pt;
+          color: #64748b;
+          text-align: center;
         }
 
         .footer-hms-branding img {
-          height: 10px;
-          width: 10px;
+          height: 12px;
+          width: auto;
           object-fit: contain;
           border-radius: 2px;
+          display: inline-block;
+          vertical-align: middle;
         }
 
         .footer-hms-branding strong {
-          color: #374151;
-          font-weight: 700;
+          color: #0d9488;
+          font-weight: 800;
         }
       `}</style>
 
       {/* Main Prescription Sheet */}
       <div className="prescription-sheet">
-        {/* Faint Background Watermark */}
-        <img
-          src="/cortex_logo.png"
-          alt="Watermark"
-          className="sheet-watermark"
-        />
+        {/* Faint Background Watermark (Only rendered on plain paper with Header & Footer) */}
+        {includeHeaderFooter && (
+          <img
+            src="/cortex_logo.png"
+            alt="Watermark"
+            className="sheet-watermark"
+          />
+        )}
 
         <div className="sheet-content">
           <div className="sheet-top-and-body">
             {/* Top Meta Line */}
-            <div className="top-meta-row">
-              <span>{formatTimestamp(prescriptionData.prescription_date)}</span>
-              <span>Svasth HMS</span>
-            </div>
-
-            {/* Header Area */}
-            <div className="header-row">
-              <div className="flex items-center">
-                <img
-                  src="/cortex_logo.png"
-                  alt="Cortex Hospital"
-                  className="hospital-logo"
-                />
+            {includeHeaderFooter && (
+              <div className="top-meta-row">
+                <span>{formatTimestamp(prescriptionData.prescription_date)}</span>
+                <span>Svasth HMS</span>
               </div>
+            )}
 
-              <div className="doctor-header-block">
-                {(resolvedDoctorName || '').toLowerCase().includes('shillpa') ? (
-                  <>
-                    <h1 className="doctor-title-name">Dr. Shillpa Raut</h1>
-                    <div className="doctor-qualifications">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</div>
-                    <div className="doctor-reg">Reg. No. 2004/05/1842</div>
-                    <div className="doctor-diplomate">Consulting Gynecologist &amp; Obstetrician</div>
-                    <div className="doctor-specialty">Maternity, Infertility &amp; Women Care Specialist</div>
-                  </>
-                ) : (
-                  <>
-                    <h1 className="doctor-title-name">
-                      {resolvedDoctorName || 'Dr. Vipeen Raut'}
-                    </h1>
-                    <div className="doctor-qualifications">
-                      M.B.B.S.,Dip.Ortho.,DNB Ortho
-                    </div>
-                    <div className="doctor-reg">Reg. No. 1692/03/2002</div>
-                    <div className="doctor-diplomate">
-                      Diplomate of National Board (Orthopaedics)
-                    </div>
-                    <div className="doctor-specialty">
-                      Consulting Orthopaedic and Joint Replacement Surgeon
-                    </div>
-                  </>
-                )}
+            {/* Header Area or Pre-printed Letterhead Top Spacing */}
+            {includeHeaderFooter ? (
+              <div className="header-row">
+                <div className="flex items-center">
+                  <img
+                    src="/cortex_logo.png"
+                    alt="Cortex Hospital"
+                    className="hospital-logo"
+                  />
+                </div>
+
+                <div className="doctor-header-block">
+                  {(resolvedDoctorName || '').toLowerCase().includes('shillpa') ? (
+                    <>
+                      <h1 className="doctor-title-name">Dr. Shillpa Raut</h1>
+                      <div className="doctor-qualifications">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</div>
+                      <div className="doctor-reg">Reg. No. 2004/05/1842</div>
+                      <div className="doctor-diplomate">Consulting Gynecologist &amp; Obstetrician</div>
+                      <div className="doctor-specialty">Maternity, Infertility &amp; Women Care Specialist</div>
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="doctor-title-name">
+                        {resolvedDoctorName || 'Dr. Vipeen Raut'}
+                      </h1>
+                      <div className="doctor-qualifications">
+                        M.B.B.S.,Dip.Ortho.,DNB Ortho
+                      </div>
+                      <div className="doctor-reg">Reg. No. 1692/03/2002</div>
+                      <div className="doctor-diplomate">
+                        Diplomate of National Board (Orthopaedics)
+                      </div>
+                      <div className="doctor-specialty">
+                        Consulting Orthopaedic and Joint Replacement Surgeon
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {/* Patient Info Bar */}
             <div className="patient-row">
@@ -1476,40 +1522,75 @@ function PrintPrescriptionContent() {
             </div>
           </div>
 
-          {/* Footer Schedule Banner */}
-          <div className="footer-banner-container">
-            <div className="footer-top-pill-row">
-              <span className="clinic-pill">Hip & Knee Joint Clinic</span>
-              <span className="clinic-time">Every Thursday 6 pm to 8 pm</span>
+          {/* Footer Schedule Banner (Only rendered on plain paper with Header & Footer) */}
+          {includeHeaderFooter && (
+            <div className="footer-banner-container">
+              <div className="footer-top-pill-row">
+                <span className="clinic-pill">Hip & Knee Joint Clinic</span>
+                <span className="clinic-time">Every Thursday 6 pm to 8 pm</span>
+              </div>
+
+              <div className="footer-clinic-title">Orthopaedics Clinic</div>
+
+              <div className="footer-opd-line">
+                <span className="footer-opd-label">OPD Time : </span>
+                Mon. to Fri. - 10 am to 1 pm & 6 pm to 8 pm | Sat. - 10 am to 1 pm & Evening OPD Closed
+              </div>
+
+              <div className="footer-sunday-line">Sunday OPD Closed</div>
+
+              <div className="footer-address-line">
+                Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001
+                &nbsp;|&nbsp; Ph. : 07152-255795, Cell : 9373280505
+              </div>
+
+              <div className="footer-bottom-bar"></div>
             </div>
+          )}
 
-            <div className="footer-clinic-title">Orthopaedics Clinic</div>
-
-            <div className="footer-opd-line">
-              <span className="footer-opd-label">OPD Time : </span>
-              Mon. to Fri. - 10 am to 1 pm & 6 pm to 8 pm | Sat. - 10 am to 1 pm & Evening OPD Closed
-            </div>
-
-            <div className="footer-sunday-line">Sunday OPD Closed</div>
-
-            <div className="footer-address-line">
-              Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001
-              &nbsp;|&nbsp; Ph. : 07152-255795, Cell : 9373280505
-            </div>
-
-            <div className="footer-bottom-bar"></div>
-
-            <div className="footer-hms-branding">
-              <span>Powered by</span>
-              <img src="/Svasth_logo.png" alt="Svasth HMS" />
-              <strong>Svasth HMS</strong>
-            </div>
+          {/* Centered Powered by Svasth-HMS Line at Bottom */}
+          <div className="footer-hms-branding">
+            <span>Powered by</span>
+            <img src="/Svasth_logo.png" alt="Svasth HMS" />
+            <strong>Svasth-HMS</strong>
           </div>
         </div>
       </div>
 
-      {/* Buttons (Screen only) */}
-      <div className="no-print" style={{ textAlign: 'center', padding: '20px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+      {/* Buttons & Checkbox Controls (Screen only) */}
+      <div className="no-print" style={{ textAlign: 'center', padding: '24px 0', marginTop: '40px', marginBottom: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap', position: 'relative', zIndex: 10 }}>
+        {/* Header & Footer Toggle Checkbox */}
+        <label
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: includeHeaderFooter ? '#f0fdfa' : '#fffbeb',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            border: `1.5px solid ${includeHeaderFooter ? '#0d9488' : '#f59e0b'}`,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '700',
+            color: includeHeaderFooter ? '#0f766e' : '#b45309',
+            userSelect: 'none',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={includeHeaderFooter}
+            onChange={(e) => setIncludeHeaderFooter(e.target.checked)}
+            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+          />
+          <span>
+            {includeHeaderFooter
+              ? '✓ With Header & Footer (Plain Paper)'
+              : 'Without Header & Footer (Letterhead Paper)'}
+          </span>
+        </label>
+
+        {/* Doctor Signature Checkbox */}
         <label
           style={{
             display: 'inline-flex',
@@ -1535,6 +1616,71 @@ function PrintPrescriptionContent() {
           />
           <span>{includeSignature ? '✓ Include Doctor Signature Image' : 'Name Only (No Signature Image)'}</span>
         </label>
+
+        {/* Letterhead Paper Margins (mm) Controls */}
+        {!includeHeaderFooter && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: '#ffffff',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1.5px solid #f59e0b',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#334155',
+            }}
+          >
+            <span style={{ fontWeight: '800', color: '#b45309' }}>📐 Margins (mm):</span>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              Top:
+              <input
+                type="number"
+                min="0"
+                max="120"
+                value={margins.top}
+                onChange={(e) => updateMargin('top', Number(e.target.value) || 0)}
+                style={{ width: '48px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}
+              />
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              Bottom:
+              <input
+                type="number"
+                min="0"
+                max="120"
+                value={margins.bottom}
+                onChange={(e) => updateMargin('bottom', Number(e.target.value) || 0)}
+                style={{ width: '48px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}
+              />
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              Left:
+              <input
+                type="number"
+                min="0"
+                max="80"
+                value={margins.left}
+                onChange={(e) => updateMargin('left', Number(e.target.value) || 0)}
+                style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}
+              />
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              Right:
+              <input
+                type="number"
+                min="0"
+                max="80"
+                value={margins.right}
+                onChange={(e) => updateMargin('right', Number(e.target.value) || 0)}
+                style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}
+              />
+            </label>
+          </div>
+        )}
 
         <button
           onClick={() => window.print()}

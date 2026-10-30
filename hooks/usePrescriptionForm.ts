@@ -15,10 +15,12 @@ import {
   getPrescriptionById,
   updatePrescription,
   MedicineEntry,
+  getPrescriptionsByPatient,
 } from '@/services/prescription';
 import {
   getOrCreatePatient,
   getPatientByPhoneNumber,
+  updatePatient,
 } from '@/services/patients';
 import { doctorService } from '@/services/doctors';
 import { Doctor } from '@/types/doctor';
@@ -134,6 +136,7 @@ export function usePrescriptionForm() {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object') {
             return {
+              header_footer: true,
               vitals: true,
               complaints: true,
               diagnosis: true,
@@ -151,6 +154,7 @@ export function usePrescriptionForm() {
       } catch {}
     }
     return {
+      header_footer: true,
       vitals: true,
       complaints: true,
       diagnosis: true,
@@ -222,7 +226,16 @@ export function usePrescriptionForm() {
   // Consultation & Billing State
   const [isNewPatient, setIsNewPatient] = useState(true);
   const [applyConsultationCharge, setApplyConsultationCharge] = useState(true);
-  const [consultationCharge, setConsultationCharge] = useState(400); // 1st Visit ₹400, Re-visit ₹200
+  const [consultationCharge, setConsultationCharge] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedDoc = localStorage.getItem('cortex_active_doctor') || 'Dr. Vipeen Raut';
+        const isGynae = savedDoc.toLowerCase().includes('shilpa') || savedDoc.toLowerCase().includes('shillpa');
+        return isGynae ? 200 : 400;
+      } catch {}
+    }
+    return 400;
+  });
   const [treatmentDiscount, setTreatmentDiscount] = useState<string | number>(0);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentBill, setCurrentBill] = useState<any>(null);
@@ -357,6 +370,8 @@ export function usePrescriptionForm() {
   // Switch Doctor Handler
   const handleDoctorSelect = (docName: string) => {
     setSelectedDoctorName(docName);
+    const isGynae = docName.toLowerCase().includes('shilpa') || docName.toLowerCase().includes('shillpa');
+    setConsultationCharge(isNewPatient ? (isGynae ? 200 : 400) : (isGynae ? 100 : 200));
     try {
       localStorage.setItem('cortex_active_doctor', docName);
     } catch {}
@@ -621,16 +636,38 @@ export function usePrescriptionForm() {
             age: existingPatient.age ? existingPatient.age.toString() : prev.age,
             sex: existingPatient.sex || prev.sex,
             reference_number: existingPatient.reference_number || prev.reference_number,
+            email: (existingPatient as any).email || prev.email || '',
           }));
           if (existingPatient.reference_number) {
             setPatientReferenceNumber(existingPatient.reference_number);
           }
           setIsNewPatient(false);
-          setConsultationCharge(200);
-          showTemplateToast(`Patient Found: ${existingPatient.name} (Re-visit: ₹200)`);
+
+          // Check if patient visited within 10 days
+          let isWithin10Days = false;
+          if (existingPatient.reference_number) {
+            try {
+              const pastRx = await getPrescriptionsByPatient(existingPatient.reference_number);
+              if (pastRx && pastRx.length > 0) {
+                const sorted = pastRx.sort((a, b) => new Date(b.prescription_date).getTime() - new Date(a.prescription_date).getTime());
+                const lastDate = sorted[0].prescription_date;
+                const diffDays = (new Date().getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24);
+                isWithin10Days = diffDays >= 0 && diffDays <= 10;
+              }
+            } catch {}
+          }
+
+          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
+          const fee = isGynae
+            ? (isWithin10Days ? 100 : 200)
+            : (isWithin10Days ? 200 : 400);
+
+          setConsultationCharge(fee);
+          showTemplateToast(`Patient Found: ${existingPatient.name} (${isWithin10Days ? 'Follow-up within 10 days' : 'Re-visit'}: ₹${fee})`);
         } else {
           setIsNewPatient(true);
-          setConsultationCharge(400);
+          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
+          setConsultationCharge(isGynae ? 200 : 400);
         }
       } catch (err) {
         console.error('Error fetching patient by phone:', err);
@@ -648,11 +685,21 @@ export function usePrescriptionForm() {
         age: parseInt(formData.age, 10) || 0,
         sex: formData.sex,
         phone_number: formData.phoneNumber,
+        email: formData.email?.trim() || undefined,
       };
 
       const patient = await getOrCreatePatient(patientData);
       if (!patient || !patient.reference_number) {
         throw new Error('Could not retrieve or create patient record with reference number.');
+      }
+
+      if (patient.id && formData.email?.trim() && formData.email.trim() !== (patient as any).email) {
+        try {
+          await updatePatient(patient.id, { email: formData.email.trim() });
+          (patient as any).email = formData.email.trim();
+        } catch (err) {
+          console.error('Failed to sync patient email:', err);
+        }
       }
 
       setFormData((prev) => ({ ...prev, reference_number: patient.reference_number }));
@@ -681,6 +728,7 @@ export function usePrescriptionForm() {
         age: formData.age,
         sex: formData.sex,
         reference_number: patient.reference_number,
+        email: formData.email?.trim() || undefined,
         prescription_date: formData.date,
         chief_complaint: allComplaints,
         medical_history: formData.mh,
@@ -945,8 +993,9 @@ export function usePrescriptionForm() {
 
     setIsPrintModalOpen(false);
 
-    const hasSig = enabledSections ? enabledSections.signature !== false : includeSignature;
-    const printUrl = `/print-prescription?id=${encodeURIComponent(currentId || 'draft')}&autoPrint=true&withSignature=${hasSig ? 'true' : 'false'}`;
+    const hasSig = finalEnabledSections ? finalEnabledSections.signature !== false : includeSignature;
+    const hasHeaderFooter = finalEnabledSections ? finalEnabledSections.header_footer !== false : true;
+    const printUrl = `/print-prescription?id=${encodeURIComponent(currentId || 'draft')}&autoPrint=true&withSignature=${hasSig ? 'true' : 'false'}&headerFooter=${hasHeaderFooter ? 'true' : 'false'}`;
     window.open(printUrl, '_blank');
   };
 
@@ -1022,7 +1071,11 @@ export function usePrescriptionForm() {
         const qDoctor = params.get('doctorName') || params.get('doctor') || params.get('doc');
 
         if (qOpdId) setOpdVisitId(qOpdId);
-        if (qDoctor) setSelectedDoctorName(qDoctor);
+        if (qDoctor) {
+          setSelectedDoctorName(qDoctor);
+          const isGynae = qDoctor.toLowerCase().includes('shilpa') || qDoctor.toLowerCase().includes('shillpa');
+          setConsultationCharge(isGynae ? 200 : 400);
+        }
 
         if (qId) {
           setIsEditMode(true);
@@ -1030,8 +1083,21 @@ export function usePrescriptionForm() {
           const existing = await getPrescriptionById(qId);
           if (existing) {
             if (existing.doctor_name) setSelectedDoctorName(existing.doctor_name);
+            let patientEmail = (existing as any).email || '';
+            if (!patientEmail && existing.phone_number) {
+              try {
+                const pat = await getPatientByPhoneNumber(existing.phone_number);
+                if (pat?.email) {
+                  patientEmail = pat.email;
+                }
+              } catch {}
+            }
+            if (existing.reference_number) {
+              setPatientReferenceNumber(existing.reference_number);
+            }
             setFormData({
               patientName: existing.patient_name || '',
+              email: patientEmail,
               age: existing.age ? String(existing.age) : '',
               sex: existing.sex || 'Male',
               phoneNumber: existing.phone_number || '',

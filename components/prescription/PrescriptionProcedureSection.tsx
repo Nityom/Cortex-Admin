@@ -132,13 +132,13 @@ export default function PrescriptionProcedureSection({
                     : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-800 border-blue-300'
                 }
               >
-                {isNewPatient ? 'New Patient (₹400)' : 'Re-visit / Existing Patient (₹200)'}
+                {isNewPatient ? `New Patient (₹${consultationCharge || 400})` : `Follow-up / Re-visit (₹${consultationCharge || 200})`}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
               {isNewPatient
-                ? 'Patient not in database — new registration fee defaults to ₹400.'
-                : 'Patient already in database — follow-up consultation fee defaults to ₹200.'}
+                ? 'New Patient — consultation fee automatically calculated per doctor (Dr. Shillpa Raut ₹200, Dr. Vipeen Raut ₹400).'
+                : 'Follow-up Patient — consultation fee automatically calculated (Dr. Shillpa Raut ₹100 within 10 days, Dr. Vipeen Raut ₹200).'}
             </p>
           </div>
         </label>

@@ -20,6 +20,9 @@ export const create = mutation({
             .first();
 
         if (existingPatient) {
+            if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
+                await ctx.db.patch(existingPatient._id, { email: args.email.trim() });
+            }
             return existingPatient._id;
         }
 

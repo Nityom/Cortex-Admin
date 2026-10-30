@@ -1,382 +1,258 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { signInWithEmail, verifyLoginOtp, resendLoginOtp } from "@/services/adminuser";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, Lock, Shield, ArrowRight, RefreshCw, ChevronLeft } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, Lock, Mail, AlertCircle, Shield, Activity, Users, Stethoscope, CheckCircle } from "lucide-react";
+import { login, getSession } from "@/lib/auth";
 
-// ─── Tooth SVG ───────────────────────────────────────────────────────────────
-function ToothIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M30 10 Q20 5 15 20 Q10 35 18 55 Q22 70 25 90 Q28 100 35 98 Q40 96 42 80 Q44 65 50 65 Q56 65 58 80 Q60 96 65 98 Q72 100 75 90 Q78 70 82 55 Q90 35 85 20 Q80 5 70 10 Q60 2 50 5 Q40 2 30 10Z"
-        stroke="currentColor"
-        strokeWidth="3"
-        fill="none"
-      />
-    </svg>
-  );
-}
+const FEATURES = [
+  { icon: Activity, label: "OPD & IPD Management", desc: "Manage outpatient & inpatient queues seamlessly" },
+  { icon: Stethoscope, label: "Prescription & Clinical", desc: "Digital prescriptions with letterhead & email" },
+  { icon: Users, label: "Patient Directory", desc: "Centralized patient records and history" },
+  { icon: Shield, label: "Billing & Payments", desc: "Automated billing with installment tracking" },
+];
 
-// ─── Feature list item ────────────────────────────────────────────────────────
-function Feature({ label, delay }: { label: string; delay: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -14 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.45, ease: "easeOut" }}
-      className="flex items-center gap-3"
-    >
-      <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
-      <span className="text-sm text-white/65 font-light">{label}</span>
-    </motion.div>
-  );
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
-export default function LoginForm() {
+export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSessionId, setOtpSessionId] = useState("");
-  const [otpDeliveryEmail, setOtpDeliveryEmail] = useState("");
-  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
-  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const router = useRouter();
+  const [featureIdx, setFeatureIdx] = useState(0);
 
-  useEffect(() => { setMounted(true); }, []);
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    const session = getSession();
+    if (session) router.replace("/admin/opd");
+  }, [router]);
 
-  const handleResendOtp = async () => {
-    setLoading(true);
-    setError("");
-    setSuccessMessage("");
-    try {
-      const result = await resendLoginOtp(email, password);
-      setOtpSessionId(result.otpSessionId);
-      setOtpDeliveryEmail(result.deliveryEmail);
-      setOtpExpiresAt(result.expiresAt);
-      setOtp("");
-      setSuccessMessage("A new 4-digit OTP has been sent.");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to resend OTP");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Animate features carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFeatureIdx((prev) => (prev + 1) % FEATURES.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
-    try {
-      if (!isOtpStep) {
-        const result = await signInWithEmail(email, password);
-        setOtpSessionId(result.otpSessionId);
-        setOtpDeliveryEmail(result.deliveryEmail);
-        setOtpExpiresAt(result.expiresAt);
-        setIsOtpStep(true);
-        setSuccessMessage(result.message);
-      } else {
-        await verifyLoginOtp(email, otp, otpSessionId);
-        router.push("/admin/patients");
+
+    setTimeout(() => {
+      const user = login(email.trim(), password);
+      if (!user) {
+        setError("Invalid email or password. Please try again.");
+        setLoading(false);
+        return;
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred during login");
-    } finally {
-      setLoading(false);
-    }
+      // Redirect based on role
+      router.replace("/admin/opd");
+    }, 700); // slight delay for UX feel
   };
 
-  if (!mounted) return null;
+  const feature = FEATURES[featureIdx];
 
   return (
-    <>
-      {/* Google Font injection */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap');
-        .font-playfair { font-family: 'Playfair Display', serif; }
-        .font-dm { font-family: 'DM Sans', sans-serif; }
-      `}</style>
+    <div className="min-h-screen flex bg-slate-50 overflow-hidden">
 
-      <div className="font-dm h-screen w-screen overflow-hidden flex items-center justify-center bg-[#e8f4fd] relative">
+      {/* ── Left Panel (Branding) ─────────────────── */}
+      <div
+        className="hidden lg:flex lg:w-[55%] relative flex-col items-center justify-center overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, #0d1b2a 0%, #0a3d62 40%, #0e6655 75%, #117a65 100%)",
+        }}
+      >
+        {/* Decorative blobs */}
+        <div className="absolute top-[-80px] right-[-80px] w-[340px] h-[340px] rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #00d2ff 0%, transparent 70%)" }} />
+        <div className="absolute bottom-[-60px] left-[-60px] w-[280px] h-[280px] rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #6ee7b7 0%, transparent 70%)" }} />
 
-        {/* Background blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-teal-300/20 to-transparent blur-3xl" />
-          <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-blue-400/20 to-transparent blur-3xl" />
-          <div className="absolute top-1/3 left-1/3 w-72 h-72 rounded-full bg-cyan-300/10 blur-2xl" />
-        </div>
+        {/* Grid overlay */}
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
+        <div className="relative z-10 flex flex-col items-center px-14 max-w-xl w-full">
 
-        {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 flex w-[900px] max-w-[95vw] min-h-[540px] rounded-[28px] overflow-hidden shadow-[0_32px_80px_rgba(2,62,138,0.18),0_0_0_1px_rgba(255,255,255,0.6)]"
-        >
-
-          {/* ── Left panel ───────────────────────────────────────────────── */}
-          <div className="hidden md:flex flex-col justify-between w-[42%] shrink-0 bg-gradient-to-b from-[#023E8A] via-[#0077B6] to-[#0096C7] p-12 relative overflow-hidden">
-            {/* decorative rings */}
-            <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full border-[40px] border-white/5 pointer-events-none" />
-            <div className="absolute -bottom-20 -left-10 w-64 h-64 rounded-full border-[50px] border-teal-400/10 pointer-events-none" />
-
-            {/* Brand */}
-            <div className="relative z-10 flex flex-col gap-6">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="font-playfair text-white text-2xl font-bold leading-snug mb-2">
-                  Cortex Hospital
-                </h1>
-                <p className="text-white/55 text-sm font-light leading-relaxed">
-                  Secure administrative portal for managing your clinic's daily operations.
-                </p>
-              </div>
+          {/* Svasth-HMS Logo + Name */}
+          <div className="flex items-center gap-4 mb-3">
+            <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-2xl">
+              <img src="/Svasth_logo.png" alt="Svasth HMS" className="w-14 h-14 object-contain" />
             </div>
-
-            {/* Features */}
-            <div className="relative z-10 flex flex-col gap-4">
-              <Feature label="Patient records & appointments" delay={0.5} />
-              <Feature label="Billing & invoices management" delay={0.65} />
-              <Feature label="Staff scheduling & reports" delay={0.8} />
+            <div>
+              <p className="text-emerald-300 text-xs font-bold uppercase tracking-[0.25em]">Powered by</p>
+              <h1 className="text-white text-3xl font-black tracking-tight leading-tight">Svasth <span className="text-emerald-300">HMS</span></h1>
+              <p className="text-white/50 text-xs mt-0.5">Hospital Management System</p>
             </div>
+          </div>
 
-            {/* Footer */}
-            <p className="relative z-10 text-white/30 text-xs">
-              Developed by Nityom Tikhe
+          {/* Divider */}
+          <div className="w-16 h-px bg-white/20 my-6" />
+
+          {/* Hospital name */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-5">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-white/80 text-xs font-semibold uppercase tracking-widest">Live System</span>
+            </div>
+            <h2 className="text-white text-4xl font-black leading-tight mb-3">
+              Cortex Hospital<br />
+
+            </h2>
+            <p className="text-white/60 text-sm leading-relaxed max-w-sm mx-auto">
+              Your all-in-one clinical management platform — OPD, IPD, Billing, Prescriptions & more.
             </p>
           </div>
 
-          {/* ── Right panel ──────────────────────────────────────────────── */}
-          <div className="flex-1 bg-white flex flex-col justify-between">
-            {/* Top gradient bar */}
-            <div className="h-1.5 bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-600" />
-
-            <div className="flex-1 flex flex-col justify-center px-10 py-10">
-
-              {/* Logo */}
-              <div className="flex justify-center mb-7">
-                <Image
-                  src="/cortex_logo.png"
-                  alt="Cortex Hospital"
-                  width={120}
-                  height={72}
-                  className="object-contain"
-                  onError={(e) => { e.currentTarget.src = "/placeholder-logo.jpg"; }}
-                />
+          {/* Animated feature card */}
+          <div className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 transition-all duration-500 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+                <feature.icon className="w-5 h-5 text-emerald-300" />
               </div>
-
-              {/* Header */}
-              <div className="mb-8">
-                <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-200/60 rounded-full px-3.5 py-1.5 mb-4">
-                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                  <span className="text-[11px] font-medium text-teal-700 uppercase tracking-widest">Admin Portal</span>
-                </div>
-                <h2 className="font-playfair text-[#1a2e44] text-3xl font-bold leading-tight mb-1">
-                  {isOtpStep ? "Verify your identity" : "Welcome back"}
-                </h2>
-                <p className="text-[#6b8299] text-sm font-light">
-                  {isOtpStep
-                    ? `Enter the 4-digit OTP sent to ${otpDeliveryEmail}`
-                    : "Sign in with OTP to access your dashboard"}
-                </p>
-              </div>
-
-              {/* Alerts */}
-              <AnimatePresence mode="wait">
-                {error && (
-                  <motion.div
-                    key="error"
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="mb-4"
-                  >
-                    <Alert variant="destructive" className="bg-red-50 border-red-200 rounded-xl py-2 text-sm">
-                      <AlertDescription className="text-red-600">{error}</AlertDescription>
-                    </Alert>
-                  </motion.div>
-                )}
-                {successMessage && (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="mb-4"
-                  >
-                    <Alert className="bg-green-50 border-green-200 rounded-xl py-2 text-sm">
-                      <AlertDescription className="text-green-700">{successMessage}</AlertDescription>
-                    </Alert>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <AnimatePresence mode="wait">
-                  {!isOtpStep ? (
-                    <motion.div
-                      key="credentials"
-                      initial={{ opacity: 0, x: 12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -12 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-4"
-                    >
-                      {/* Email */}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="email" className="text-sm font-medium text-[#1a2e44] flex items-center gap-2">
-                          <Mail className="w-3.5 h-3.5 text-teal-500" />
-                          Email Address
-                        </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="you@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="h-11 bg-[#F0F7FF] border-[rgba(0,120,180,0.12)] rounded-xl focus-visible:ring-teal-400 focus-visible:border-teal-400 text-sm placeholder:text-[#afc5d9] transition-shadow duration-200 hover:shadow-sm"
-                        />
-                      </div>
-
-                      {/* Password */}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="password" className="text-sm font-medium text-[#1a2e44] flex items-center gap-2">
-                          <Lock className="w-3.5 h-3.5 text-teal-500" />
-                          Password
-                        </Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          className="h-11 bg-[#F0F7FF] border-[rgba(0,120,180,0.12)] rounded-xl focus-visible:ring-teal-400 focus-visible:border-teal-400 text-sm transition-shadow duration-200 hover:shadow-sm"
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <Link
-                          href="/auth/forgot_password"
-                          className="text-xs text-teal-600 hover:text-teal-800 transition-colors duration-150"
-                        >
-                          Forgot password?
-                        </Link>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="otp"
-                      initial={{ opacity: 0, x: 12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -12 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-3"
-                    >
-                      <div className="space-y-1.5">
-                        <Label htmlFor="otp" className="text-sm font-medium text-[#1a2e44] flex items-center gap-2">
-                          <Shield className="w-3.5 h-3.5 text-teal-500" />
-                          One-Time Password
-                        </Label>
-                        <Input
-                          id="otp"
-                          type="text"
-                          inputMode="numeric"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          required
-                          placeholder="• • • •"
-                          maxLength={4}
-                          className="h-11 bg-[#F0F7FF] border-[rgba(0,120,180,0.12)] rounded-xl focus-visible:ring-teal-400 focus-visible:border-teal-400 text-2xl tracking-[0.4em] text-center font-medium transition-shadow duration-200 hover:shadow-sm"
-                        />
-                      </div>
-                      {otpExpiresAt && (
-                        <p className="text-[11.5px] text-[#6b8299]">
-                          Valid until {new Date(otpExpiresAt).toLocaleTimeString()}
-                        </p>
-                      )}
-                      <div className="flex gap-4 pt-1">
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          disabled={loading}
-                          className="flex items-center gap-1.5 text-xs text-teal-600 hover:text-teal-800 disabled:opacity-50 transition-colors duration-150"
-                        >
-                          <RefreshCw className="w-3 h-3" /> Resend OTP
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setIsOtpStep(false); setOtp(""); setError(""); setSuccessMessage(""); }}
-                          className="flex items-center gap-1.5 text-xs text-[#6b8299] hover:text-[#1a2e44] transition-colors duration-150"
-                        >
-                          <ChevronLeft className="w-3 h-3" /> Change credentials
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Submit */}
-                <motion.div whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }} className="pt-1">
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-11 rounded-xl bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-600 hover:to-blue-700 text-white font-medium text-sm shadow-[0_6px_24px_rgba(0,119,182,0.3)] hover:shadow-[0_10px_32px_rgba(0,119,182,0.38)] transition-all duration-200 border-0"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {isOtpStep ? "Verifying…" : "Signing in…"}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        {isOtpStep ? "Verify OTP" : "Send OTP"}
-                        <ArrowRight className="w-4 h-4" />
-                      </span>
-                    )}
-                  </Button>
-                </motion.div>
-              </form>
-
-              {/* Security note */}
-              <div className="mt-5 flex items-start gap-2.5 bg-blue-50/60 border border-blue-100 rounded-xl p-3">
-                <Shield className="w-3.5 h-3.5 text-[#0077B6] mt-0.5 shrink-0" />
-                <p className="text-[11.5px] text-[#6b8299] leading-relaxed">
-                  Secured with two-factor OTP verification. Unauthorized access is monitored.
-                </p>
+              <div>
+                <p className="text-white font-bold text-sm mb-1">{feature.label}</p>
+                <p className="text-white/60 text-xs leading-relaxed">{feature.desc}</p>
               </div>
             </div>
-
-            {/* Footer */}
-            <div className="flex justify-between items-center px-10 py-3 bg-gradient-to-r from-gray-50 to-blue-50/30 border-t border-gray-100 text-[11px] text-[#8ea7be]">
-              <span className="flex items-center gap-1.5 font-medium">
-                Powered by
-                <Image src="/Svasth_logo.png" alt="Svasth HMS" width={16} height={16} className="rounded-xs object-contain" />
-                <span className="font-semibold text-[#0077B6]">Svasth HMS</span>
-              </span>
-              <span>© 2026 Raut Nursing Home</span>
+            {/* Dots */}
+            <div className="flex gap-1.5 mt-4 justify-center">
+              {FEATURES.map((_, i) => (
+                <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === featureIdx ? "w-6 bg-emerald-400" : "w-1.5 bg-white/30"}`} />
+              ))}
             </div>
           </div>
 
-        </motion.div>
+          {/* Stats strip */}
+          <div className="flex items-center gap-8 mt-8">
+            {[["12h", "Auto Logout"], ["2 Roles", "Access Control"], ["256-bit", "Secured"]].map(([val, label]) => (
+              <div key={label} className="text-center">
+                <p className="text-emerald-300 font-black text-lg">{val}</p>
+                <p className="text-white/50 text-[11px] uppercase tracking-wider">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </>
+
+      {/* ── Right Panel (Login Form) ────────────────── */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-slate-50">
+        <div className="w-full max-w-md">
+
+          {/* Mobile logo (shows only on small screens) */}
+          <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
+            <img src="/Svasth_logo.png" alt="Svasth HMS" className="w-10 h-10 object-contain" />
+            <div>
+              <p className="font-black text-slate-900 text-xl">Svasth <span className="text-emerald-600">HMS</span></p>
+              <p className="text-xs text-slate-500">Cortex Hospital</p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-black text-slate-900 mb-1.5">Welcome back</h2>
+            <p className="text-slate-500 text-sm">Sign in to your hospital portal account</p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 pointer-events-none" />
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                  placeholder="Enter your username"
+                  className="w-full pl-10 pr-4 py-3.5 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition placeholder:text-slate-400 placeholder:font-normal shadow-sm"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 pointer-events-none" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-11 py-3.5 border border-slate-200 rounded-xl text-slate-900 font-semibold text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition placeholder:text-slate-400 placeholder:font-normal shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition"
+                >
+                  {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl text-white font-black text-sm shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{
+                background: loading
+                  ? "#6b7280"
+                  : "linear-gradient(135deg, #059669 0%, #0d9488 100%)",
+              }}
+            >
+              {loading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  Sign In to Portal
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </form>
+
+
+          {/* Session info */}
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Sessions expire automatically after <strong className="text-slate-600">12 hours</strong></span>
+          </div>
+
+
+          {/* Svasth branding */}
+          <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+            <img src="/Svasth_logo.png" alt="Svasth HMS" className="w-4 h-4 object-contain" />
+            <span>Powered by <span className="font-bold text-slate-600">Svasth-HMS</span> </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

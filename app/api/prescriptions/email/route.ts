@@ -158,10 +158,9 @@ function buildHtmlTemplate(
   if (v.edd) obsDetails.push(`<strong>EDD:</strong> ${v.edd}`);
   if (v.gestational_age) obsDetails.push(`<strong>Gestational Age:</strong> ${v.gestational_age}`);
 
-  // Use Content-ID (CID) inline references for Gmail and email clients
-  // Gmail web/mobile strictly BLOCKS data:image/base64 URIs, but fully renders standard CID inline images.
-  const cortexLogoSrc = 'cid:cortexLogo';
-  const svasthLogoSrc = 'cid:svasthLogo';
+  // Reliable public HTTPS image URLs ensuring 100% compatibility across Gmail, Apple Mail, Outlook, mobile & desktop clients
+  const cortexLogoSrc = 'https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/cortex_logo.png';
+  const svasthLogoSrc = 'https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/Svasth_logo.png';
 
   return `<!DOCTYPE html>
 <html>

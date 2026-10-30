@@ -577,7 +577,7 @@ export default function PrescriptionLivePreview({
         <img
           src="/cortex_logo.png"
           alt="Watermark"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 opacity-[0.04] pointer-events-none select-none"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 opacity-[0.08] pointer-events-none select-none"
         />
 
         {/* Top Meta Row */}
@@ -732,12 +732,13 @@ export default function PrescriptionLivePreview({
           </div>
 
           <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
+        </div>
 
-          <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-400">
-            <span>Powered by</span>
-            <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-2.5 w-auto inline-block" />
-            <strong className="text-slate-600">Svasth HMS</strong>
-          </div>
+        {/* Centered Powered by Svasth-HMS Line at Bottom */}
+        <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
+          <span>Powered by</span>
+          <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-3 w-auto inline-block" />
+          <strong className="text-teal-700 font-extrabold">Svasth-HMS</strong>
         </div>
       </div>
     </div>
