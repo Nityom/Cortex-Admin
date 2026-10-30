@@ -25,7 +25,8 @@ import {
   Stethoscope,
   Building,
 } from "lucide-react";
-import { createBill, getAll as getAllBills, Bill } from "@/services/bills";
+import { createBill, updateBill, getBillByPrescriptionId, getAll as getAllBills, Bill } from "@/services/bills";
+import { paymentTransactionService } from "@/services/payment-transactions";
 import { getPatients, getPatientByPhoneNumber } from "@/services/patients";
 import { Patient } from "@/types/patient";
 
@@ -264,32 +265,106 @@ export default function HospitalBillingPage() {
 
     setOpdSubmitting(true);
     try {
-      const billData: Bill = {
-        prescription_id: linkedPrescriptionId || "OPD_DIRECT",
-        patient_id: opdPatient.patientId || "WALKIN",
-        reference_number: opdPatient.uhid || `CRX${Math.floor(1000 + Math.random() * 9000)}`,
-        total_amount: opdNetTotal,
-        paid_amount: opdPaidAmount,
-        balance_amount: opdBalanceDue,
-        payment_status: opdPaymentStatus,
-        payment_method: opdPaymentMode,
-        discount_amount: opdDiscount,
-        notes: `OPD Bill • ${opdPatient.visitNumber} • Doctor: ${activeDoctor}${linkedPrescriptionId ? ` • Linked Rx: ${linkedPrescriptionId}` : ""}`,
-        items: opdCharges.map((item, idx) => ({
-          id: idx + 1,
-          description: item.name,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total: item.total,
-          item_type: "procedure",
-        })),
-      };
+      const patientRef = opdPatient.uhid || `CRX${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const result = await createBill(billData);
+      // 1. Check if an existing bill exists for this linked prescription or patient today
+      let targetExistingBill: any = null;
+      if (linkedPrescriptionId) {
+        try {
+          const rxBill = await getBillByPrescriptionId(linkedPrescriptionId);
+          if (rxBill && rxBill.id) {
+            targetExistingBill = rxBill;
+          }
+        } catch (e) {
+          console.warn("Could not fetch bill by prescription id:", e);
+        }
+      }
+
+      if (!targetExistingBill && patientRef) {
+        try {
+          const allBills = await getAllBills();
+          const today = new Date().toISOString().split("T")[0];
+          const matched = allBills.find(
+            (b: any) =>
+              b.reference_number === patientRef &&
+              (b.created_at?.startsWith(today) || b.bill_date?.startsWith(today) || !b.created_at) &&
+              b.payment_status !== "PAID"
+          );
+          if (matched && matched.id) {
+            targetExistingBill = matched;
+          }
+        } catch (e) {
+          console.warn("Could not search existing bills:", e);
+        }
+      }
+
+      const billItems = opdCharges.map((item, idx) => ({
+        id: idx + 1,
+        description: item.name,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total: item.total,
+        item_type: "procedure",
+      }));
+
+      let savedBillResult: any = null;
+
+      if (targetExistingBill && targetExistingBill.id) {
+        // Update the existing bill so Prescription History & Billing are in 100% sync
+        const newPaid = opdPaidAmount;
+        const newBalance = opdBalanceDue;
+        const newStatus = opdPaymentStatus;
+
+        savedBillResult = await updateBill(targetExistingBill.id, {
+          total_amount: opdNetTotal,
+          paid_amount: newPaid,
+          balance_amount: newBalance,
+          payment_status: newStatus,
+          items: billItems,
+          discount_amount: opdDiscount,
+          notes: `OPD Bill • ${opdPatient.visitNumber} • Doctor: ${activeDoctor}${targetExistingBill.prescription_id ? ` • Linked Rx: ${targetExistingBill.prescription_id}` : ""}`,
+        });
+      } else {
+        // Create new bill
+        const billData: Bill = {
+          prescription_id: linkedPrescriptionId || "OPD_DIRECT",
+          patient_id: opdPatient.patientId || "WALKIN",
+          reference_number: patientRef,
+          total_amount: opdNetTotal,
+          paid_amount: opdPaidAmount,
+          balance_amount: opdBalanceDue,
+          payment_status: opdPaymentStatus,
+          payment_method: opdPaymentMode,
+          discount_amount: opdDiscount,
+          notes: `OPD Bill • ${opdPatient.visitNumber} • Doctor: ${activeDoctor}${linkedPrescriptionId ? ` • Linked Rx: ${linkedPrescriptionId}` : ""}`,
+          items: billItems,
+        };
+        savedBillResult = await createBill(billData);
+      }
+
+      const activeBillId = savedBillResult?.id || savedBillResult?._id || targetExistingBill?.id;
+      const billNumber = savedBillResult?.bill_number || targetExistingBill?.bill_number || `CRX-OPD-${Date.now().toString().slice(-4)}`;
+
+      // Record payment transaction for installment history if amount was paid
+      if (opdPaidAmount > 0 && activeBillId) {
+        try {
+          await paymentTransactionService.create({
+            bill_id: String(activeBillId),
+            patient_id: opdPatient.patientId || "WALKIN",
+            amount: opdPaidAmount,
+            payment_method: opdPaymentMode,
+            payment_date: new Date().toISOString().split("T")[0],
+            notes: `OPD payment collected (${opdPaymentMode}) • ${opdPatient.visitNumber}`,
+          });
+        } catch (txErr) {
+          console.warn("Payment transaction log warning:", txErr);
+        }
+      }
+
       setOpdSuccessBill({
-        id: result?.id || result,
-        billNumber: result?.bill_number || `CRX-OPD-${Date.now().toString().slice(-4)}`,
-        uhid: billData.reference_number,
+        id: activeBillId,
+        billNumber: billNumber,
+        uhid: patientRef,
         patientName: opdPatient.name,
         total: opdNetTotal,
         paid: opdPaidAmount,

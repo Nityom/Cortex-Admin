@@ -11,7 +11,9 @@ import {
   PrescriptionPaymentModal,
   PrescriptionLivePreview,
   PrescriptionPrintModal,
+  PrescriptionEmailModal,
 } from '@/components/prescription';
+import { Mail, X } from 'lucide-react';
 
 export default function PrescriptionPage() {
   const form = usePrescriptionForm();
@@ -47,6 +49,7 @@ export default function PrescriptionPage() {
               form.setTemplateNameInput(form.formData.de ? `${form.formData.de} Protocol` : '');
               form.setIsSaveTemplateModalOpen(true);
             }}
+            onOpenEmailModal={form.handleOpenEmailModal}
           />
 
           {/* 2. Reorderable Clinical Stack Container with Dedicated Drag Handle & Move Arrows */}
@@ -81,7 +84,12 @@ export default function PrescriptionPage() {
           spo2Val={form.spo2Val}
           tempVal={form.tempVal}
           bmiVal={form.bmiVal}
+          lmpDate={form.lmpDate}
+          eddDate={form.eddDate}
+          gestationalWeeks={form.gestationalWeeks}
+          gestationalDays={form.gestationalDays}
           rxSectionOrder={form.rxSectionOrder}
+          enabledSections={form.enabledPrintSections}
         />
 
         {/* 4. Master Template Modals */}
@@ -135,6 +143,46 @@ export default function PrescriptionPage() {
           onConfirmPrint={form.executePrintPrescription}
           form={form}
         />
+
+        {/* 7. Email Prescription Modal */}
+        <PrescriptionEmailModal
+          isOpen={form.isEmailModalOpen}
+          onClose={() => form.setIsEmailModalOpen(false)}
+          data={form.getEmailModalData()}
+          onSuccess={() => form.showTemplateToast('Prescription successfully emailed via Hostinger!')}
+        />
+
+        {/* 8. Post-Save Quick Email Prompt Banner */}
+        {form.emailSuccessPrompt && (
+          <div className="fixed bottom-6 right-6 z-40 bg-white border border-teal-200 rounded-2xl p-4 shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div className="text-xs">
+              <div className="font-extrabold text-slate-900">Prescription Saved!</div>
+              <div className="text-slate-500 text-[11px]">Would you like to email this prescription to the patient?</div>
+            </div>
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                type="button"
+                onClick={() => {
+                  form.setEmailSuccessPrompt(false);
+                  form.handleOpenEmailModal();
+                }}
+                className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                <span>Email Rx</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => form.setEmailSuccessPrompt(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

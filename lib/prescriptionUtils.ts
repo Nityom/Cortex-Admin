@@ -1,26 +1,38 @@
 export function getTimingFromDosage(dosage?: string): string {
-  if (!dosage) return '';
+  if (!dosage || typeof dosage !== 'string') return '';
   const trimmed = dosage.trim();
+  const clean = trimmed.toLowerCase();
+
+  // Standard clinical dosages mapped to Marathi instructions
+  if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर (Morning after breakfast)';
+  if (clean === '0-1-0') return 'दुपारी जेवणानंतर (Afternoon after lunch)';
+  if (clean === '0-0-1') return 'रात्री जेवणानंतर (Night after dinner)';
+  if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर, रात्री जेवणानंतर';
+  if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर, रात्री जेवणानंतर';
+  if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर';
+  if (clean === '0-1-1') return 'दुपारी जेवणानंतर, रात्री जेवणानंतर';
+  if (clean === 'stat') return 'तातडीने (Immediately / Stat)';
+  if (clean === 'sos') return 'गरज भासल्यास (As needed / SOS)';
+
+  // General quantity handling (e.g. 2-0-0, 2-0-2, 1/2-0-1/2)
   const parts = trimmed.split('-').map((p) => p.trim());
   if (parts.length === 3) {
     const [m, a, n] = parts;
     const segments: string[] = [];
     if (m && m !== '0') {
-      segments.push(`${m} - नाश्ता नंतर`);
+      segments.push(m === '1' ? 'सकाळी नाश्त्यानंतर' : `${m} - सकाळी नाश्त्यानंतर`);
     }
     if (a && a !== '0') {
-      segments.push(`${a} - दुपारी जेवणानंतर`);
+      segments.push(a === '1' ? 'दुपारी जेवणानंतर' : `${a} - दुपारी जेवणानंतर`);
     }
     if (n && n !== '0') {
-      segments.push(`${n} - रात्री जेवणानंतर`);
+      segments.push(n === '1' ? 'रात्री जेवणानंतर' : `${n} - रात्री जेवणानंतर`);
     }
     if (segments.length > 0) {
       return segments.join(', ');
     }
   }
-  if (trimmed.toLowerCase() === 'stat') {
-    return 'तातडीने (Stat)';
-  }
+
   return '';
 }
 

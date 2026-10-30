@@ -42,6 +42,7 @@ interface PrescriptionData {
   age: string;
   sex: string;
   reference_number?: string;
+  token?: string;
   prescription_date: string;
   chief_complaint?: string;
   medical_history?: string;
@@ -125,26 +126,37 @@ function formatFollowup(followupDate?: string, prescriptionDate?: string): strin
 function getTimingFromDosage(dosage?: string): string {
   if (!dosage || typeof dosage !== 'string') return '';
   const trimmed = dosage.trim();
+  const clean = trimmed.toLowerCase();
+
+  // Standard clinical dosages mapped to Marathi instructions
+  if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर (Morning after breakfast)';
+  if (clean === '0-1-0') return 'दुपारी जेवणानंतर (Afternoon after lunch)';
+  if (clean === '0-0-1') return 'रात्री जेवणानंतर (Night after dinner)';
+  if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर, रात्री जेवणानंतर';
+  if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर, रात्री जेवणानंतर';
+  if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर';
+  if (clean === '0-1-1') return 'दुपारी जेवणानंतर, रात्री जेवणानंतर';
+  if (clean === 'stat') return 'तातडीने (Immediately / Stat)';
+  if (clean === 'sos') return 'गरज भासल्यास (As needed / SOS)';
+
   const parts = trimmed.split('-').map(p => p.trim());
   if (parts.length === 3) {
     const [m, a, n] = parts;
     const segments: string[] = [];
     if (m && m !== '0') {
-      segments.push(`${m} - नाश्ता नंतर`);
+      segments.push(m === '1' ? 'सकाळी नाश्त्यानंतर' : `${m} - सकाळी नाश्त्यानंतर`);
     }
     if (a && a !== '0') {
-      segments.push(`${a} - दुपारी जेवणानंतर`);
+      segments.push(a === '1' ? 'दुपारी जेवणानंतर' : `${a} - दुपारी जेवणानंतर`);
     }
     if (n && n !== '0') {
-      segments.push(`${n} - रात्री जेवणानंतर`);
+      segments.push(n === '1' ? 'रात्री जेवणानंतर' : `${n} - रात्री जेवणानंतर`);
     }
     if (segments.length > 0) {
       return segments.join(', ');
     }
   }
-  if (trimmed.toLowerCase() === 'stat') {
-    return 'तातडीने (Stat)';
-  }
+
   return '';
 }
 
@@ -393,20 +405,44 @@ function PrintPrescriptionContent() {
   const pulseDisplay = vitals.pulse || (prescriptionData as any).pulse || '';
   const tempDisplay = vitals.temperature || vitals.temp || (prescriptionData as any).temp || '';
   const bmiDisplay = vitals.bmi || (prescriptionData as any).bmi || '';
-  const hasVitals = !!(bpDisplay || spo2Display || heightDisplay || weightDisplay || pulseDisplay || tempDisplay || bmiDisplay);
+  const lmpDisplay = vitals.lmp || (prescriptionData as any).lmp || '';
+  const eddDisplay = vitals.edd || (prescriptionData as any).edd || '';
+  const gaDisplay = vitals.gestational_age || vitals.ga || (prescriptionData as any).gestational_age || '';
+  const hasVitals = !!(bpDisplay || spo2Display || heightDisplay || weightDisplay || pulseDisplay || tempDisplay || bmiDisplay || lmpDisplay || eddDisplay || gaDisplay);
+
+  const formatLmpOrEdd = (val?: string) => {
+    if (!val) return '';
+    if (/^\d{2}-\d{2}-\d{4}$/.test(val)) return val;
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
 
   const chiefComplaintText = prescriptionData.chief_complaint?.trim();
   const medicalHistoryText = prescriptionData.medical_history?.trim();
   const findingsText = (prescriptionData.findings || prescriptionData.clinical_findings || prescriptionData.oral_exam_notes || '').trim();
   const drawingData = prescriptionData.drawing_data?.trim();
 
-  const enabledSections = prescriptionData.enabled_sections || {};
+  const enabledSections = (prescriptionData.enabled_sections && Object.keys(prescriptionData.enabled_sections).length > 0)
+    ? prescriptionData.enabled_sections
+    : (() => {
+        if (typeof window !== 'undefined') {
+          try {
+            const saved = localStorage.getItem('cortex_rx_print_enabled_sections');
+            if (saved) return JSON.parse(saved);
+          } catch {}
+        }
+        return {};
+      })();
   const DEFAULT_PRINT_ORDER = [
     'vitals',
     'complaints',
+    'diagnosis',
     'history',
     'findings',
-    'diagnosis',
     'drawing_board',
     'medicines',
     'clinical_notes',
@@ -455,6 +491,21 @@ function PrintPrescriptionContent() {
         {bmiDisplay && (
           <span className="vitals-item">
             <strong>BMI:</strong> {bmiDisplay}
+          </span>
+        )}
+        {lmpDisplay && (
+          <span className="vitals-item">
+            <strong>LMP:</strong> {formatLmpOrEdd(lmpDisplay)}
+          </span>
+        )}
+        {eddDisplay && (
+          <span className="vitals-item">
+            <strong>EDD:</strong> {formatLmpOrEdd(eddDisplay)}
+          </span>
+        )}
+        {gaDisplay && (
+          <span className="vitals-item">
+            <strong>Gestational Age:</strong> {gaDisplay}
           </span>
         )}
       </div>
@@ -1370,7 +1421,13 @@ function PrintPrescriptionContent() {
             {/* Patient Info Bar */}
             <div className="patient-row">
               <div className="patient-info-left">
-                <span>{refNumber}</span> : <span>MR.{patientNameFormatted}</span>{' '}
+                <span>{refNumber}</span>
+                {prescriptionData.token ? (
+                  <span style={{ marginLeft: '4px', fontSize: '8pt', fontWeight: 'bold' }}>
+                    [Token #{prescriptionData.token}]
+                  </span>
+                ) : null}{' '}
+                : <span>MR.{patientNameFormatted}</span>{' '}
                 <span>
                   ({ageDisplay}
                   {ageDisplay && sexDisplay ? ', ' : ''}

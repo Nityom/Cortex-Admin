@@ -52,6 +52,10 @@ interface PrescriptionLivePreviewProps {
   spo2Val?: string;
   tempVal?: string;
   bmiVal?: string;
+  lmpDate?: string;
+  eddDate?: string;
+  gestationalWeeks?: string;
+  gestationalDays?: string;
   rxSectionOrder?: string[];
   enabledSections?: Record<string, boolean>;
   isModalPreview?: boolean;
@@ -84,22 +88,46 @@ function formatFollowup(followupDate?: string, prescriptionDate?: string): strin
 function getTimingFromDosage(dosage: string): string {
   if (!dosage) return '';
   const clean = dosage.trim().toLowerCase();
-  if (clean === '1-0-1') return 'Morning & Night (सकाळी व रात्री)';
-  if (clean === '1-1-1') return 'Morning, Afternoon & Night (सकाळी, दुपारी व रात्री)';
-  if (clean === '1-0-0') return 'Morning (सकाळी)';
-  if (clean === '0-0-1') return 'Night (रात्री)';
-  if (clean === '0-1-0') return 'Afternoon (दुपारी)';
-  if (clean === 'stat') return 'Immediately (लगेच)';
-  if (clean === 'sos') return 'As needed (गरज भासल्यास)';
+
+  // Standard clinical dosages mapped to Marathi instructions
+  if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर (Morning after breakfast)';
+  if (clean === '0-1-0') return 'दुपारी जेवणानंतर (Afternoon after lunch)';
+  if (clean === '0-0-1') return 'रात्री जेवणानंतर (Night after dinner)';
+  if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर, रात्री जेवणानंतर';
+  if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर, रात्री जेवणानंतर';
+  if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर';
+  if (clean === '0-1-1') return 'दुपारी जेवणानंतर, रात्री जेवणानंतर';
+  if (clean === 'stat') return 'तातडीने (Immediately / Stat)';
+  if (clean === 'sos') return 'गरज भासल्यास (As needed / SOS)';
+
+  // General quantity handling (e.g. 2-0-0, 2-0-2, 1/2-0-1/2)
+  const parts = dosage.trim().split('-').map((p) => p.trim());
+  if (parts.length === 3) {
+    const [m, a, n] = parts;
+    const segments: string[] = [];
+    if (m && m !== '0') {
+      segments.push(m === '1' ? 'सकाळी नाश्त्यानंतर' : `${m} - सकाळी नाश्त्यानंतर`);
+    }
+    if (a && a !== '0') {
+      segments.push(a === '1' ? 'दुपारी जेवणानंतर' : `${a} - दुपारी जेवणानंतर`);
+    }
+    if (n && n !== '0') {
+      segments.push(n === '1' ? 'रात्री जेवणानंतर' : `${n} - रात्री जेवणानंतर`);
+    }
+    if (segments.length > 0) {
+      return segments.join(', ');
+    }
+  }
+
   return '';
 }
 
 const DEFAULT_PRINT_ORDER = [
   'vitals',
   'complaints',
+  'diagnosis',
   'history',
   'findings',
-  'diagnosis',
   'drawing_board',
   'medicines',
   'clinical_notes',
@@ -135,6 +163,10 @@ export default function PrescriptionLivePreview({
   spo2Val,
   tempVal,
   bmiVal,
+  lmpDate,
+  eddDate,
+  gestationalWeeks,
+  gestationalDays,
   rxSectionOrder,
   enabledSections,
   isModalPreview = false,
@@ -170,7 +202,10 @@ export default function PrescriptionLivePreview({
   const pulse = (pulseVal || formData.pulse)?.trim();
   const temp = (tempVal || formData.temperature)?.trim();
   const bmi = (bmiVal || formData.bmi)?.trim();
-  const hasVitals = !!(bpVal || spo2 || height || weight || pulse || temp || bmi);
+  const lmp = (lmpDate || formData.lmp)?.trim();
+  const edd = (eddDate || formData.edd)?.trim();
+  const ga = (gestationalWeeks ? `${gestationalWeeks} weeks${gestationalDays ? ` ${gestationalDays} days` : ''}` : formData.gestational_age || '')?.trim();
+  const hasVitals = !!(bpVal || spo2 || height || weight || pulse || temp || bmi || lmp || edd || ga);
 
   const effectiveOrder = rxSectionOrder && rxSectionOrder.length > 0
     ? rxSectionOrder.filter((k) => k !== 'procedure')
@@ -224,6 +259,21 @@ export default function PrescriptionLivePreview({
         {bmi && (
           <span className="inline-flex items-center gap-1">
             <strong>BMI:</strong> {bmi}
+          </span>
+        )}
+        {lmp && (
+          <span className="inline-flex items-center gap-1">
+            <strong>LMP:</strong> {formatPrescriptionDate(lmp)}
+          </span>
+        )}
+        {edd && (
+          <span className="inline-flex items-center gap-1">
+            <strong>EDD:</strong> {formatPrescriptionDate(edd)}
+          </span>
+        )}
+        {ga && (
+          <span className="inline-flex items-center gap-1">
+            <strong>Gestational Age:</strong> {ga}
           </span>
         )}
       </div>
@@ -593,7 +643,13 @@ export default function PrescriptionLivePreview({
         {/* Patient Bar */}
         <div className="flex flex-wrap justify-between items-center py-2 text-xs sm:text-sm font-bold text-black border-b border-slate-300">
           <div className="flex-1 min-w-[240px]">
-            <span>{formData.reference_number || patientReferenceNumber || 'CRX0001'}</span> :{' '}
+            <span>{formData.reference_number || patientReferenceNumber || 'CRX0001'}</span>
+            {formData.token ? (
+              <span className="ml-1 px-1.5 py-0.5 bg-teal-50 text-teal-800 rounded border border-teal-200 text-[10px] font-black">
+                Token #{formData.token}
+              </span>
+            ) : null}{' '}
+            :{' '}
             <span>MR./MS. {(formData.patientName || 'PATIENT NAME').toUpperCase()}</span>{' '}
             <span className="font-medium text-slate-700">
               ({formData.age ? `${formData.age} Y` : '—'}

@@ -14,4 +14,5 @@ export { default as PrescriptionPaymentModal } from './PrescriptionPaymentModal'
 export { default as PrescriptionPastVisitsModal } from './PrescriptionPastVisitsModal';
 export { default as PrescriptionSectionsContainer } from './PrescriptionSectionsContainer';
 export { default as PrescriptionPrintModal } from './PrescriptionPrintModal';
+export { default as PrescriptionEmailModal } from './PrescriptionEmailModal';
 

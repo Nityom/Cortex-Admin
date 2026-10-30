@@ -30,6 +30,7 @@ interface PrescriptionVitalsSectionProps {
   gestationalDays: string;
   setGestationalDays: (v: string) => void;
   onResetVitals?: () => void;
+  isGynae?: boolean;
 }
 
 export default function PrescriptionVitalsSection({
@@ -59,6 +60,7 @@ export default function PrescriptionVitalsSection({
   gestationalDays,
   setGestationalDays,
   onResetVitals,
+  isGynae = false,
 }: PrescriptionVitalsSectionProps) {
   const handleReset = () => {
     if (onResetVitals) {
@@ -266,65 +268,112 @@ export default function PrescriptionVitalsSection({
           </div>
 
           <div className="col-span-2 sm:col-span-1">
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">LMP</label>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Waist/Hip</label>
             <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
               <input
-                type="date"
-                value={lmpDate}
-                onChange={(e) => setLmpDate(e.target.value)}
-                title="Last Menstrual Period (LMP Date)"
-                className="flex-1 min-w-0 py-2 px-3 text-xs font-bold text-slate-800 outline-none bg-white cursor-pointer"
+                type="text"
+                value={waistHipVal}
+                onChange={(e) => setWaistHipVal(e.target.value)}
+                placeholder="0.85"
+                title="Waist to Hip Ratio"
+                className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
               />
+              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+                ratio
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Row 3: EDD & Gestational Age */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              EDD (Estimated Due Date)
-            </label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
-              <input
-                type="date"
-                value={eddDate}
-                onChange={(e) => setEddDate(e.target.value)}
-                title="Estimated Due Date (EDD Date)"
-                className="flex-1 min-w-0 py-2 px-3 text-xs font-bold text-slate-800 outline-none bg-white cursor-pointer"
-              />
+        {/* Antenatal & Obstetrics Vitals (LMP, EDD, Gestational Age) */}
+        <div className={`mt-3 p-3 rounded-xl border transition-all ${
+          isGynae || lmpDate
+            ? 'bg-rose-50/50 border-pink-200 shadow-xs'
+            : 'bg-slate-50/80 border-slate-200'
+        }`}>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-extrabold ${isGynae ? 'text-pink-900' : 'text-slate-800'}`}>
+                Obstetrics &amp; Antenatal Record (LMP • EDD • Gestational Age)
+              </span>
+              {isGynae && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
+                  OB-GYN Active
+                </span>
+              )}
             </div>
+            {eddDate && gestationalWeeks && (
+              <span className="text-[11px] font-bold text-pink-700 bg-pink-100/90 px-2.5 py-0.5 rounded border border-pink-200">
+                GA: {gestationalWeeks}w {gestationalDays || 0}d • EDD: {eddDate}
+              </span>
+            )}
           </div>
-          <div className="sm:col-span-1 md:col-span-2">
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-              Gestational Age
-            </label>
-            <div className="grid grid-cols-2 gap-3 max-w-md">
-              <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* LMP */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                LMP (Last Menstrual Period)
+              </label>
+              <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-pink-500/20 focus-within:border-pink-500 transition-all">
                 <input
-                  type="text"
-                  value={gestationalWeeks}
-                  onChange={(e) => setGestationalWeeks(e.target.value)}
-                  placeholder="Weeks"
-                  title="Gestational Age (Weeks)"
-                  className="flex-1 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
+                  type="date"
+                  value={lmpDate}
+                  onChange={(e) => setLmpDate(e.target.value)}
+                  title="Last Menstrual Period (LMP Date)"
+                  className="flex-1 min-w-0 py-2 px-3 text-xs font-bold text-slate-800 outline-none bg-white cursor-pointer"
                 />
-                <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
-                  Weeks
-                </span>
               </div>
-              <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            </div>
+
+            {/* EDD */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                EDD
+              </label>
+              <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-pink-500/20 focus-within:border-pink-500 transition-all">
                 <input
-                  type="text"
-                  value={gestationalDays}
-                  onChange={(e) => setGestationalDays(e.target.value)}
-                  placeholder="Days"
-                  title="Gestational Age (Days)"
-                  className="flex-1 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
+                  type="date"
+                  value={eddDate}
+                  onChange={(e) => setEddDate(e.target.value)}
+                  title="Estimated Due Date (EDD Date)"
+                  className="flex-1 min-w-0 py-2 px-3 text-xs font-bold text-slate-800 outline-none bg-white cursor-pointer"
                 />
-                <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
-                  Days
-                </span>
+              </div>
+            </div>
+
+            {/* Gestational Age */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Gestational Age (at consultation)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-pink-500/20 focus-within:border-pink-500 transition-all">
+                  <input
+                    type="text"
+                    value={gestationalWeeks}
+                    onChange={(e) => setGestationalWeeks(e.target.value)}
+                    placeholder="Weeks"
+                    title="Gestational Age (Weeks)"
+                    className="flex-1 min-w-0 py-2 px-2 text-center text-xs font-bold text-slate-800 outline-none"
+                  />
+                  <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-[11px] font-semibold text-slate-500 select-none">
+                    wks
+                  </span>
+                </div>
+                <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-pink-500/20 focus-within:border-pink-500 transition-all">
+                  <input
+                    type="text"
+                    value={gestationalDays}
+                    onChange={(e) => setGestationalDays(e.target.value)}
+                    placeholder="Days"
+                    title="Gestational Age (Days)"
+                    className="flex-1 min-w-0 py-2 px-2 text-center text-xs font-bold text-slate-800 outline-none"
+                  />
+                  <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-[11px] font-semibold text-slate-500 select-none">
+                    days
+                  </span>
+                </div>
               </div>
             </div>
           </div>

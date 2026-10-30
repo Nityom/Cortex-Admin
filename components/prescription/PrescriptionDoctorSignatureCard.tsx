@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Save, Printer } from 'lucide-react';
+import { Save, Printer, Mail } from 'lucide-react';
 
 export interface DoctorOption {
   id?: string;
@@ -20,6 +20,7 @@ interface PrescriptionDoctorSignatureCardProps {
   saving: boolean;
   isEditMode: boolean;
   handlePrintablePrescription: () => void;
+  onEmailPrescription?: () => void;
 }
 
 export default function PrescriptionDoctorSignatureCard({
@@ -32,6 +33,7 @@ export default function PrescriptionDoctorSignatureCard({
   saving,
   isEditMode,
   handlePrintablePrescription,
+  onEmailPrescription,
 }: PrescriptionDoctorSignatureCardProps) {
   return (
     <>
@@ -148,6 +150,18 @@ export default function PrescriptionDoctorSignatureCard({
             <Printer className="w-5 h-5" />
             Print Prescription
           </button>
+
+          {onEmailPrescription && (
+            <button
+              type="button"
+              onClick={onEmailPrescription}
+              disabled={loading || saving}
+              className="px-6 py-3.5 bg-teal-700 text-white text-base font-bold rounded-xl hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Mail className="w-5 h-5" />
+              Email Rx
+            </button>
+          )}
         </div>
       </div>
     </>

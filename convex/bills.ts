@@ -122,6 +122,14 @@ export const update = mutation({
     },
 });
 
+export const remove = mutation({
+    args: { id: v.id("bills") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.id);
+        return { success: true };
+    },
+});
+
 export const list = query({
     args: {
         startDate: v.optional(v.string()),

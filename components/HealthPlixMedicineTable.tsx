@@ -130,13 +130,18 @@ const getLinkedMedicineDefaults = (name: string): LinkedMedicineProfile => {
 };
 
 const NOTE_PRESETS = [
-  'केसांच्या मुळाशी',
-  'नाश्ता नंतर',
+  'नाश्त्यानंतर',
   'दुपारी जेवणानंतर',
   'रात्री जेवणानंतर',
+  'नाश्त्यानंतर व रात्री जेवणानंतर',
+  'नाश्त्यानंतर, दुपारी व रात्री जेवणानंतर',
+  'सकाळी उपाशीपोटी',
+  'जेवणाआधी',
+  'जेवणानंतर',
   'पाण्यासोबत घ्यावे',
   'दूधासोबत घ्यावे',
   'गरज भासल्यास',
+  'केसांच्या मुळाशी',
   'Take with plenty of water',
   'Apply gently on affected area',
 ];
@@ -432,6 +437,39 @@ export default function HealthPlixMedicineTable({
       const start = field === 'start_from' ? value : sch.start_from || prescriptionDate;
       const dur = field === 'duration' ? value : sch.duration;
       sch.to_date = calculateEndDate(start, dur);
+    }
+
+    // Auto-suggest Marathi notes and timing when dosage is changed (e.g. 1-0-0 -> नाश्त्यानंतर)
+    if (field === 'dosage') {
+      const dClean = value.trim().toLowerCase();
+      const currentNotes = (sch.notes || '').trim();
+      const isDefaultOrEmptyNote =
+        !currentNotes ||
+        ['नाश्त्यानंतर', 'दुपारी जेवणानंतर', 'रात्री जेवणानंतर', 'नाश्त्यानंतर व रात्री जेवणानंतर', 'नाश्त्यानंतर, दुपारी व रात्री जेवणानंतर', 'नाश्ता नंतर', 'नाश्ता / जेवणानंतर'].includes(currentNotes);
+
+      if (isDefaultOrEmptyNote) {
+        if (dClean === '1-0-0') {
+          sch.notes = 'नाश्त्यानंतर';
+          sch.time = 'Morning';
+          sch.when = 'After Food';
+        } else if (dClean === '0-1-0') {
+          sch.notes = 'दुपारी जेवणानंतर';
+          sch.time = 'Afternoon';
+          sch.when = 'After Food';
+        } else if (dClean === '0-0-1') {
+          sch.notes = 'रात्री जेवणानंतर';
+          sch.time = 'Night';
+          sch.when = 'After Food';
+        } else if (dClean === '1-0-1') {
+          sch.notes = 'नाश्त्यानंतर व रात्री जेवणानंतर';
+          sch.time = 'Morning & Night';
+          sch.when = 'After Food';
+        } else if (dClean === '1-1-1') {
+          sch.notes = 'नाश्त्यानंतर, दुपारी व रात्री जेवणानंतर';
+          sch.time = 'Morning, Afternoon & Night';
+          sch.when = 'After Food';
+        }
+      }
     }
 
     currentSchedules[schIndex] = sch;

@@ -10,6 +10,7 @@ import {
   Info,
   CheckCircle2,
   FileText,
+  Mail,
 } from 'lucide-react';
 import PrescriptionLivePreview from './PrescriptionLivePreview';
 
@@ -27,17 +28,32 @@ interface ChecklistItem {
 }
 
 const PRINT_SECTIONS_CHECKLIST: ChecklistItem[] = [
-  { key: 'vitals', label: 'Vitals Sequentially Arranged', desc: 'BP, Pulse, SpO₂, Temp, Height, Weight, BMI' },
+  { key: 'vitals', label: 'Vitals Sequentially Arranged', desc: 'BP, Pulse, SpO₂, Temp, Height, Weight, BMI, LMP, EDD, Gestational Age' },
   { key: 'complaints', label: 'Chief Complaints', desc: 'Reported symptoms & onset history' },
+  { key: 'diagnosis', label: 'Diagnosis / Conditions', desc: 'Snomed / ICD mapped clinical diagnoses' },
   { key: 'history', label: 'Medical & Surgical History', desc: 'Chronic diseases, allergies & past surgery' },
   { key: 'findings', label: 'Clinical Findings & Examination', desc: 'Physical and systemic exam findings' },
-  { key: 'diagnosis', label: 'Diagnosis / Conditions', desc: 'Snomed / ICD mapped clinical diagnoses' },
-  { key: 'drawing_board', label: 'Clinical Sketch / Diagram', desc: 'Anatomical sketch or diagram annotation' },
+  { key: 'drawing_board', label: 'Clinical Sketch / Drawing Board', desc: 'Anatomical sketch or diagram annotation' },
   { key: 'medicines', label: 'Prescribed Medicines Table', desc: '℞ Medicines, dosage, timing & frequency' },
-  { key: 'clinical_notes', label: 'Clinical Advice, Diet & Tests', desc: 'Special advice, diet recommendations & investigations' },
+  { key: 'clinical_notes', label: 'Clinical Advice, Diet & Investigations', desc: 'Special advice, diet recommendations & investigations' },
   { key: 'next_visit', label: 'Follow-Up / Next Visit Date', desc: 'Return schedule and elapsed days calculation' },
   { key: 'signature', label: 'Doctor Signature Image', desc: 'Official digital signature image and doctor name' },
 ];
+
+export const RX_PRINT_SECTIONS_STORAGE_KEY = 'cortex_rx_print_enabled_sections';
+
+export const DEFAULT_PRINT_ENABLED_SECTIONS: Record<string, boolean> = {
+  vitals: true,
+  complaints: true,
+  diagnosis: true,
+  history: true,
+  findings: true,
+  drawing_board: true,
+  medicines: true,
+  clinical_notes: true,
+  next_visit: true,
+  signature: true,
+};
 
 export default function PrescriptionPrintModal({
   isOpen,
@@ -45,18 +61,66 @@ export default function PrescriptionPrintModal({
   onConfirmPrint,
   form,
 }: PrescriptionPrintModalProps) {
-  const [enabledSections, setEnabledSections] = useState<Record<string, boolean>>({
-    vitals: true,
-    complaints: true,
-    history: true,
-    findings: true,
-    diagnosis: true,
-    drawing_board: true,
-    medicines: true,
-    clinical_notes: true,
-    next_visit: true,
-    signature: true,
+  const [localEnabledSections, setLocalEnabledSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(RX_PRINT_SECTIONS_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            return {
+              ...DEFAULT_PRINT_ENABLED_SECTIONS,
+              ...parsed,
+            };
+          }
+        }
+      } catch {}
+    }
+    return DEFAULT_PRINT_ENABLED_SECTIONS;
   });
+
+  const enabledSections: Record<string, boolean> = form?.enabledPrintSections || localEnabledSections;
+
+  const setEnabledSections = (
+    updaterOrVal:
+      | Record<string, boolean>
+      | ((prev: Record<string, boolean>) => Record<string, boolean>)
+  ) => {
+    if (form?.saveEnabledPrintSections) {
+      form.saveEnabledPrintSections(updaterOrVal);
+    } else {
+      setLocalEnabledSections((prev) => {
+        const next =
+          typeof updaterOrVal === 'function' ? updaterOrVal(prev) : updaterOrVal;
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(
+              RX_PRINT_SECTIONS_STORAGE_KEY,
+              JSON.stringify(next)
+            );
+          } catch {}
+        }
+        return next;
+      });
+    }
+  };
+
+  const orderedChecklist = React.useMemo(() => {
+    const rawOrder: string[] = form?.rxSectionOrder || [];
+    const itemMap = new Map(PRINT_SECTIONS_CHECKLIST.map((item) => [item.key, item]));
+    const result: ChecklistItem[] = [];
+    for (const key of rawOrder) {
+      if (key === 'procedure') continue;
+      const item = itemMap.get(key);
+      if (item) {
+        result.push(item);
+        itemMap.delete(key);
+      }
+    }
+    // Append any remaining items
+    itemMap.forEach((item) => result.push(item));
+    return result;
+  }, [form?.rxSectionOrder]);
 
   if (!isOpen) return null;
 
@@ -69,7 +133,7 @@ export default function PrescriptionPrintModal({
 
   const handleSelectAll = () => {
     const updated: Record<string, boolean> = {};
-    PRINT_SECTIONS_CHECKLIST.forEach((s) => {
+    orderedChecklist.forEach((s) => {
       updated[s.key] = true;
     });
     setEnabledSections(updated);
@@ -77,7 +141,7 @@ export default function PrescriptionPrintModal({
 
   const handleMedicinesOnly = () => {
     const updated: Record<string, boolean> = {};
-    PRINT_SECTIONS_CHECKLIST.forEach((s) => {
+    orderedChecklist.forEach((s) => {
       updated[s.key] = s.key === 'medicines' || s.key === 'signature';
     });
     setEnabledSections(updated);
@@ -122,7 +186,7 @@ export default function PrescriptionPrintModal({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600" />
-                  Sections to Print ({selectedCount}/{PRINT_SECTIONS_CHECKLIST.length})
+                  Sections to Print ({selectedCount}/{orderedChecklist.length})
                 </span>
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <button
@@ -156,7 +220,7 @@ export default function PrescriptionPrintModal({
 
             {/* Scrollable Checklist Area */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-2">
-              {PRINT_SECTIONS_CHECKLIST.map((item) => {
+              {orderedChecklist.map((item) => {
                 const isChecked = enabledSections[item.key] !== false;
                 return (
                   <label
@@ -198,14 +262,30 @@ export default function PrescriptionPrintModal({
 
             {/* Sticky Bottom Actions Footer */}
             <div className="p-3 sm:p-4 border-t border-slate-200 bg-white shadow-lg shrink-0 space-y-2">
-              <button
-                type="button"
-                onClick={() => onConfirmPrint(enabledSections)}
-                className="w-full py-2.5 px-4 bg-[#7B1828] hover:bg-[#621320] active:scale-[0.99] text-white font-black rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Prescription Now ({selectedCount} Sections)</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onConfirmPrint(enabledSections)}
+                  className="flex-1 py-2.5 px-3 sm:px-4 bg-[#7B1828] hover:bg-[#621320] active:scale-[0.99] text-white font-black rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Prescription ({selectedCount})</span>
+                </button>
+                {form?.handleOpenEmailModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      form.handleOpenEmailModal();
+                    }}
+                    className="py-2.5 px-3.5 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    title="Send prescription via email to patient"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Email Rx</span>
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={onClose}
@@ -259,6 +339,10 @@ export default function PrescriptionPrintModal({
                   spo2Val={form.spo2Val}
                   tempVal={form.tempVal}
                   bmiVal={form.bmiVal}
+                  lmpDate={form.lmpDate}
+                  eddDate={form.eddDate}
+                  gestationalWeeks={form.gestationalWeeks}
+                  gestationalDays={form.gestationalDays}
                   rxSectionOrder={form.rxSectionOrder}
                   enabledSections={enabledSections}
                   isModalPreview={true}

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { paymentTransactionService, PaymentTransaction } from "@/services/payment-transactions";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Receipt, Calendar, CreditCard } from "lucide-react";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import {
   AlertDialog,
@@ -83,110 +83,130 @@ export default function PaymentHistory({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-    }).format(amount);
+    return `₹${Number(amount || 0).toLocaleString("en-IN")}`;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    if (!dateString) return "";
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
   };
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Payment History</CardTitle>
-              <CardDescription>Track all payments made for this bill</CardDescription>
-            </div>
-            {safeBalanceAmount > 0 && (
-              <Button onClick={onAddPaymentClick} size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Payment
-              </Button>
-            )}
+      <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-4 space-y-3">
+        {/* Header Strip */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/80">
+          <div className="flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-teal-700" />
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+              Installment Ledger ({payments.length})
+            </span>
           </div>
-        </CardHeader>
-        <CardContent>
-          {/* Payment Summary */}
-          <div className="mb-6 grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold">{formatCurrency(totalAmount)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Paid</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(paidAmount)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Balance</p>
-              <p className="text-2xl font-bold text-orange-600">{formatCurrency(safeBalanceAmount)}</p>
-            </div>
-          </div>
+          {safeBalanceAmount > 0 && onAddPaymentClick && (
+            <Button
+              onClick={onAddPaymentClick}
+              size="sm"
+              className="h-7 text-xs bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-lg px-2.5 shadow-2xs cursor-pointer flex items-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Record Installment</span>
+            </Button>
+          )}
+        </div>
 
-          {/* Payment Transactions */}
-          <div className="space-y-3">
-            <h3 className="font-semibold">Transactions ({payments.length})</h3>
-            
-            {loading ? (
-              <p className="text-center text-sm text-muted-foreground">Loading payments...</p>
-            ) : payments.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground">No payments recorded yet</p>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <p className="font-semibold">{formatCurrency(Number(payment.amount))}</p>
-                        <span className="text-xs text-muted-foreground">•</span>
-                        <p className="text-sm text-muted-foreground">{payment.payment_method}</p>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatDate(payment.payment_date)}
-                        {payment.notes && ` • ${payment.notes}`}
-                      </p>
-                    </div>
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => confirmDelete(payment.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Ledger Breakdown Cards */}
+        <div className="grid grid-cols-3 gap-2 text-center text-xs bg-white rounded-lg p-2.5 border border-slate-200/60 shadow-2xs">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Bill</span>
+            <span className="font-bold text-slate-800">{formatCurrency(totalAmount)}</span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="border-x border-slate-100">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Paid</span>
+            <span className="font-extrabold text-emerald-700">{formatCurrency(paidAmount)}</span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Remaining Due</span>
+            <span className={`font-extrabold ${safeBalanceAmount > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+              {formatCurrency(safeBalanceAmount)}
+            </span>
+          </div>
+        </div>
+
+        {/* Transactions List */}
+        <div className="space-y-2">
+          {loading ? (
+            <p className="text-center text-xs text-slate-400 py-3">Loading installment records...</p>
+          ) : payments.length === 0 ? (
+            <p className="text-center text-xs text-slate-400 py-3 italic">
+              No partial installment records logged for this bill.
+            </p>
+          ) : (
+            payments.map((payment, idx) => (
+              <div
+                key={payment.id || idx}
+                className="flex items-center justify-between bg-white border border-slate-200/70 rounded-xl p-3 hover:border-teal-300 transition shadow-2xs"
+              >
+                <div className="flex-1 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
+                    #{payments.length - idx}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-emerald-800 text-sm">
+                        {formatCurrency(Number(payment.amount))}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                        {payment.payment_method || "Cash"}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3 text-slate-400" />
+                      <span>{formatDate(payment.payment_date)}</span>
+                      {payment.notes && <span className="text-slate-400">• {payment.notes}</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => confirmDelete(payment.id)}
+                    className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                    title="Delete Payment Entry"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Payment?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the payment record and update the bill balance. This action cannot be undone.
+            <AlertDialogTitle className="text-base font-bold">Delete Payment Record?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This will remove this installment entry from the ledger.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogCancel className="rounded-xl text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

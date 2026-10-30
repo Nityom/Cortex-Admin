@@ -36,6 +36,9 @@ import {
   DEFAULT_RX_SECTION_ORDER,
   PrescriptionSectionKey,
 } from '@/components/prescription/PrescriptionSectionsContainer';
+import { PrescriptionEmailModalData } from '@/components/prescription/PrescriptionEmailModal';
+import { updateBill } from '@/services/bills';
+import { paymentTransactionService } from '@/services/payment-transactions';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -45,6 +48,7 @@ const convexClient = new ConvexHttpClient(convexUrl);
 
 export interface FormData {
   patientName: string;
+  email?: string;
   age: string;
   sex: string;
   phoneNumber: string;
@@ -56,6 +60,7 @@ export interface FormData {
   advice: string;
   followupDate: string;
   reference_number?: string;
+  token?: string;
   bp?: string;
   spo2?: string;
   height?: string;
@@ -88,7 +93,12 @@ export function usePrescriptionForm() {
   const [rxSectionOrder, setRxSectionOrder] = useState<PrescriptionSectionKey[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cortex_rx_sections_order');
+        // Clear old stale storage keys so users automatically get the updated default clinical sequence
+        localStorage.removeItem('cortex_rx_sections_order');
+        localStorage.removeItem('cortex_rx_sections_order_v2');
+        localStorage.removeItem('cortex_rx_sections_order_v3');
+
+        const saved = localStorage.getItem('cortex_rx_sections_order_v4');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -105,8 +115,84 @@ export function usePrescriptionForm() {
     return DEFAULT_RX_SECTION_ORDER;
   });
 
+  const resetSectionOrder = useCallback(() => {
+    setRxSectionOrder(DEFAULT_RX_SECTION_ORDER);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('cortex_rx_sections_order_v4');
+        localStorage.removeItem('cortex_rx_sections_order');
+      } catch {}
+    }
+  }, []);
+
+  // Remembered print section checkboxes (persisted to device localStorage)
+  const [enabledPrintSections, setEnabledPrintSections] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cortex_rx_print_enabled_sections');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            return {
+              vitals: true,
+              complaints: true,
+              diagnosis: true,
+              history: true,
+              findings: true,
+              drawing_board: true,
+              medicines: true,
+              clinical_notes: true,
+              next_visit: true,
+              signature: true,
+              ...parsed,
+            };
+          }
+        }
+      } catch {}
+    }
+    return {
+      vitals: true,
+      complaints: true,
+      diagnosis: true,
+      history: true,
+      findings: true,
+      drawing_board: true,
+      medicines: true,
+      clinical_notes: true,
+      next_visit: true,
+      signature: true,
+    };
+  });
+
+  const saveEnabledPrintSections = useCallback(
+    (
+      updaterOrVal:
+        | Record<string, boolean>
+        | ((prev: Record<string, boolean>) => Record<string, boolean>)
+    ) => {
+      setEnabledPrintSections((prev) => {
+        const next =
+          typeof updaterOrVal === 'function' ? updaterOrVal(prev) : updaterOrVal;
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(
+              'cortex_rx_print_enabled_sections',
+              JSON.stringify(next)
+            );
+          } catch {}
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   // Print Modal with section checkboxes and live preview
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // Email Prescription Modal State
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailSuccessPrompt, setEmailSuccessPrompt] = useState(false);
 
   // Active top navigation tab ('1st Visit' vs 'View Past')
   const [activeTab, setActiveTab] = useState<'1st Visit' | 'View Past'>('1st Visit');
@@ -115,6 +201,7 @@ export function usePrescriptionForm() {
 
   const [formData, setFormData] = useState<FormData>({
     patientName: '',
+    email: '',
     age: '',
     sex: 'Male',
     phoneNumber: '',
@@ -181,6 +268,40 @@ export function usePrescriptionForm() {
   useEffect(() => {
     if (displayBmi) setBmiVal(displayBmi);
   }, [displayBmi]);
+
+  // Auto-calculate EDD (Naegele's rule: LMP + 280 days) & Gestational Age (from LMP to visit date)
+  useEffect(() => {
+    if (!lmpDate) {
+      return;
+    }
+    try {
+      const lmp = new Date(lmpDate);
+      if (isNaN(lmp.getTime())) return;
+
+      // EDD = LMP + 280 days (40 weeks)
+      const edd = new Date(lmp.getTime() + 280 * 24 * 60 * 60 * 1000);
+      const yyyy = edd.getFullYear();
+      const mm = String(edd.getMonth() + 1).padStart(2, '0');
+      const dd = String(edd.getDate()).padStart(2, '0');
+      setEddDate(`${yyyy}-${mm}-${dd}`);
+
+      // Gestational Age = difference from LMP to visit date (or today)
+      const visitDate = formData.date ? new Date(formData.date) : new Date();
+      const diffMs = visitDate.getTime() - lmp.getTime();
+      const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+      if (diffDays >= 0) {
+        const weeks = Math.floor(diffDays / 7);
+        const days = diffDays % 7;
+        setGestationalWeeks(String(weeks));
+        setGestationalDays(String(days));
+      } else {
+        setGestationalWeeks('');
+        setGestationalDays('');
+      }
+    } catch (err) {
+      console.warn('Error calculating EDD / GA:', err);
+    }
+  }, [lmpDate, formData.date]);
 
   // Diagnosis State
   const [diagnosesList, setDiagnosesList] = useState<any[]>([]);
@@ -352,6 +473,13 @@ export function usePrescriptionForm() {
       if (v.weight) setWeightVal(v.weight);
       if (v.height) setHeightVal(v.height);
       if (v.temperature) setTempVal(v.temperature);
+      if (v.lmp) setLmpDate(v.lmp);
+      if (v.edd) setEddDate(v.edd);
+      if (v.gestational_age) {
+        const parts = String(v.gestational_age).split(' ');
+        if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
+        if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
+      }
     }
 
     setIsNewPatient(false);
@@ -643,6 +771,80 @@ export function usePrescriptionForm() {
     }
   };
 
+  const getEmailModalData = useCallback((): PrescriptionEmailModalData => {
+    const allComplaints = complaintsList.length > 0
+      ? complaintsList.map((c) => c.complaint).filter(Boolean).join(', ')
+      : formData.cc;
+    const allDiagnoses = diagnosesList.length > 0
+      ? diagnosesList.map((d) => d.diagnosis).filter(Boolean).join(', ')
+      : formData.de;
+    const allAdvice = [formData.advice, procedureAdvice].filter(Boolean).join('\n');
+    const allInvestigations = [
+      investigationText || formData.investigation,
+      ...testsRequested.map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
+    ].filter(Boolean).join(', ');
+
+    return {
+      patientName: formData.patientName,
+      phoneNumber: formData.phoneNumber,
+      email: (formData as any).email || '',
+      age: formData.age,
+      gender: formData.sex || (formData as any).gender,
+      referenceNumber: formData.reference_number || patientReferenceNumber,
+      doctorName: selectedDoctorName,
+      prescriptionDate: formData.date,
+      chiefComplaint: allComplaints,
+      diagnosis: allDiagnoses,
+      medicalHistory: formData.mh,
+      findings: findingsText || (formData as any).findings,
+      advice: allAdvice,
+      dietExercise: dietExercise,
+      investigation: allInvestigations,
+      followupDate: formData.followupDate,
+      medicines: medicines,
+      vitals: {
+        bp: bpSystolic && bpDiastolic ? `${bpSystolic}/${bpDiastolic}` : (bpSystolic || formData.bp || ''),
+        pulse: pulseVal,
+        spo2: spo2Val,
+        height: heightVal,
+        weight: weightVal,
+        temp: tempVal,
+        bmi: displayBmi || bmiVal,
+        lmp: lmpDate,
+        edd: eddDate,
+        gestational_age: gestationalWeeks ? `${gestationalWeeks} weeks${gestationalDays ? ` ${gestationalDays} days` : ''}` : '',
+      },
+    };
+  }, [
+    formData,
+    patientReferenceNumber,
+    selectedDoctorName,
+    complaintsList,
+    diagnosesList,
+    procedureAdvice,
+    investigationText,
+    testsRequested,
+    dietExercise,
+    medicines,
+    bpSystolic,
+    bpDiastolic,
+    pulseVal,
+    spo2Val,
+    heightVal,
+    weightVal,
+    tempVal,
+    displayBmi,
+    bmiVal,
+    lmpDate,
+    eddDate,
+    gestationalWeeks,
+    gestationalDays,
+  ]);
+
+  const handleOpenEmailModal = () => {
+    setIsEmailModalOpen(true);
+  };
+
   // Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -651,6 +853,7 @@ export function usePrescriptionForm() {
       const saved = await savePrescriptionToDatabase();
       if (saved) {
         showTemplateToast('Prescription saved successfully!');
+        setEmailSuccessPrompt(true);
       }
     } finally {
       setLoading(false);
@@ -664,6 +867,10 @@ export function usePrescriptionForm() {
 
   // Execute Final Prescription Print (called from Print Confirmation Modal)
   const executePrintPrescription = async (enabledSections?: Record<string, boolean>) => {
+    const finalEnabledSections = enabledSections || enabledPrintSections;
+    if (finalEnabledSections) {
+      saveEnabledPrintSections(finalEnabledSections);
+    }
     let currentId = prescriptionId;
     const docObj = availableDoctors.find(
       (d) => d.name.toLowerCase() === (selectedDoctorName || '').toLowerCase()
@@ -690,6 +897,7 @@ export function usePrescriptionForm() {
       age: formData.age,
       sex: formData.sex,
       reference_number: formData.reference_number || patientReferenceNumber || '',
+      token: formData.token,
       prescription_date: formData.date || new Date().toISOString().slice(0, 10),
       chief_complaint: allComplaints,
       medical_history: formData.mh,
@@ -717,9 +925,12 @@ export function usePrescriptionForm() {
         temperature: tempVal,
         bmi: displayBmi || bmiVal,
         waist_hip: waistHipVal,
+        lmp: lmpDate,
+        edd: eddDate,
+        gestational_age: gestationalWeeks ? `${gestationalWeeks} weeks${gestationalDays ? ` ${gestationalDays} days` : ''}` : '',
       },
       section_order: rxSectionOrder,
-      enabled_sections: enabledSections || {},
+      enabled_sections: finalEnabledSections || {},
       // Note: Doctor notes (drNotes) and treatment done (treatmentItems) are intentionally excluded from prescription print
     };
 
@@ -739,8 +950,46 @@ export function usePrescriptionForm() {
     window.open(printUrl, '_blank');
   };
 
-  const handlePrintBill = () => {
+  const handlePrintBill = async () => {
     if (!currentBill) return;
+
+    // Save payment details to the bill if payment amount was entered
+    if (currentBill.id && paymentDetails.amountPaid > 0) {
+      try {
+        const origTotal = Number(currentBill.total_amount) || 0;
+        const discAmt = Math.round((origTotal * (paymentDetails.discountPercent || 0)) / 100);
+        const payable = Math.max(0, origTotal - discAmt);
+        const paid = Math.min(payable, Number(paymentDetails.amountPaid) || 0);
+        const balance = Math.max(0, payable - paid);
+        const status = paid >= payable ? 'PAID' : paid > 0 ? 'PARTIAL' : 'PENDING';
+
+        await updateBill(currentBill.id, {
+          paid_amount: paid,
+          balance_amount: balance,
+          payment_status: status,
+          discount_percent: paymentDetails.discountPercent,
+          discount_amount: discAmt,
+        });
+
+        // Record payment transaction
+        try {
+          await paymentTransactionService.create({
+            bill_id: currentBill.id,
+            patient_id: currentBill.patient_id || 'PATIENT',
+            amount: paid,
+            payment_method: paymentDetails.paymentMethod || 'Cash',
+            payment_date: new Date().toISOString().split('T')[0],
+            notes: `Prescription payment collected: ${paymentDetails.paymentMethod || 'Cash'}`,
+          });
+        } catch (e) {
+          console.warn('Payment transaction log warning:', e);
+        }
+      } catch (err) {
+        console.error('Failed to update bill payment status:', err);
+      }
+    }
+
+    setShowPaymentModal(false);
     const printUrl = `/print-bill?id=${encodeURIComponent(currentBill.id || '')}&prescriptionId=${encodeURIComponent(prescriptionId || '')}`;
     window.open(printUrl, '_blank');
   };
@@ -765,18 +1014,22 @@ export function usePrescriptionForm() {
         const qId = params.get('id') || params.get('prescriptionId');
         const qName = params.get('patientName') || params.get('name');
         const qPhone = params.get('phoneNumber') || params.get('phone');
+        const qEmail = params.get('email');
         const qAge = params.get('age');
         const qSex = params.get('sex');
         const qTmplId = params.get('templateId');
         const qOpdId = params.get('opdVisitId') || params.get('visitId');
+        const qDoctor = params.get('doctorName') || params.get('doctor') || params.get('doc');
 
         if (qOpdId) setOpdVisitId(qOpdId);
+        if (qDoctor) setSelectedDoctorName(qDoctor);
 
         if (qId) {
           setIsEditMode(true);
           setPrescriptionId(qId);
           const existing = await getPrescriptionById(qId);
           if (existing) {
+            if (existing.doctor_name) setSelectedDoctorName(existing.doctor_name);
             setFormData({
               patientName: existing.patient_name || '',
               age: existing.age ? String(existing.age) : '',
@@ -804,23 +1057,57 @@ export function usePrescriptionForm() {
               if (v.height) setHeightVal(v.height);
               if (v.spo2) setSpo2Val(v.spo2);
               if (v.temperature) setTempVal(v.temperature);
+              if (v.lmp) setLmpDate(v.lmp);
+              if (v.edd) setEddDate(v.edd);
+              if (v.gestational_age) {
+                const parts = String(v.gestational_age).split(' ');
+                if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
+                if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
+              }
             }
           }
         } else {
-          if (qName || qPhone || qAge || qSex) {
+          const qToken = params.get('token') || params.get('tokenNumber');
+          if (qName || qPhone || qAge || qSex || qToken || qEmail) {
             setFormData((prev) => ({
               ...prev,
               patientName: qName || prev.patientName,
               phoneNumber: qPhone || prev.phoneNumber,
+              email: qEmail || (prev as any).email || '',
               age: qAge || prev.age,
               sex: qSex || prev.sex,
+              token: qToken || prev.token,
             }));
           }
+          const qBp = params.get('bp');
+          if (qBp) {
+            const parts = qBp.split('/');
+            if (parts.length === 2) {
+              setBpSystolic(parts[0].trim());
+              setBpDiastolic(parts[1].trim());
+            } else {
+              setBpSystolic(qBp.trim());
+            }
+          }
+          const qPulse = params.get('pulse');
+          if (qPulse) setPulseVal(qPulse);
+          const qSpo2 = params.get('spo2');
+          if (qSpo2) setSpo2Val(qSpo2);
+          const qHeight = params.get('height');
+          if (qHeight) setHeightVal(qHeight);
+          const qWeight = params.get('weight');
+          if (qWeight) setWeightVal(qWeight);
+          const qLmp = params.get('lmp');
+          if (qLmp) setLmpDate(qLmp);
+
           if (qPhone && qPhone.length === 10) {
             const existingPatient = await getPatientByPhoneNumber(qPhone);
             if (existingPatient) {
               setIsNewPatient(false);
               setConsultationCharge(200);
+              if (existingPatient.email) {
+                setFormData((prev) => ({ ...prev, email: existingPatient.email }));
+              }
             }
           }
           if (qTmplId) {
@@ -984,9 +1271,21 @@ export function usePrescriptionForm() {
     // Section Layout & Print Confirmation Modal
     rxSectionOrder,
     setRxSectionOrder,
+    resetSectionOrder,
+    enabledPrintSections,
+    setEnabledPrintSections,
+    saveEnabledPrintSections,
     isPrintModalOpen,
     setIsPrintModalOpen,
     executePrintPrescription,
+
+    // Email Prescription Modal
+    isEmailModalOpen,
+    setIsEmailModalOpen,
+    emailSuccessPrompt,
+    setEmailSuccessPrompt,
+    handleOpenEmailModal,
+    getEmailModalData,
 
     // Actions & Handlers
     handleSubmit,

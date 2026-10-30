@@ -38,29 +38,29 @@ export type PrescriptionSectionKey =
 
 export const DEFAULT_RX_SECTION_ORDER: PrescriptionSectionKey[] = [
   'vitals',
-  'history',
   'complaints',
-  'findings',
   'diagnosis',
-  'procedure',
+  'history',
+  'findings',
+  'drawing_board',
   'medicines',
   'clinical_notes',
   'next_visit',
-  'drawing_board',
+  'procedure',
   'signature',
 ];
 
 export const RX_SECTION_TITLES: Record<PrescriptionSectionKey, string> = {
   vitals: 'Vitals Sequentially Arranged',
-  history: 'Medical & Surgical History',
   complaints: 'Chief Complaints',
-  findings: 'Clinical Findings & Examination',
   diagnosis: 'Diagnosis / Conditions',
-  procedure: 'Procedure Done / Treatment Done',
+  history: 'Medical & Surgical History',
+  findings: 'Clinical Findings & Examination',
+  drawing_board: 'Clinical Sketch / Drawing Board',
   medicines: 'Prescribed Medicines Table',
-  clinical_notes: 'Clinical Notes, Advice & Investigations',
-  next_visit: 'Follow-Up / Next Visit',
-  drawing_board: 'Drawing Board & Clinical Sketch',
+  clinical_notes: 'Clinical Advice, Diet & Investigations',
+  next_visit: 'Follow-Up / Next Visit Date',
+  procedure: 'Procedure Done / Treatment Done',
   signature: 'Doctor Signature & Print / Save',
 };
 
@@ -215,16 +215,26 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
     updated.splice(toIdx, 0, removed);
     setRxSectionOrder(updated);
     try {
-      localStorage.setItem('cortex_rx_sections_order', JSON.stringify(updated));
+      localStorage.setItem('cortex_rx_sections_order_v4', JSON.stringify(updated));
     } catch {}
   };
 
   const handleResetSectionOrder = () => {
-    setRxSectionOrder(DEFAULT_RX_SECTION_ORDER);
+    if (form.resetSectionOrder) {
+      form.resetSectionOrder();
+    } else {
+      setRxSectionOrder(DEFAULT_RX_SECTION_ORDER);
+    }
     try {
+      localStorage.removeItem('cortex_rx_sections_order_v4');
+      localStorage.removeItem('cortex_rx_sections_order_v3');
       localStorage.removeItem('cortex_rx_sections_order');
     } catch {}
   };
+
+  const isGynae = (form.selectedDoctorName || '').toLowerCase().includes('shilpa') ||
+                  (form.selectedDoctorName || '').toLowerCase().includes('shillpa') ||
+                  (form.selectedDoctorName || '').toLowerCase().includes('gynae');
 
   const renderSectionContent = (sectionKey: PrescriptionSectionKey) => {
     switch (sectionKey) {
@@ -256,6 +266,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             setGestationalWeeks={form.setGestationalWeeks}
             gestationalDays={form.gestationalDays}
             setGestationalDays={form.setGestationalDays}
+            isGynae={isGynae}
           />
         );
       case 'history':
@@ -412,6 +423,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             saving={form.saving}
             isEditMode={form.isEditMode}
             handlePrintablePrescription={form.handlePrintablePrescription}
+            onEmailPrescription={form.handleOpenEmailModal}
           />
         );
       default:
@@ -422,22 +434,22 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
   return (
     <div ref={containerRef} className="space-y-4">
       {/* Reorderable Clinical Stack Header with Reset */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-xs text-slate-600">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-xs text-slate-600">
         <div className="flex items-center gap-2 font-semibold">
-          <GripVertical className="w-4 h-4 text-teal-600" />
+          <GripVertical className="w-4 h-4 text-teal-600 shrink-0" />
           <span className="text-slate-800 font-bold">Prescription Section Layout</span>
-          <span className="text-[11px] text-slate-400 font-normal hidden sm:inline">
-            (Click & drag the handle icon to rearrange sections)
+          <span className="text-[11px] text-slate-500 font-normal hidden lg:inline">
+            (1. Vitals • 2. Complaints • 3. Diagnosis • 4. History • 5. Exam Findings • 6. Drawing • 7. Medicines • 8. Advice & Tests • 9. Next Visit • 10. Signature)
           </span>
         </div>
         <button
           type="button"
           onClick={handleResetSectionOrder}
-          className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 hover:text-teal-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+          className="flex items-center gap-1.5 text-[11px] font-bold text-teal-700 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
           title="Reset prescription sections to standard default order"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Order</span>
+          <span>Reset to Default Sequence</span>
         </button>
       </div>
 

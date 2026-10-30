@@ -275,6 +275,37 @@ export default function OPDManagementPage() {
               if (uhid !== item.uhid) changed = true;
               return { ...item, uhid };
             });
+
+            // 2. Repair and deduplicate tokens per day (group by date, sort chronologically, guarantee unique sequential tokens)
+            const dateGroups = new Map<string, any[]>();
+            updated.forEach((item: any) => {
+              const d = getItemLocalDate(item.registeredAt) || "nodate";
+              if (!dateGroups.has(d)) dateGroups.set(d, []);
+              dateGroups.get(d)!.push(item);
+            });
+
+            dateGroups.forEach((items) => {
+              const tokenSet = new Set<string>();
+              let hasDuplicates = false;
+              for (const it of items) {
+                if (tokenSet.has(it.token)) {
+                  hasDuplicates = true;
+                  break;
+                }
+                tokenSet.add(it.token);
+              }
+              if (hasDuplicates) {
+                // Sort chronologically (earliest first)
+                items.sort((a, b) => new Date(a.registeredAt || 0).getTime() - new Date(b.registeredAt || 0).getTime());
+                items.forEach((it, idx) => {
+                  const expectedToken = String(idx + 1).padStart(2, "0");
+                  if (it.token !== expectedToken) {
+                    it.token = expectedToken;
+                    changed = true;
+                  }
+                });
+              }
+            });
             setQueue(updated);
             if (changed) {
               try {
@@ -461,10 +492,23 @@ export default function OPDManagementPage() {
         uhid = await getNextPatientReference();
       }
 
-      // 2. Next Token number for the day
+      // 2. Next Token number for the day (guaranteed unique sequential)
       const today = getTodayString();
-      const todayCount = queue.filter((q) => getItemLocalDate(q.registeredAt) === today).length;
-      const tokenNumber = String(todayCount + 1).padStart(2, "0");
+      let freshQueue = queue;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) freshQueue = parsed;
+        }
+      } catch {}
+
+      const todayItems = freshQueue.filter((q) => getItemLocalDate(q.registeredAt) === today);
+      const existingTokens = todayItems
+        .map((q) => parseInt(q.token, 10))
+        .filter((n) => !isNaN(n) && n > 0);
+      const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
+      const tokenNumber = String(nextToken).padStart(2, "0");
 
       const newItem: OPDQueueItem = {
         id: `opd_${Date.now()}`,
@@ -592,8 +636,21 @@ export default function OPDManagementPage() {
         uhid = await getNextPatientReference();
       }
 
-      const todayCount = queue.filter((q) => getItemLocalDate(q.registeredAt) === today).length;
-      const tokenNumber = String(todayCount + 1).padStart(2, "0");
+      let freshQueue = queue;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) freshQueue = parsed;
+        }
+      } catch {}
+
+      const todayItems = freshQueue.filter((q) => getItemLocalDate(q.registeredAt) === today);
+      const existingTokens = todayItems
+        .map((q) => parseInt(q.token, 10))
+        .filter((n) => !isNaN(n) && n > 0);
+      const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
+      const tokenNumber = String(nextToken).padStart(2, "0");
 
       const docName = appt.doctor_name || DOCTORS[0].name;
       const dept = docName.toLowerCase().includes("shillpa")
@@ -670,6 +727,10 @@ export default function OPDManagementPage() {
 
     if (item.uhid) {
       params.append("reference_number", item.uhid);
+    }
+
+    if (item.token) {
+      params.append("token", item.token);
     }
 
     if (item.id) {
