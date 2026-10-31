@@ -1,17 +1,25 @@
+# Disable content negotiation (MultiViews) so Apache doesn't serve .txt instead of .html
+Options -MultiViews
+DirectoryIndex index.html
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Serve existing files and folders directly
+  # Ensure directory URLs have a trailing slash
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_URI} !/$
+  RewriteRule ^(.*)$ $1/ [L,R=301]
+
+  # Serve existing files and directories directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # If route matches an .html file (e.g. /admin/opd -> /admin/opd.html)
-  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
-  RewriteRule ^(.*)$ $1.html [L]
+  # If route has a matching directory with index.html
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.*)$ $1/index.html [L]
 
-  # Fallback to index.html
+  # Fallback to root index.html
   RewriteRule ^ index.html [L]
 </IfModule>
-

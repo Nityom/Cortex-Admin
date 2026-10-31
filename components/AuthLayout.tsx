@@ -55,7 +55,7 @@ export default function AuthLayout({
               </span>
               <div className="relative min-w-0">
                 <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#8adcc2]">Designed around care</p>
-                <p className="mt-2 text-lg font-semibold tracking-tight text-white">Svasth HMS</p>
+                <p className="mt-2 text-lg font-semibold tracking-tight text-white">Svaasth HMS</p>
                 <p className="mt-1 max-w-[190px] text-xs leading-5 text-white/55">A considered workspace for Cortex Hospital.</p>
               </div>
               <ArrowUpRight className="absolute right-5 top-5 h-4 w-4 text-white/35" />

@@ -30,13 +30,36 @@ jobs:
           NEXT_PUBLIC_CONVEX_SITE_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_SITE_URL || 'https://jovial-sheep-76.convex.site' }}
         run: npm run build
 
+      - name: 🔧 Normalize FTP Settings
+        id: ftp
+        run: |
+          # 1. Clean Server Address (strip ftp:// or http:// prefix and any trailing slashes)
+          RAW_SERVER="${{ secrets.HOSTINGER_FTP_SERVER }}"
+          CLEAN_SERVER=$(echo "$RAW_SERVER" | sed -e 's|^[a-zA-Z]*://||' -e 's|/*$||')
+          if [ -z "$CLEAN_SERVER" ]; then
+            CLEAN_SERVER="82.25.120.113"
+          fi
+          echo "server=$CLEAN_SERVER" >> "$GITHUB_OUTPUT"
+
+          # 2. Clean Server Directory
+          # For Hostinger subdomain FTP accounts (e.g. u132569557.admin.cortexhospital.com),
+          # Hostinger already roots the FTP session directly inside public_html.
+          # Therefore, uploading to ./ places files right where they belong.
+          RAW_DIR="${{ secrets.HOSTINGER_SERVER_DIR }}"
+          if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "public_html" ] || [ "$RAW_DIR" = "public_html/" ]; then
+            CLEAN_DIR="./"
+          else
+            # Ensure it ends with /
+            CLEAN_DIR="${RAW_DIR%/}/"
+          fi
+          echo "dir=$CLEAN_DIR" >> "$GITHUB_OUTPUT"
+
       - name: 🚀 Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          server: ${{ steps.ftp.outputs.server }}
           username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          server-dir: ${{ secrets.HOSTINGER_SERVER_DIR || 'public_html/' }}
+          server-dir: ${{ steps.ftp.outputs.dir }}
           local-dir: ./out/
           dangerous-clean-slate: false
-
