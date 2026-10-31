@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as bills from "../bills.js";
 import type * as consumables from "../consumables.js";
 import type * as doctors from "../doctors.js";
+import type * as email from "../email.js";
 import type * as inventory from "../inventory.js";
 import type * as inventory_sales from "../inventory_sales.js";
 import type * as investigations from "../investigations.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   bills: typeof bills;
   consumables: typeof consumables;
   doctors: typeof doctors;
+  email: typeof email;
   inventory: typeof inventory;
   inventory_sales: typeof inventory_sales;
   investigations: typeof investigations;

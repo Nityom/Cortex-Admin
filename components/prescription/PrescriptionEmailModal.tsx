@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import { Mail, Send, X, CheckCircle2, AlertCircle, Loader2, FileText, User } from 'lucide-react';
+import { useAction } from 'convex/react';
+// @ts-ignore
+import { api } from '@/convex/_generated/api';
 
 export interface PrescriptionEmailModalData {
   patientName: string;
@@ -43,6 +46,8 @@ export default function PrescriptionEmailModal({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const sendPrescriptionEmailAction = useAction(api.email.sendPrescriptionEmail);
+
   // Auto populate email when data changes
   React.useEffect(() => {
     if (data?.email) {
@@ -72,36 +77,30 @@ export default function PrescriptionEmailModal({
     setSuccessMessage(null);
 
     try {
-      const response = await fetch('/api/prescriptions/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipientEmail: recipientEmail.trim(),
-          patientName: data.patientName,
-          age: data.age,
-          gender: data.gender,
-          phoneNumber: data.phoneNumber,
-          referenceNumber: data.referenceNumber,
-          doctorName: doctorName,
-          prescriptionDate: data.prescriptionDate,
-          chiefComplaint: data.chiefComplaint,
-          diagnosis: data.diagnosis,
-          medicalHistory: data.medicalHistory,
-          findings: data.findings,
-          vitals: data.vitals,
-          medicines: data.medicines,
-          advice: data.advice,
-          dietExercise: data.dietExercise,
-          investigation: data.investigation,
-          followupDate: data.followupDate,
-          pdfBase64: data.pdfBase64,
-        }),
+      const resData = await sendPrescriptionEmailAction({
+        recipientEmail: recipientEmail.trim(),
+        patientName: data.patientName,
+        age: data.age,
+        gender: data.gender,
+        phoneNumber: data.phoneNumber,
+        referenceNumber: data.referenceNumber,
+        doctorName: doctorName,
+        prescriptionDate: data.prescriptionDate,
+        chiefComplaint: data.chiefComplaint,
+        diagnosis: data.diagnosis,
+        medicalHistory: data.medicalHistory,
+        findings: data.findings,
+        vitals: data.vitals,
+        medicines: data.medicines,
+        advice: data.advice,
+        dietExercise: data.dietExercise,
+        investigation: data.investigation,
+        followupDate: data.followupDate,
+        pdfBase64: data.pdfBase64,
       });
 
-      const resData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(resData.error || 'Failed to send email');
+      if (!resData?.success) {
+        throw new Error((resData as any)?.error || 'Failed to send email');
       }
 
       setSuccessMessage(resData.message || `Prescription sent to ${recipientEmail}`);
