@@ -41,21 +41,14 @@ jobs:
           fi
           echo "server=$CLEAN_SERVER" >> "$GITHUB_OUTPUT"
 
-          # 2. Clean Server Directory
-          # For Hostinger subdomain FTP accounts (e.g. u132569557.admin.cortexhospital.com),
-          # Hostinger already roots the FTP session directly inside public_html.
-          # Therefore, uploading to ./ places files right where they belong.
+          # 2. Clean Server Directory (MUST end with /)
+          # For Hostinger subdomain FTP accounts, the root is already public_html, so ./ is the correct target.
           RAW_DIR="${{ secrets.HOSTINGER_SERVER_DIR }}"
-          if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "public_html" ] || [ "$RAW_DIR" = "public_html/" ]; then
-            CLEAN_DIR="."
+          if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "public_html" ] || [ "$RAW_DIR" = "public_html/" ] || [ "$RAW_DIR" = "." ] || [ "$RAW_DIR" = "./" ]; then
+            CLEAN_DIR="./"
           else
-            # Keep FTP paths relative (no leading /) and normalized
             NORMALIZED_DIR=$(echo "$RAW_DIR" | sed -e 's|^/*||' -e 's|/*$||')
-            if [ -z "$NORMALIZED_DIR" ]; then
-              CLEAN_DIR="."
-            else
-              CLEAN_DIR="${NORMALIZED_DIR}/"
-            fi
+            CLEAN_DIR="${NORMALIZED_DIR}/"
           fi
           echo "dir=$CLEAN_DIR" >> "$GITHUB_OUTPUT"
 
@@ -67,4 +60,5 @@ jobs:
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
           server-dir: ${{ steps.ftp.outputs.dir }}
           local-dir: ./out/
+          state-name: .ftp-deploy-sync-state-v2.json
           dangerous-clean-slate: false
