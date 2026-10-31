@@ -41,7 +41,7 @@ jobs:
           fi
           echo "server=$CLEAN_SERVER" >> "$GITHUB_OUTPUT"
 
-          # 2. Clean Server Directory (MUST end with /)
+          # 2. Clean Server Directory
           # For Hostinger subdomain FTP accounts, the root is already public_html, so ./ is the correct target.
           RAW_DIR="${{ secrets.HOSTINGER_SERVER_DIR }}"
           if [ -z "$RAW_DIR" ] || [ "$RAW_DIR" = "public_html" ] || [ "$RAW_DIR" = "public_html/" ] || [ "$RAW_DIR" = "." ] || [ "$RAW_DIR" = "./" ]; then
@@ -52,16 +52,23 @@ jobs:
           fi
           echo "dir=$CLEAN_DIR" >> "$GITHUB_OUTPUT"
 
-      - name: 🚀 Deploy to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ steps.ftp.outputs.server }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          server-dir: ${{ steps.ftp.outputs.dir }}
-          local-dir: ./out/
-          state-name: .ftp-deploy-sync-state-v2.json
-          dangerous-clean-slate: false
-          exclude: |
-            **/*.map
-            **/IMG_09*.png
+      - name: 🚀 Deploy to Hostinger via LFTP
+        env:
+          FTP_HOST: ${{ steps.ftp.outputs.server }}
+          FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          FTP_DIR: ${{ steps.ftp.outputs.dir }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:ssl-allow true;
+            set ftp:passive-mode true;
+            set net:max-retries 10;
+            set net:reconnect-interval-base 2;
+            set net:timeout 60;
+            open ftp://$FTP_USER:$FTP_PASS@$FTP_HOST;
+            mirror --reverse --verbose=1 out/ $FTP_DIR;
+            bye;
+          "
