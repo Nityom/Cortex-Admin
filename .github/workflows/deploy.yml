@@ -62,3 +62,6 @@ jobs:
           local-dir: ./out/
           state-name: .ftp-deploy-sync-state-v2.json
           dangerous-clean-slate: false
+          exclude: |
+            **/*.map
+            **/IMG_09*.png
