@@ -5,6 +5,7 @@ import { ToothData } from '@/components/TeethChart';
 import { createBill, updateBill, getBillByPrescriptionId, getPatientByReferenceNumber } from '@/services/bills';
 import { getPatientByReference } from '@/services/patients';
 import { generateBillPdfBlob, downloadBillPdf, printBillPdf, BillData as ClientBillData } from '@/lib/generate-bill-client';
+import { hospitalConfig } from '@/config/hospital';
 
 
 interface PatientData {
@@ -158,7 +159,7 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
       setGeneratedPdf(false);
       const fullBillData = {
         clinic: {
-          name: "Cortex Hospital",
+          name: hospitalConfig.name,
         },
         patient: {
           ...patientData,
@@ -529,8 +530,8 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
       <div className="grid grid-cols-1 gap-8">
         {/* Clinic Information */}
         <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
-          <div className="flex justify-between items-center">            <div>              <h3 className="text-2xl font-bold text-blue-800">Cortex Hospital</h3>
-            <p className="text-gray-600">Professional Dental Care Services</p>
+          <div className="flex justify-between items-center">            <div>              <h3 className="text-2xl font-bold text-blue-800">{hospitalConfig.name}</h3>
+            <p className="text-gray-600">{hospitalConfig.tagline}</p>
           </div>
             <div className="text-right">
               <p><strong>Bill No:</strong> {billData.billNumber}</p>

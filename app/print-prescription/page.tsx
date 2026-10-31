@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getPrescriptionById } from '@/services/prescription';
 import { doctorService } from '@/services/doctors';
+import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
 
 interface DosageSchedule {
   dosage: string;
@@ -1428,38 +1429,39 @@ function PrintPrescriptionContent() {
               <div className="header-row">
                 <div className="flex items-center">
                   <img
-                    src="/cortex_logo.png"
-                    alt="Cortex Hospital"
+                    src={hospitalConfig.branding.logoUrl}
+                    alt={hospitalConfig.name}
                     className="hospital-logo"
                   />
                 </div>
 
                 <div className="doctor-header-block">
-                  {(resolvedDoctorName || '').toLowerCase().includes('shillpa') ? (
-                    <>
-                      <h1 className="doctor-title-name">Dr. Shillpa Raut</h1>
-                      <div className="doctor-qualifications">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</div>
-                      <div className="doctor-reg">Reg. No. 2004/05/1842</div>
-                      <div className="doctor-diplomate">Consulting Gynecologist &amp; Obstetrician</div>
-                      <div className="doctor-specialty">Maternity, Infertility &amp; Women Care Specialist</div>
-                    </>
-                  ) : (
-                    <>
-                      <h1 className="doctor-title-name">
-                        {resolvedDoctorName || 'Dr. Vipeen Raut'}
-                      </h1>
-                      <div className="doctor-qualifications">
-                        M.B.B.S.,Dip.Ortho.,DNB Ortho
-                      </div>
-                      <div className="doctor-reg">Reg. No. 1692/03/2002</div>
-                      <div className="doctor-diplomate">
-                        Diplomate of National Board (Orthopaedics)
-                      </div>
-                      <div className="doctor-specialty">
-                        Consulting Orthopaedic and Joint Replacement Surgeon
-                      </div>
-                    </>
-                  )}
+                  {(() => {
+                    const activeDoc = getDoctorProfile(resolvedDoctorName);
+                    return (
+                      <>
+                        <h1 className="doctor-title-name">
+                          {activeDoc?.name || resolvedDoctorName || 'Consulting Physician'}
+                        </h1>
+                        <div className="doctor-qualifications">
+                          {activeDoc?.degrees || ''}
+                        </div>
+                        {activeDoc?.registrationNumber && (
+                          <div className="doctor-reg">Reg. No. {activeDoc.registrationNumber}</div>
+                        )}
+                        {activeDoc?.designation && (
+                          <div className="doctor-diplomate">
+                            {activeDoc.designation}
+                          </div>
+                        )}
+                        <div className="doctor-specialty">
+                          {activeDoc?.specialty === 'gynecology'
+                            ? 'Maternity, Infertility & Women Care Specialist'
+                            : activeDoc?.designation || hospitalConfig.tagline}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             ) : null}
@@ -1525,23 +1527,27 @@ function PrintPrescriptionContent() {
           {/* Footer Schedule Banner (Only rendered on plain paper with Header & Footer) */}
           {includeHeaderFooter && (
             <div className="footer-banner-container">
-              <div className="footer-top-pill-row">
-                <span className="clinic-pill">Hip & Knee Joint Clinic</span>
-                <span className="clinic-time">Every Thursday 6 pm to 8 pm</span>
-              </div>
+              {hospitalConfig.schedule.clinicDetails && (
+                <div className="footer-top-pill-row">
+                  <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}</span>
+                  <span className="clinic-time">{hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}</span>
+                </div>
+              )}
 
-              <div className="footer-clinic-title">Orthopaedics Clinic</div>
+              <div className="footer-clinic-title">{hospitalConfig.tagline}</div>
 
               <div className="footer-opd-line">
                 <span className="footer-opd-label">OPD Time : </span>
-                Mon. to Fri. - 10 am to 1 pm & 6 pm to 8 pm | Sat. - 10 am to 1 pm & Evening OPD Closed
+                {hospitalConfig.schedule.opdTimings}
               </div>
 
-              <div className="footer-sunday-line">Sunday OPD Closed</div>
+              {hospitalConfig.schedule.sundayStatus && (
+                <div className="footer-sunday-line">{hospitalConfig.schedule.sundayStatus}</div>
+              )}
 
               <div className="footer-address-line">
-                Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001
-                &nbsp;|&nbsp; Ph. : 07152-255795, Cell : 9373280505
+                {hospitalConfig.address.fullFormatted}
+                &nbsp;|&nbsp; Ph. : {hospitalConfig.contacts.phones.join(', ')}
               </div>
 
               <div className="footer-bottom-bar"></div>
@@ -1549,11 +1555,13 @@ function PrintPrescriptionContent() {
           )}
 
           {/* Centered Powered by Svasth-HMS Line at Bottom */}
-          <div className="footer-hms-branding">
-            <span>Powered by</span>
-            <img src="/Svasth_logo.png" alt="Svasth HMS" />
-            <strong>Svasth-HMS</strong>
-          </div>
+          {hospitalConfig.branding.poweredBySvasth && (
+            <div className="footer-hms-branding">
+              <span>Powered by</span>
+              <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" />
+              <strong>Svasth-HMS</strong>
+            </div>
+          )}
         </div>
       </div>
 

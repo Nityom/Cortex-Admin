@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { hospitalConfig } from "@/config/hospital";
 import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference } from "@/services/patients";
 import { Patient } from "@/types/patient";
 import PatientSearchInput from "@/components/PatientSearchInput";
@@ -912,7 +913,7 @@ export default function OPDManagementPage() {
               <div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">OPD Management Module</h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  Cortex Hospital & Research Centre • Reception & Doctor Day Board
+                  {hospitalConfig.legalName} • Reception &amp; Doctor Day Board
                 </p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Doctor:</span>

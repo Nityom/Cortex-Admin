@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Printer, ArrowLeft } from 'lucide-react';
+import { hospitalConfig } from '@/config/hospital';
 
 interface BillItem {
   id?: number;
@@ -213,15 +214,15 @@ export const PrintableExtractionDues: React.FC<PrintableExtractionDuesProps> = (
           <div className="mt-4 text-center">
             <div className="flex items-center justify-center mb-1">
               <img
-                src="/cortex_logo.png"
-                alt="Cortex Hospital Logo"
+                src={hospitalConfig.branding.logoUrl}
+                alt={`${hospitalConfig.name} Logo`}
                 className="h-14 mr-3 object-contain"
               />
             </div>
             <p className="text-xs text-gray-700 font-medium">
-              Beside Urich Mall, Aarti Square, Mohini Nagar, Nagpur Road, Wardha (M.S) - 442001
+              {hospitalConfig.address.fullFormatted}
             </p>
-            <p className="text-xs text-gray-600 mt-0.5">Mobile: +91 9373280505 &nbsp;</p>
+            <p className="text-xs text-gray-600 mt-0.5">Mobile: +91 {hospitalConfig.contacts.mobile} &nbsp;</p>
           </div>
         </div>
 

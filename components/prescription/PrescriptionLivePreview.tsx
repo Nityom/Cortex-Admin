@@ -3,6 +3,7 @@
 import React from 'react';
 import { MedicineEntry } from '@/services/prescription';
 import { DoctorOption } from './PrescriptionDoctorSignatureCard';
+import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
 
 interface PrescriptionLivePreviewProps {
   formData: {
@@ -597,46 +598,39 @@ export default function PrescriptionLivePreview({
         <div className="flex justify-between items-start pb-3 border-b-2 border-slate-800 gap-4">
           <div className="flex items-center pt-1">
             <img
-              src="/cortex_logo.png"
-              alt="Cortex Hospital"
+              src={hospitalConfig.branding.logoUrl}
+              alt={hospitalConfig.name}
               className="h-16 w-auto object-contain"
             />
           </div>
 
           <div className="text-right">
-            {(selectedDoctorName || '').toLowerCase().includes('shillpa') ? (
-              <>
-                <h1 className="text-xl sm:text-2xl font-black text-[#7B1828] tracking-tight leading-tight">
-                  Dr. Shillpa Raut
-                </h1>
-                <div className="text-xs font-semibold text-slate-700 mt-0.5">
-                  M.B.B.S., M.D. (Gynecology &amp; Obstetrics)
-                </div>
-                <div className="text-[11px] text-slate-500">Reg. No. 2004/05/1842</div>
-                <div className="text-xs font-semibold text-slate-800">
-                  Consulting Gynecologist &amp; Obstetrician
-                </div>
-                <div className="text-xs font-semibold text-slate-800">
-                  Maternity, Infertility &amp; Women Care Specialist
-                </div>
-              </>
-            ) : (
-              <>
-                <h1 className="text-xl sm:text-2xl font-black text-[#7B1828] tracking-tight leading-tight">
-                  {selectedDoctorName || 'Dr. Vipeen Raut'}
-                </h1>
-                <div className="text-xs font-semibold text-slate-700 mt-0.5">
-                  M.B.B.S.,Dip.Ortho.,DNB Ortho
-                </div>
-                <div className="text-[11px] text-slate-500">Reg. No. 1692/03/2002</div>
-                <div className="text-xs font-semibold text-slate-800">
-                  Diplomate of National Board (Orthopaedics)
-                </div>
-                <div className="text-xs font-semibold text-slate-800">
-                  Consulting Orthopaedic and Joint Replacement Surgeon
-                </div>
-              </>
-            )}
+            {(() => {
+              const activeDoc = getDoctorProfile(selectedDoctorName);
+              return (
+                <>
+                  <h1 className="text-xl sm:text-2xl font-black text-[#7B1828] tracking-tight leading-tight">
+                    {activeDoc?.name || selectedDoctorName || 'Consulting Physician'}
+                  </h1>
+                  <div className="text-xs font-semibold text-slate-700 mt-0.5">
+                    {activeDoc?.degrees}
+                  </div>
+                  {activeDoc?.registrationNumber && (
+                    <div className="text-[11px] text-slate-500">Reg. No. {activeDoc.registrationNumber}</div>
+                  )}
+                  {activeDoc?.designation && (
+                    <div className="text-xs font-semibold text-slate-800">
+                      {activeDoc.designation}
+                    </div>
+                  )}
+                  <div className="text-xs font-semibold text-slate-800">
+                    {activeDoc?.specialty === 'gynecology'
+                      ? 'Maternity, Infertility & Women Care Specialist'
+                      : activeDoc?.designation || hospitalConfig.tagline}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -705,41 +699,45 @@ export default function PrescriptionLivePreview({
 
         {/* Bottom Schedule Banner */}
         <div className="mt-4 pt-3 border-t-2 border-slate-300 text-center">
-          <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
-            <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
-              Hip &amp; Knee Joint Clinic
-            </span>
-            <span className="text-xs font-bold text-slate-900">
-              Every Thursday 6 pm to 8 pm
-            </span>
-          </div>
+          {hospitalConfig.schedule.clinicDetails && (
+            <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
+              <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
+                {hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}
+              </span>
+              <span className="text-xs font-bold text-slate-900">
+                {hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}
+              </span>
+            </div>
+          )}
 
           <div className="text-xs sm:text-sm font-extrabold text-black">
-            Orthopaedics Clinic
+            {hospitalConfig.tagline}
           </div>
 
           <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
             <span className="font-bold text-[#7B1828]">OPD Time : </span>
-            Mon. to Fri. - 10 am to 1 pm &amp; 6 pm to 8 pm | Sat. - 10 am to 1 pm &amp; Evening
-            OPD Closed
+            {hospitalConfig.schedule.opdTimings}
           </div>
 
-          <div className="text-[11px] font-bold text-[#7B1828] mt-0.5">Sunday OPD Closed</div>
+          {hospitalConfig.schedule.sundayStatus && (
+            <div className="text-[11px] font-bold text-[#7B1828] mt-0.5">{hospitalConfig.schedule.sundayStatus}</div>
+          )}
 
           <div className="text-[10px] text-slate-600 mt-1">
-            Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001 &nbsp;|&nbsp; Ph. :
-            07152-255795, Cell : 9373280505
+            {hospitalConfig.address.fullFormatted} &nbsp;|&nbsp; Ph. : {hospitalConfig.contacts.phones.join(', ')}
           </div>
 
           <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
         </div>
 
         {/* Centered Powered by Svasth-HMS Line at Bottom */}
-        <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
-          <span>Powered by</span>
-          <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-3 w-auto inline-block" />
-          <strong className="text-teal-700 font-extrabold">Svasth-HMS</strong>
-        </div>
+        {hospitalConfig.branding.poweredBySvasth && (
+          <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
+            <span>Powered by</span>
+            <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-3 w-auto inline-block" />
+            <strong className="text-teal-700 font-extrabold">Svasth-HMS</strong>
+          </div>
+        )}
       </div>
     </div>
   );

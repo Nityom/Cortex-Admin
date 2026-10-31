@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
+import { hospitalConfig } from "@/config/hospital";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,12 +17,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Svasth-HMS",
-  description: "Hospital Management System",
+  title: `${hospitalConfig.name} | Svasth-HMS`,
+  description: `${hospitalConfig.legalName} - Powered by Svasth-HMS Hospital Management System`,
   icons: {
-    icon: "/Svasth_favicon.png",
-    shortcut: "/Svasth_favicon.png",
-    apple: "/Svasth_favicon.png",
+    icon: hospitalConfig.branding.faviconUrl,
+    shortcut: hospitalConfig.branding.faviconUrl,
+    apple: hospitalConfig.branding.faviconUrl,
   },
 };
 
@@ -33,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/Svasth_favicon.png" />
+        <link rel="icon" href={hospitalConfig.branding.faviconUrl} />
       </head>
       <body
         className={`${inter.variable} ${geistMono.variable} font-sans antialiased text-slate-900 bg-slate-50/50`}

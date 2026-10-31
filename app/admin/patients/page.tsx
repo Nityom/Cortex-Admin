@@ -23,6 +23,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import PrescriptionEmailModal, { PrescriptionEmailModalData } from '@/components/prescription/PrescriptionEmailModal';
+import { hospitalConfig } from '@/config/hospital';
 
 // Group prescriptions by patient name to create a patient list
 interface Bill {
@@ -462,7 +463,7 @@ const ViewPatients = () => {
               </span>
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Cortex Hospital &amp; Research Centre • Dual-Specialty Doctor Patient Directory
+              {hospitalConfig.legalName} • Patient Directory
             </p>
           </div>
         </div>

@@ -1,16 +1,17 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { hospitalConfig } from "@/config/hospital";
 
 function BrandLockup({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`flex items-center ${compact ? "gap-2.5" : "gap-4"}`}>
       <span className={`flex shrink-0 items-center justify-center rounded-xl bg-white ${compact ? "h-[45px] w-[96px] px-2" : "h-[62px] w-[128px] px-3"}`}>
-        <Image src="/cortex_logo.png" alt="Cortex Hospital" width={300} height={190} priority className="h-auto w-full object-contain" />
+        <Image src={hospitalConfig.branding.logoUrl} alt={hospitalConfig.name} width={300} height={190} priority className="h-auto w-full object-contain" />
       </span>
       <span aria-hidden="true" className={`w-px ${compact ? "h-8 bg-slate-200" : "h-10 bg-white/20"}`} />
       <span className={`flex shrink-0 items-center justify-center rounded-xl ${compact ? "h-[45px] w-[45px] bg-[#e9f5ef]" : "h-[62px] w-[62px] bg-white/10 ring-1 ring-white/15"}`}>
-        <Image src="/Svasth_logo.png" alt="" aria-hidden="true" width={48} height={60} className={compact ? "h-10 w-8 object-contain" : "h-[56px] w-[44px] object-contain"} />
+        <Image src={hospitalConfig.branding.svasthLogoUrl} alt="" aria-hidden="true" width={48} height={60} className={compact ? "h-10 w-8 object-contain" : "h-[56px] w-[44px] object-contain"} />
       </span>
       <span className={`whitespace-nowrap font-bold tracking-tight ${compact ? "text-[12px] text-[#153d36]" : "text-sm text-white"}`}>Svasth <span className={compact ? "text-[#078775]" : "text-[#71dabe]"}>HMS</span></span>
     </div>
@@ -43,7 +44,7 @@ export default function AuthLayout({
 
           <div className="relative z-10 max-w-[570px] py-4 xl:py-8">
             <div className="mb-6 flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#89ddc4]"><span className="h-1.5 w-1.5 rounded-full bg-[#83dfc0] shadow-[0_0_12px_rgba(131,223,192,.8)]" /> Private hospital workspace</div>
-            <h1 className="text-[48px] font-medium leading-[1.02] tracking-[-0.05em] xl:text-[60px]">Cortex<br />Hospital<span className="text-[#72dabb]">.</span></h1>
+            <h1 className="text-[42px] font-medium leading-[1.05] tracking-[-0.04em] xl:text-[54px]">{hospitalConfig.name}<span className="text-[#72dabb]">.</span></h1>
             <p className="mt-4 max-w-[420px] text-[14px] leading-6 text-white/65">The people, care, and daily work of your hospital—connected through <span className="font-semibold text-white/90">Svasth HMS</span>.</p>
 
             <div className="relative mt-7 flex h-[164px] max-w-[430px] items-center gap-5 overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#0b3934] px-6">
@@ -51,19 +52,19 @@ export default function AuthLayout({
               <div className="absolute -right-1 -top-14 h-[210px] w-[210px] rounded-full border border-white/[0.07]" />
               <span className="relative flex h-[112px] w-[112px] shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.08] shadow-[0_16px_60px_-22px_rgba(0,0,0,.55)]">
                 <span className="absolute inset-[8px] rounded-full border border-[#8de0c3]/20" />
-                <Image src="/Svasth_logo.png" alt="" aria-hidden="true" width={92} height={112} className="relative h-[72px] w-[58px] object-contain drop-shadow-[0_8px_18px_rgba(30,191,151,.28)]" />
+                <Image src={hospitalConfig.branding.svasthLogoUrl} alt="" aria-hidden="true" width={92} height={112} className="relative h-[72px] w-[58px] object-contain drop-shadow-[0_8px_18px_rgba(30,191,151,.28)]" />
               </span>
               <div className="relative min-w-0">
                 <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#8adcc2]">Designed around care</p>
                 <p className="mt-2 text-lg font-semibold tracking-tight text-white">Svasth HMS</p>
-                <p className="mt-1 max-w-[190px] text-xs leading-5 text-white/55">A considered workspace for Cortex Hospital.</p>
+                <p className="mt-1 max-w-[190px] text-xs leading-5 text-white/55">A considered workspace for {hospitalConfig.name}.</p>
               </div>
               <ArrowUpRight className="absolute right-5 top-5 h-4 w-4 text-white/35" />
             </div>
           </div>
 
           <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-5 text-[11px] text-white/45">
-            <span>© 2026 Cortex Hospital</span>
+            <span>© {new Date().getFullYear()} {hospitalConfig.legalName}</span>
             <span className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-[#71dabe]" /> Authorized staff access</span>
           </div>
         </section>
@@ -74,7 +75,7 @@ export default function AuthLayout({
           <div className="relative z-10 w-full max-w-[440px]">
             <div className="mb-10 lg:hidden"><BrandLockup compact /></div>
             <div className="mb-8">
-              <div className="mb-4 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.22em] text-[#12816f]"><span className="h-px w-6 bg-[#12816f]/55" /> Staff sign-in <span className="text-slate-300">·</span> Cortex Hospital</div>
+              <div className="mb-4 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.22em] text-[#12816f]"><span className="h-px w-6 bg-[#12816f]/55" /> Staff sign-in <span className="text-slate-300">·</span> {hospitalConfig.name}</div>
               <h2 className="text-[34px] font-semibold tracking-[-0.045em] text-[#142a25] sm:text-[38px]">{title}</h2>
               <p className="mt-2.5 text-sm leading-6 text-[#74827b]">{description}</p>
             </div>

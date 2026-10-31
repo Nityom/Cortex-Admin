@@ -2,6 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { hospitalConfig } from "@/config/hospital";
 
 function OPDCardContent() {
   const searchParams = useSearchParams();
@@ -51,14 +52,14 @@ function OPDCardContent() {
         <div>
           <div className="flex items-center justify-between pb-3 border-b-2 border-slate-900">
             <div className="flex items-center gap-3">
-              <img src="/cortex_logo.png" alt="Cortex Hospital" className="h-12 w-auto object-contain" />
+              <img src={hospitalConfig.branding.logoUrl} alt={hospitalConfig.name} className="h-12 w-auto object-contain" />
               <div>
-                <h1 className="text-xl font-black text-slate-900 tracking-tight">CORTEX HOSPITAL</h1>
+                <h1 className="text-xl font-black text-slate-900 tracking-tight">{hospitalConfig.name.toUpperCase()}</h1>
                 <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider">
-                  & Research Centre • Orthopaedics & Multi-Speciality
+                  {hospitalConfig.tagline}
                 </p>
                 <p className="text-[9px] text-slate-500">
-                  Aarti Chowk, Nagpur Road, Wardha - 442001 | Ph: 07152-255795
+                  {hospitalConfig.address.fullFormatted} | Ph: {hospitalConfig.contacts.phones.join(', ')}
                 </p>
               </div>
             </div>

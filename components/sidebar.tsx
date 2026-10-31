@@ -4,6 +4,7 @@ import { Inbox, Menu, ChevronRight, Pill, FileText, LogOut, Wrench, TrendingUp, 
 import { useRouter, usePathname } from 'next/navigation';
 import { getCurrentUser, signOut } from "@/services/adminuser";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { hospitalConfig } from "@/config/hospital";
 
 interface CustomSidebarProps {
   children: React.ReactNode;
@@ -134,25 +135,16 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
   }, [router]);
 
   const items: MenuItemDef[] = [
-    { id: "appointments", title: "Appointments", url: "/admin/appointments", icon: Calendar },
-    { id: "patient-management", title: "Patient Management", url: "/admin/patients", icon: Inbox },
-    { id: "opd-management", title: "OPD Management", url: "/admin/opd", icon: ClipboardList },
-    { id: "ipd-management", title: "IPD Management", url: "/admin/ipd", icon: Bed },
-    { id: "hospital-billing", title: "OPD & Hospital Billing", url: "/admin/billing", icon: ReceiptText },
-
-    // { id: "crown-management", title: "Crowns & Revenue", url: "/admin/crowns", icon: Crown },
-    // { id: "registers-records", title: "Registers & Records", url: "/admin/registers", icon: ClipboardList },
-    // ...(isAdmin ? [{ id: "doctor-management", title: "Doctor Management", url: "/admin/doctors", icon: UserCheck }] : []),
-    // { id: "investigations-opg", title: "Investigation & OPG", url: "/admin/investigations", icon: Activity },
-    { id: "medicine-management", title: "Medicine Management", url: "/admin/medicines", icon: Pill },
-    // { id: "stockist-bills", title: "Stockist Bills & Dues", url: "/admin/stockists", icon: ReceiptText },
-    // { id: "Inventory-management", title: "Inventory Management", url: "/admin/inventory", icon: Wrench },
-    // { id: "treatment-links", title: "Treatment Auto-Link", url: "/admin/treatment-links", icon: Link2 },
-    ...(isAdmin ? [{ id: "sales-report", title: "Sales Report", url: "/admin/medicines/sales", icon: TrendingUp }] : []),
-    { id: "installments", title: "Payment Installments", url: "/admin/installments", icon: CreditCard },
-    // Admin-only: Prescription & Clinical Templates
-    ...(isAdmin ? [{ id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText }] : []),
-    ...(isAdmin ? [{ id: "prescription-templates", title: "Clinical Templates", url: "/admin/templates", icon: BookmarkCheck }] : []),
+    ...(hospitalConfig.modules.appointments ? [{ id: "appointments", title: "Appointments", url: "/admin/appointments", icon: Calendar }] : []),
+    ...(hospitalConfig.modules.patientManagement ? [{ id: "patient-management", title: "Patient Management", url: "/admin/patients", icon: Inbox }] : []),
+    ...(hospitalConfig.modules.opd ? [{ id: "opd-management", title: "OPD Management", url: "/admin/opd", icon: ClipboardList }] : []),
+    ...(hospitalConfig.modules.ipd ? [{ id: "ipd-management", title: "IPD Management", url: "/admin/ipd", icon: Bed }] : []),
+    ...(hospitalConfig.modules.billing ? [{ id: "hospital-billing", title: "OPD & Hospital Billing", url: "/admin/billing", icon: ReceiptText }] : []),
+    ...(hospitalConfig.modules.medicinesCatalog ? [{ id: "medicine-management", title: "Medicine Management", url: "/admin/medicines", icon: Pill }] : []),
+    ...(isAdmin && hospitalConfig.modules.salesReport ? [{ id: "sales-report", title: "Sales Report", url: "/admin/medicines/sales", icon: TrendingUp }] : []),
+    ...(hospitalConfig.modules.installments ? [{ id: "installments", title: "Payment Installments", url: "/admin/installments", icon: CreditCard }] : []),
+    ...(isAdmin && hospitalConfig.modules.prescription ? [{ id: "generate-prescription", title: "Generate Prescription", url: "/admin/prescription", icon: FileText }] : []),
+    ...(isAdmin && hospitalConfig.modules.clinicalTemplates ? [{ id: "prescription-templates", title: "Clinical Templates", url: "/admin/templates", icon: BookmarkCheck }] : []),
   ];
 
   useEffect(() => {
@@ -223,12 +215,12 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
             <>
               <div
                 className="flex items-center justify-center w-full px-7 cursor-pointer"
-                onClick={() => router.push('/admin/appointments')}
-                title="Cortex Hospital"
+                onClick={() => router.push(items[0]?.url || '/admin/appointments')}
+                title={hospitalConfig.name}
               >
                 <img
-                  src="/cortex_logo.png"
-                  alt="Cortex Hospital"
+                  src={hospitalConfig.branding.logoUrl}
+                  alt={hospitalConfig.name}
                   className="h-14 w-auto max-h-14 max-w-full object-contain select-none"
                 />
               </div>
@@ -299,11 +291,13 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 <span>Logout</span>
               </button>
               {/* Svasth HMS Branding */}
-              <div className="pt-2 mt-1 border-t border-gray-100 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 select-none">
-                <span>Powered by</span>
-                <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-4 w-4 rounded-xs object-contain" />
-                <span className="font-semibold text-gray-600">Svasth HMS</span>
-              </div>
+              {hospitalConfig.branding.poweredBySvasth && (
+                <div className="pt-2 mt-1 border-t border-gray-100 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 select-none">
+                  <span>Powered by</span>
+                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-4 w-4 rounded-xs object-contain" />
+                  <span className="font-semibold text-gray-600">Svasth HMS</span>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -321,9 +315,11 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 <LogOut className="w-4 h-4" />
               </button>
               {/* Svasth HMS Branding collapsed */}
-              <div className="pt-1 border-t border-gray-100 flex items-center justify-center select-none" title="Powered by Svasth HMS">
-                <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-5 w-5 rounded-xs object-contain opacity-70 hover:opacity-100 transition" />
-              </div>
+              {hospitalConfig.branding.poweredBySvasth && (
+                <div className="pt-1 border-t border-gray-100 flex items-center justify-center select-none" title="Powered by Svasth HMS">
+                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-5 w-5 rounded-xs object-contain opacity-70 hover:opacity-100 transition" />
+                </div>
+              )}
             </>
           )}
         </div>

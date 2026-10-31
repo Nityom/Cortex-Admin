@@ -31,6 +31,7 @@ import { paymentTransactionService } from "@/services/payment-transactions";
 import { getPatients, getPatientByPhoneNumber } from "@/services/patients";
 import { getPrescriptionsByPatient } from "@/services/prescription";
 import { Patient } from "@/types/patient";
+import { hospitalConfig, calculateDoctorConsultationFee } from "@/config/hospital";
 
 interface ChargeItem {
   id: string;
@@ -41,17 +42,15 @@ interface ChargeItem {
   total: number;
 }
 
-const DOCTORS = [
-  { name: "Dr. Vipeen Raut", specialty: "Orthopaedics & Joint Replacement", firstFee: 400, followUpFee: 200 },
-  { name: "Dr. Shillpa Raut", specialty: "Obstetrics & Gynaecology", firstFee: 200, followUpFee: 100 },
-];
+const DOCTORS = hospitalConfig.doctors.map((d) => ({
+  name: d.name,
+  specialty: d.designation,
+  firstFee: d.consultationFee.firstVisit,
+  followUpFee: d.consultationFee.followupVisit,
+}));
 
 const getDoctorConsultationFee = (docName: string, isFollowUpWithin10Days = false) => {
-  const isGynae = (docName || "").toLowerCase().includes("shilpa") || (docName || "").toLowerCase().includes("shillpa");
-  if (isGynae) {
-    return isFollowUpWithin10Days ? 100 : 200;
-  }
-  return isFollowUpWithin10Days ? 200 : 400;
+  return calculateDoctorConsultationFee(docName, isFollowUpWithin10Days);
 };
 
 const DEFAULT_OPD_PROCEDURES: { name: string; category: "Registration" | "Consultation" | "Investigation" | "Procedure" | "Bed" | "Nursing" | "OT" | "Surgeon" | "Other" | "Medicine"; price: number }[] = [
@@ -714,7 +713,7 @@ export default function HospitalBillingPage() {
               <div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">Hospital Billing Portal</h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  Cortex Hospital & Research Centre • Dedicated OPD & IPD Billing Management
+                  {hospitalConfig.legalName} • Dedicated OPD &amp; IPD Billing Management
                 </p>
               </div>
             </div>
@@ -1288,7 +1287,7 @@ export default function HospitalBillingPage() {
             <div>
               <h2 className="text-lg font-bold text-slate-900">Hospital Invoices & Payment Receipts</h2>
               <p className="text-xs text-slate-500">
-                All OPD and IPD bills generated across Cortex Hospital
+                All OPD and IPD bills generated across {hospitalConfig.name}
               </p>
             </div>
 

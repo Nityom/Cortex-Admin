@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById } from "@/services/patients";
 import { Patient } from "@/types/patient";
+import { hospitalConfig, getDoctorProfile } from "@/config/hospital";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES & DEFINITIONS
@@ -5657,15 +5658,15 @@ export default function IPDManagementPage() {
                 {/* Header */}
                 <div className="text-center pb-2.5 border-b border-slate-300">
                   <div className="flex items-center justify-center gap-1.5">
-                    <img src="/cortex_logo.png" alt="Cortex Hospital" className="h-7 w-auto object-contain" />
+                    <img src={hospitalConfig.branding.logoUrl} alt={hospitalConfig.name} className="h-7 w-auto object-contain" />
                     <h2 className="text-sm font-black tracking-tight text-slate-900">
-                      CORTEX HOSPITAL &amp; RESEARCH CENTRE
+                      {hospitalConfig.legalName.toUpperCase()}
                     </h2>
                   </div>
                   <p className="text-[10px] text-slate-600 mt-0.5">
-                    Beside Urich Mall, Aarti Square, Wardha (M.S) - 442001
+                    {hospitalConfig.address.fullFormatted}
                   </p>
-                  <p className="text-[9px] text-slate-500 font-mono">Cell: +91 9373280505</p>
+                  <p className="text-[9px] text-slate-500 font-mono">Cell: +91 {hospitalConfig.contacts.mobile}</p>
 
                   <div className="inline-block mt-2 px-2.5 py-0.5 bg-slate-900 text-white text-[10px] font-extrabold uppercase tracking-wider rounded">
                     INPATIENT PAYMENT RECEIPT
@@ -5931,21 +5932,18 @@ export default function IPDManagementPage() {
               <div className="bg-white p-6 rounded-xl border border-slate-300 shadow-sm space-y-4 max-w-2xl mx-auto">
                 {/* Header with Logo & Doctor Details */}
                 <div className="flex justify-between items-start pb-3 border-b-2 border-slate-300">
-                  <img src="/cortex_logo.png" alt="Cortex Hospital" className="h-12 w-auto object-contain" />
+                  <img src={hospitalConfig.branding.logoUrl} alt={hospitalConfig.name} className="h-12 w-auto object-contain" />
                   <div className="text-right">
-                    {(activeAdmission.consultantDoctor || "").toLowerCase().includes("shillpa") ? (
-                      <>
-                        <h3 className="text-base font-extrabold text-slate-900">Dr. Shillpa Raut</h3>
-                        <p className="text-[11px] font-bold text-slate-900">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</p>
-                        <p className="text-[10px] text-slate-500">Reg. No. 2004/05/1842 • Consulting Gynecologist</p>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-base font-extrabold text-slate-900">{activeAdmission.consultantDoctor || "Dr. Vipeen Raut"}</h3>
-                        <p className="text-[11px] font-bold text-slate-900">M.B.B.S., Dip.Ortho., DNB Ortho</p>
-                        <p className="text-[10px] text-slate-500">Reg. No. 1692/03/2002 • Consulting Orthopaedic Surgeon</p>
-                      </>
-                    )}
+                    {(() => {
+                      const activeDoc = getDoctorProfile(activeAdmission.consultantDoctor);
+                      return (
+                        <>
+                          <h3 className="text-base font-extrabold text-slate-900">{activeDoc?.name || activeAdmission.consultantDoctor || "Consulting Doctor"}</h3>
+                          <p className="text-[11px] font-bold text-slate-900">{activeDoc?.degrees}</p>
+                          <p className="text-[10px] text-slate-500">{activeDoc?.registrationNumber ? `Reg. No. ${activeDoc.registrationNumber} • ` : ''}{activeDoc?.designation || hospitalConfig.tagline}</p>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -6110,7 +6108,7 @@ export default function IPDManagementPage() {
                 {/* Doctor Signature & Hospital Footer */}
                 <div className="pt-4 border-t border-slate-200 flex justify-between items-end">
                   <div className="text-[10px] text-red-700 font-semibold max-w-sm">
-                    * Emergency: Report immediately to Cortex Hospital Casualty in case of high fever, acute pain, or bleeding.
+                    * Emergency: Report immediately to {hospitalConfig.name} Casualty in case of high fever, acute pain, or bleeding.
                   </div>
                   <div className="text-center min-w-[130px]">
                     {dischargeIncludeSignature && (

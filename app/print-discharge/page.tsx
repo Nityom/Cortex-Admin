@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Printer, ArrowLeft } from 'lucide-react';
+import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
 
 interface IPDAdmission {
   id: string;
@@ -307,30 +308,27 @@ function DischargeSheetContent() {
             <div className="header-row">
               <div className="flex items-center gap-3">
                 <img
-                  src="/cortex_logo.png"
-                  alt="Cortex Hospital"
+                  src={hospitalConfig.branding.logoUrl}
+                  alt={hospitalConfig.name}
                   className="hospital-logo"
                 />
               </div>
 
               <div className="doctor-header-block">
-                {doctorIsGynae ? (
-                  <>
-                    <h1 className="doctor-title-name">Dr. Shillpa Raut</h1>
-                    <div className="doctor-qualifications">M.B.B.S., M.D. (Gynecology &amp; Obstetrics)</div>
-                    <div className="doctor-reg">Reg. No. 2004/05/1842</div>
-                    <div className="doctor-diplomate">Consulting Gynecologist &amp; Obstetrician</div>
-                    <div className="doctor-specialty">Maternity, Infertility &amp; Women Care Specialist</div>
-                  </>
-                ) : (
-                  <>
-                    <h1 className="doctor-title-name">{doctorName}</h1>
-                    <div className="doctor-qualifications">M.B.B.S., Dip.Ortho., DNB Ortho</div>
-                    <div className="doctor-reg">Reg. No. 1692/03/2002</div>
-                    <div className="doctor-diplomate">Diplomate of National Board (Orthopaedics)</div>
-                    <div className="doctor-specialty">Consulting Orthopaedic and Joint Replacement Surgeon</div>
-                  </>
-                )}
+                {(() => {
+                  const activeDoc = getDoctorProfile(doctorName);
+                  return (
+                    <>
+                      <h1 className="doctor-title-name">{activeDoc?.name || doctorName}</h1>
+                      <div className="doctor-qualifications">{activeDoc?.degrees || (doctorIsGynae ? "M.B.B.S., M.D. (Gynecology & Obstetrics)" : "M.B.B.S., Dip.Ortho., DNB Ortho")}</div>
+                      {activeDoc?.registrationNumber && <div className="doctor-reg">Reg. No. {activeDoc.registrationNumber}</div>}
+                      {activeDoc?.designation && <div className="doctor-diplomate">{activeDoc.designation}</div>}
+                      <div className="doctor-specialty">
+                        {activeDoc?.specialty === 'gynecology' ? 'Maternity, Infertility & Women Care Specialist' : 'Consulting Orthopaedic and Joint Replacement Surgeon'}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -589,7 +587,7 @@ function DischargeSheetContent() {
             <div className="clinical-bottom-grid">
               <div className="advice-box">
                 <div className="emergency-notice">
-                  <strong>* EMERGENCY WARNING : </strong> In case of high fever, acute pain, bleeding, or wound discharge, please report to Cortex Hospital Casualty / OPD immediately.
+                  <strong>* EMERGENCY WARNING : </strong> In case of high fever, acute pain, bleeding, or wound discharge, please report to {hospitalConfig.name} Casualty / OPD immediately.
                 </div>
                 {admission.finalSettlement && (
                   <div className="settlement-note">
@@ -649,20 +647,27 @@ function DischargeSheetContent() {
               <div className="header-row">
                 <div className="flex items-center gap-3">
                   <img
-                    src="/cortex_logo.png"
-                    alt="Cortex Hospital"
+                    src={hospitalConfig.branding.logoUrl}
+                    alt={hospitalConfig.name}
                     className="hospital-logo"
                   />
                 </div>
 
                 <div className="doctor-header-block">
-                  <h1 className="doctor-title-name">{doctorName}</h1>
-                  <div className="doctor-qualifications">
-                    {doctorIsGynae ? "M.B.B.S., M.D. (Gynecology & Obstetrics)" : "M.B.B.S., Dip.Ortho., DNB Ortho"}
-                  </div>
-                  <div className="doctor-specialty">
-                    {doctorIsGynae ? "Consulting Gynecologist & Obstetrician" : "Consulting Orthopaedic & Joint Replacement Surgeon"}
-                  </div>
+                  {(() => {
+                    const activeDoc = getDoctorProfile(doctorName);
+                    return (
+                      <>
+                        <h1 className="doctor-title-name">{activeDoc?.name || doctorName}</h1>
+                        <div className="doctor-qualifications">
+                          {activeDoc?.degrees || (doctorIsGynae ? "M.B.B.S., M.D. (Gynecology & Obstetrics)" : "M.B.B.S., Dip.Ortho., DNB Ortho")}
+                        </div>
+                        <div className="doctor-specialty">
+                          {activeDoc?.specialty === 'gynecology' ? "Consulting Gynecologist & Obstetrician" : "Consulting Orthopaedic & Joint Replacement Surgeon"}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -906,7 +911,7 @@ function DischargeSheetContent() {
               <div className="clinical-bottom-grid">
                 <div className="advice-box">
                   <div className="emergency-notice">
-                    <strong>* RECORD VERIFICATION : </strong> This clinical sheet is an official chronological record of inpatient hospital care at Cortex Hospital &amp; Research Centre.
+                    <strong>* RECORD VERIFICATION : </strong> This clinical sheet is an official chronological record of inpatient hospital care at {hospitalConfig.legalName}.
                   </div>
                 </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { hospitalConfig } from '@/config/hospital';
 
 interface BillItem {
   id?: number;
@@ -249,7 +250,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             )}
             <div className="border-t border-gray-800 pt-1 text-xs font-semibold text-gray-900">
               <div>{doctorName}</div>
-              <div className="text-[11px] text-gray-600 font-normal">Cortex Hospital, Wardha</div>
+              <div className="text-[11px] text-gray-600 font-normal">{hospitalConfig.name}, {hospitalConfig.address.city}</div>
             </div>
           </div>
         </div>
@@ -273,15 +274,15 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
         <div className="mt-2 text-center">
           <div className="flex items-center justify-center mb-2">
             <img
-              src="/cortex_logo.png"
-              alt="Cortex Hospital Logo"
+              src={hospitalConfig.branding.logoUrl}
+              alt={`${hospitalConfig.name} Logo`}
               className="h-14 mr-3 logo-print object-contain"
             />
           </div>
           <p className="text-xs text-gray-800 font-medium">
-            Beside Urich Mall, Aarti Square, Mohini Nagar, Nagpur Road, Wardha (M.S) - 442001
+            {hospitalConfig.address.fullFormatted}
           </p>
-          <p className="text-xs text-gray-700 mt-0.5">Mobile: +91 9373280505 &nbsp;</p>
+          <p className="text-xs text-gray-700 mt-0.5">Mobile: +91 {hospitalConfig.contacts.mobile} &nbsp;</p>
         </div>
       </div>
 
