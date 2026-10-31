@@ -35,7 +35,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout title="Welcome back" description="Sign in with your hospital account to continue." footer={<>Need help signing in? <a href="mailto:support@cortexhospital.com" className="font-semibold text-teal-700 hover:text-teal-800">Contact support</a></>}>
+    <AuthLayout title="Welcomee back" description="Sign in with your hospital account to continue." footer={<>Need help signing in? <a href="mailto:support@cortexhospital.com" className="font-semibold text-teal-700 hover:text-teal-800">Contact support</a></>}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && <div role="alert" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-700"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
         <div>
