@@ -21,6 +21,15 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: ⚡ Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
@@ -52,7 +61,7 @@ jobs:
           fi
           echo "dir=$CLEAN_DIR" >> "$GITHUB_OUTPUT"
 
-      - name: 🚀 Deploy to Hostinger via LFTP
+      - name: 🚀 Deploy to Hostinger via LFTP (Parallel & Differential)
         env:
           FTP_HOST: ${{ steps.ftp.outputs.server }}
           FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
@@ -69,6 +78,6 @@ jobs:
             set net:reconnect-interval-base 2;
             set net:timeout 60;
             open ftp://$FTP_USER:$FTP_PASS@$FTP_HOST;
-            mirror --reverse --verbose=1 out/ $FTP_DIR;
+            mirror --reverse --only-newer --parallel=8 --verbose=1 out/ $FTP_DIR;
             bye;
           "

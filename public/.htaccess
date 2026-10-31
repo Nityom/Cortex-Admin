@@ -2,6 +2,20 @@
 Options -MultiViews
 DirectoryIndex index.html
 
+# ⚡ INSTANT UPDATES: Never cache HTML or data files so changes appear immediately
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm|txt|json)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Cache versioned static assets (hashed JS, CSS, fonts) efficiently
+  <FilesMatch "\.(woff2?|png|jpe?g|gif|svg|webp|ico)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
