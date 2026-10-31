@@ -591,7 +591,7 @@ export default function PrescriptionLivePreview({
               })}`
               : 'Live Preview'}
           </span>
-          <span className="font-bold text-slate-700">Svasth HMS</span>
+          <span className="font-bold text-slate-700">Svaasth HMS</span>
         </div>
 
         {/* Header Area */}
@@ -623,9 +623,13 @@ export default function PrescriptionLivePreview({
                       {activeDoc.fellowshipOrDiplomate}
                     </div>
                   )}
-                  <div className="text-xs font-semibold text-slate-800">
-                    {activeDoc?.subSpecialty || activeDoc?.designation || hospitalConfig.tagline}
-                  </div>
+                  {(() => {
+                    const spec = activeDoc?.subSpecialty || activeDoc?.designation || hospitalConfig.tagline;
+                    if (spec && spec.trim().toLowerCase() !== (activeDoc?.fellowshipOrDiplomate || '').trim().toLowerCase()) {
+                      return <div className="text-xs font-semibold text-slate-800">{spec}</div>;
+                    }
+                    return null;
+                  })()}
                 </>
               );
             })()}
@@ -728,12 +732,12 @@ export default function PrescriptionLivePreview({
           <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
         </div>
 
-        {/* Centered Powered by Svasth-HMS Line at Bottom */}
+        {/* Centered Powered by Svaasth-HMS Line at Bottom */}
         {hospitalConfig.branding.poweredBySvasth && (
           <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
             <span>Powered by</span>
-            <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-3 w-auto inline-block" />
-            <strong className="text-emerald-700 font-extrabold">Svasth-HMS</strong>
+            <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3 w-auto inline-block" />
+            <strong className="text-emerald-700 font-extrabold">Svaasth-HMS</strong>
           </div>
         )}
       </div>

@@ -257,7 +257,7 @@ aside h3 {
   .opd-page-heading h1 { font-size: 1.75rem !important; }
 }
 
-/* Match the Svasth HMS workspace frame and type system. */
+/* Match the Svaasth HMS workspace frame and type system. */
 html, body { min-height: 100%; }
 body { background: #f3f7f3; font-family: var(--font-dm-sans), sans-serif; }
 .admin-app-frame {

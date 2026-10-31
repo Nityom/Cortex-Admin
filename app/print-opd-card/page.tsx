@@ -169,7 +169,8 @@ function OPDCardContent() {
           </div>
           <div className="flex items-center gap-1.5">
             <span>Powered by</span>
-            <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-3.5 w-auto object-contain inline-block" />
+            <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3.5 w-auto object-contain inline-block" />
+            <strong className="font-semibold text-slate-700">Svaasth HMS</strong>
           </div>
         </div>
       </div>

@@ -160,7 +160,7 @@ function buildHtmlTemplate(
 
   // Reliable public HTTPS image URLs ensuring 100% compatibility across Gmail, Apple Mail, Outlook, mobile & desktop clients
   const cortexLogoSrc = 'https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/cortex_logo.png';
-  const svasthLogoSrc = 'https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/Svasth_logo.png';
+  const svasthLogoSrc = 'https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/Svaasth_logo.png';
 
   return `<!DOCTYPE html>
 <html>
@@ -240,31 +240,31 @@ function buildHtmlTemplate(
         📎 <strong>Attached:</strong> Official digital prescription PDF (Letterhead copy)
       </div>
 
-      <!-- Prominent Dedicated "Powered by Svasth-HMS" Card -->
+      <!-- Prominent Dedicated "Powered by Svaasth-HMS" Card -->
       <div style="margin-top: 24px; padding: 14px 18px; background-color: #f0fdfa; border: 1.5px solid #99f6e4; border-radius: 10px;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="vertical-align: middle;">
               <div style="font-size: 10px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px;">Hospital Management System</div>
               <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 2px;">
-                Powered by <span style="color: #0d9488; font-weight: 800;">Svasth-HMS</span>
+                Powered by <span style="color: #0d9488; font-weight: 800;">Svaasth-HMS</span>
               </div>
               <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Smart Clinical EMR &amp; Digital Health Platform</div>
             </td>
             <td style="text-align: right; vertical-align: middle; width: 50px;">
-              ${svasthLogoSrc ? `<img src="${svasthLogoSrc}" alt="Svasth-HMS" style="height: 38px; width: auto; max-width: 44px; display: inline-block; vertical-align: middle;" />` : ''}
+              ${svasthLogoSrc ? `<img src="${svasthLogoSrc}" alt="Svaasth-HMS" style="height: 38px; width: auto; max-width: 44px; display: inline-block; vertical-align: middle;" />` : ''}
             </td>
           </tr>
         </table>
       </div>
     </div>
 
-    <!-- Clean Footer with Powered by Svasth-HMS -->
+    <!-- Clean Footer with Powered by Svaasth-HMS -->
     <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; color: #94a3b8; font-size: 11px; line-height: 1.6;">
       <div>Cortex Hospital &amp; Research Centre • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
       <div>OPD Timings: Mon-Fri: 10:00 AM - 1:00 PM, 6:00 PM - 8:00 PM | Sunday Closed</div>
       <div style="margin-top: 6px; font-size: 11px; color: #64748b; font-weight: 600;">
-        Powered by <strong style="color: #0d9488; font-weight: 800;">Svasth-HMS</strong>
+        Powered by <strong style="color: #0d9488; font-weight: 800;">Svaasth-HMS</strong>
       </div>
     </div>
 
@@ -322,7 +322,7 @@ async function generatePrescriptionPdf(
 
   let y = PAGE_H - 28;
 
-  // 2. Top Meta Row: Date & Time on left, "Svasth HMS" on right
+  // 2. Top Meta Row: Date & Time on left, "Svaasth HMS" on right
   const pDate = formatDateGB(data.prescriptionDate);
   const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   const topDateStr = `${pDate} ${nowTime}`;
@@ -334,7 +334,7 @@ async function generatePrescriptionPdf(
     color: rgb(0.45, 0.5, 0.55),
   });
 
-  const svasthTop = 'Svasth HMS';
+  const svasthTop = 'Svaasth HMS';
   const svasthTopW = boldFont.widthOfTextAtSize(svasthTop, 8);
   page.drawText(svasthTop, {
     x: PAGE_W - MARGIN_X - svasthTopW,
@@ -879,10 +879,10 @@ async function generatePrescriptionPdf(
     color: maroonColor,
   });
 
-  // Footer: Powered by Svasth HMS • Cortex Hospital EMR with logo
-  const svasthFooter = 'Powered by Svasth HMS • Cortex Hospital EMR';
+  // Footer: Powered by Svaasth HMS • Cortex Hospital EMR with logo
+  const svasthFooter = 'Powered by Svaasth HMS • Cortex Hospital EMR';
   const sfW = regularFont.widthOfTextAtSize(svasthFooter, 7);
-  const svasthPdfBytes = (await readPublicFileSafe('Svasth_logo.png')) || (await readPublicFileSafe('svasth_logo.png'));
+  const svasthPdfBytes = (await readPublicFileSafe('Svaasth_logo.png')) || (await readPublicFileSafe('Svasth_logo.png')) || (await readPublicFileSafe('svasth_logo.png'));
   if (svasthPdfBytes) {
     try {
       const svasthPdfImg = await pdfDoc.embedPng(svasthPdfBytes);
@@ -938,11 +938,11 @@ export async function POST(req: NextRequest) {
 
     // 1. Load Optimized Lightweight Logos for Email HTML (Keeps HTML < 50 KB, preventing Gmail [Message clipped])
     const emailCortexBuffer = (await readPublicFileSafe('cortex_logo_email.png')) || (await readPublicFileSafe('cortex_logo.png'));
-    const emailSvasthBuffer = (await readPublicFileSafe('svasth_logo_email.png')) || (await readPublicFileSafe('Svasth_logo.png')) || (await readPublicFileSafe('svasth_logo.png'));
+    const emailSvasthBuffer = (await readPublicFileSafe('svaasth_logo_email.png')) || (await readPublicFileSafe('Svaasth_logo.png')) || (await readPublicFileSafe('svasth_logo_email.png')) || (await readPublicFileSafe('Svasth_logo.png'));
     const cortexLogoBase64 = emailCortexBuffer ? emailCortexBuffer.toString('base64') : '';
     const svasthLogoBase64 = emailSvasthBuffer ? emailSvasthBuffer.toString('base64') : '';
 
-    // 2. Build Light Email HTML with user's exact body wording and prominent Svasth-HMS branding
+    // 2. Build Light Email HTML with user's exact body wording and prominent Svaasth-HMS branding
     const html = buildHtmlTemplate(body, doctorEmail, doctorTitle, isGynae, svasthLogoBase64, cortexLogoBase64);
     const text = `Dear ${body.patientName},
 
@@ -958,7 +958,7 @@ ${docName}
 📞 07152-255795 | 9373280505
 
 ---
-Powered by Svasth-HMS (Hospital Management System)`;
+Powered by Svaasth-HMS (Hospital Management System)`;
 
     // 3. Obtain or Generate Prescription PDF matching preview
     let pdfBuffer: Buffer;
@@ -996,7 +996,7 @@ Powered by Svasth-HMS (Hospital Management System)`;
         }
 
         if (matchedMailbox?.resourceId) {
-          // Send official prescription PDF and inline CID images for Cortex Hospital and Svasth logos
+          // Send official prescription PDF and inline CID images for Cortex Hospital and Svaasth logos
           const attachments: any[] = [
             {
               filename: pdfFilename,

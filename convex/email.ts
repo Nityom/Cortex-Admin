@@ -135,7 +135,7 @@ function buildHtmlTemplate(
   if (v.gestational_age) obsDetails.push(`<strong>Gestational Age:</strong> ${v.gestational_age}`);
 
   const cortexLogoSrc = "https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/cortex_logo.png";
-  const svasthLogoSrc = "https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/Svasth_logo.png";
+  const svasthLogoSrc = "https://raw.githubusercontent.com/Nityom/Cortex-Admin/main/public/Svaasth_logo.png";
 
   return `<!DOCTYPE html>
 <html>
@@ -216,12 +216,12 @@ function buildHtmlTemplate(
             <td style="vertical-align: middle;">
               <div style="font-size: 10px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px;">Hospital Management System</div>
               <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 2px;">
-                Powered by <span style="color: #0d9488; font-weight: 800;">Svasth-HMS</span>
+                Powered by <span style="color: #0d9488; font-weight: 800;">Svaasth-HMS</span>
               </div>
               <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Smart Clinical EMR &amp; Digital Health Platform</div>
             </td>
             <td style="text-align: right; vertical-align: middle; width: 50px;">
-              <img src="${svasthLogoSrc}" alt="Svasth-HMS" style="height: 38px; width: auto; max-width: 44px; display: inline-block; vertical-align: middle;" />
+              <img src="${svasthLogoSrc}" alt="Svaasth-HMS" style="height: 38px; width: auto; max-width: 44px; display: inline-block; vertical-align: middle;" />
             </td>
           </tr>
         </table>
@@ -233,7 +233,7 @@ function buildHtmlTemplate(
       <div>Cortex Hospital &amp; Research Centre • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
       <div>OPD Timings: Mon-Fri: 10:00 AM - 1:00 PM, 6:00 PM - 8:00 PM | Sunday Closed</div>
       <div style="margin-top: 6px; font-size: 11px; color: #64748b; font-weight: 600;">
-        Powered by <strong style="color: #0d9488; font-weight: 800;">Svasth-HMS</strong>
+        Powered by <strong style="color: #0d9488; font-weight: 800;">Svaasth-HMS</strong>
       </div>
     </div>
 
@@ -301,7 +301,7 @@ async function generatePrescriptionPdf(
     color: rgb(0.45, 0.5, 0.55),
   });
 
-  const svasthTop = "Svasth HMS";
+  const svasthTop = "Svaasth HMS";
   const svasthTopW = boldFont.widthOfTextAtSize(svasthTop, 8);
   page.drawText(svasthTop, {
     x: PAGE_W - MARGIN_X - svasthTopW,
@@ -825,9 +825,9 @@ async function generatePrescriptionPdf(
     color: maroonColor,
   });
 
-  const svasthFooter = "Powered by Svasth HMS • Cortex Hospital EMR";
+  const svasthFooter = "Powered by Svaasth HMS • Cortex Hospital EMR";
   const sfW = regularFont.widthOfTextAtSize(svasthFooter, 7);
-  const svasthPdfBytes = await fetchRemoteAsset(`${rawBase}/Svasth_logo.png`);
+  const svasthPdfBytes = await fetchRemoteAsset(`${rawBase}/Svaasth_logo.png`);
   if (svasthPdfBytes) {
     try {
       const svasthPdfImg = await pdfDoc.embedPng(svasthPdfBytes);
@@ -915,7 +915,7 @@ ${docName}
 📞 07152-255795 | 9373280505
 
 ---
-Powered by Svasth-HMS (Hospital Management System)`;
+Powered by Svaasth-HMS (Hospital Management System)`;
 
     // Generate or use provided PDF
     let pdfBuffer: Buffer;

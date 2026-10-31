@@ -1420,7 +1420,7 @@ function PrintPrescriptionContent() {
             {includeHeaderFooter && (
               <div className="top-meta-row">
                 <span>{formatTimestamp(prescriptionData.prescription_date)}</span>
-                <span>Svasth HMS</span>
+                <span>Svaasth HMS</span>
               </div>
             )}
 
@@ -1454,9 +1454,13 @@ function PrintPrescriptionContent() {
                             {activeDoc.fellowshipOrDiplomate}
                           </div>
                         )}
-                        <div className="doctor-specialty">
-                          {activeDoc?.subSpecialty || activeDoc?.designation || hospitalConfig.tagline}
-                        </div>
+                        {(() => {
+                          const spec = activeDoc?.subSpecialty || activeDoc?.designation || hospitalConfig.tagline;
+                          if (spec && spec.trim().toLowerCase() !== (activeDoc?.fellowshipOrDiplomate || '').trim().toLowerCase()) {
+                            return <div className="doctor-specialty">{spec}</div>;
+                          }
+                          return null;
+                        })()}
                       </>
                     );
                   })()}
@@ -1552,12 +1556,12 @@ function PrintPrescriptionContent() {
             </div>
           )}
 
-          {/* Centered Powered by Svasth-HMS Line at Bottom */}
+          {/* Centered Powered by Svaasth-HMS Line at Bottom */}
           {hospitalConfig.branding.poweredBySvasth && (
             <div className="footer-hms-branding">
               <span>Powered by</span>
-              <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" />
-              <strong>Svasth-HMS</strong>
+              <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" />
+              <strong>Svaasth-HMS</strong>
             </div>
           )}
         </div>

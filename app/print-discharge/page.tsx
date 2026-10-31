@@ -300,8 +300,8 @@ function DischargeSheetContent() {
             {/* Top Meta Line */}
             <div className="top-meta-row">
               <span>{new Date().toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-              <span className="font-bold tracking-wider">CORTEX HOSPITAL • INPATIENT DEPARTMENT (IPD)</span>
-              <span>Svasth HMS</span>
+              <span className="font-bold tracking-wider">{hospitalConfig.name.toUpperCase()} • INPATIENT DEPARTMENT (IPD)</span>
+              <span>Svaasth HMS</span>
             </div>
 
             {/* Doctor Letterhead Header */}
@@ -323,9 +323,13 @@ function DischargeSheetContent() {
                       <div className="doctor-qualifications">{activeDoc?.degrees || (doctorIsGynae ? "M.B.B.S., M.D. (Gynecology & Obstetrics)" : "M.B.B.S., Dip.Ortho., DNB Ortho")}</div>
                       {activeDoc?.registrationNumber && <div className="doctor-reg">Reg. No. {activeDoc.registrationNumber}</div>}
                       {activeDoc?.fellowshipOrDiplomate && <div className="doctor-diplomate">{activeDoc.fellowshipOrDiplomate}</div>}
-                      <div className="doctor-specialty">
-                        {activeDoc?.subSpecialty || activeDoc?.designation || (doctorIsGynae ? 'Consulting Gynecologist & Obstetrician' : 'Consulting Orthopaedic and Joint Replacement Surgeon')}
-                      </div>
+                      {(() => {
+                        const spec = activeDoc?.subSpecialty || activeDoc?.designation || (doctorIsGynae ? 'Consulting Gynecologist & Obstetrician' : 'Consulting Orthopaedic and Joint Replacement Surgeon');
+                        if (spec && spec.trim().toLowerCase() !== (activeDoc?.fellowshipOrDiplomate || '').trim().toLowerCase()) {
+                          return <div className="doctor-specialty">{spec}</div>;
+                        }
+                        return null;
+                      })()}
                     </>
                   );
                 })()}

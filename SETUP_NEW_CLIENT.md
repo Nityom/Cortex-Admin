@@ -1,6 +1,6 @@
-# Svasth-HMS: Fast Client Onboarding Guide (Option A)
+# Svaasth-HMS: Fast Client Onboarding Guide (Option A)
 
-This guide shows you how to brand, configure, and deploy a brand new hospital instance using the **Svasth-HMS Turnkey White-Label Architecture** in under 15 minutes.
+This guide shows you how to brand, configure, and deploy a brand new hospital instance using the **Svaasth-HMS Turnkey White-Label Architecture** in under 15 minutes.
 
 ---
 
@@ -44,7 +44,7 @@ export const hospitalConfig: HospitalConfig = {
   },
   branding: {
     logoUrl: "/apex_logo.png",
-    poweredBySvasth: true, // Shows "Powered by Svasth-HMS" badge
+    poweredBySvasth: true, // Shows "Powered by Svaasth-HMS" badge
     ...
   },
   modules: {

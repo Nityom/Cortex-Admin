@@ -427,7 +427,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
           <div className="mt-auto pt-3 border-t border-gray-300 text-[10px] text-gray-500 flex justify-between items-center">
             <span>Valid system-generated tax invoice / bill of supply</span>
             <span className="flex items-center gap-1 text-gray-500 font-medium">
-              Powered by <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-3.5 w-3.5 inline-block object-contain rounded-xs" /> <strong className="text-gray-700">Svasth HMS</strong>
+              Powered by <img src="/Svaasth_logo.png" alt="Svaasth HMS" className="h-3.5 w-3.5 inline-block object-contain rounded-xs" /> <strong className="text-gray-700">Svaasth HMS</strong>
             </span>
             <span>Page 1 of 1</span>
           </div>
@@ -472,7 +472,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             <div className="mt-auto pt-3 border-t border-gray-300 text-[10px] text-gray-500 flex justify-between items-center">
               <span>Valid system-generated tax invoice / bill of supply</span>
               <span className="flex items-center gap-1 text-gray-500 font-medium">
-                Powered by <img src="/Svasth_logo.png" alt="Svasth HMS" className="h-3.5 w-3.5 inline-block object-contain rounded-xs" /> <strong className="text-gray-700">Svasth HMS</strong>
+                Powered by <img src="/Svaasth_logo.png" alt="Svaasth HMS" className="h-3.5 w-3.5 inline-block object-contain rounded-xs" /> <strong className="text-gray-700">Svaasth HMS</strong>
               </span>
               <span>Page 2 of 2</span>
             </div>

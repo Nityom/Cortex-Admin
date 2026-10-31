@@ -25,8 +25,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: `${hospitalConfig.name} | Svasth-HMS`,
-  description: `${hospitalConfig.legalName} - Powered by Svasth-HMS Hospital Management System`,
+  title: `${hospitalConfig.name} | Svaasth-HMS`,
+  description: `${hospitalConfig.legalName} - Powered by Svaasth-HMS Hospital Management System`,
   icons: {
     icon: hospitalConfig.branding.faviconUrl,
     shortcut: hospitalConfig.branding.faviconUrl,

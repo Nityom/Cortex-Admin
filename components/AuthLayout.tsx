@@ -13,7 +13,7 @@ function BrandLockup({ compact = false }: { compact?: boolean }) {
       <span className={`flex shrink-0 items-center justify-center rounded-xl ${compact ? "h-[45px] w-[45px] bg-[#e9f5ef]" : "h-[62px] w-[62px] bg-white/10 ring-1 ring-white/15"}`}>
         <Image src={hospitalConfig.branding.svasthLogoUrl} alt="" aria-hidden="true" width={48} height={60} className={compact ? "h-10 w-8 object-contain" : "h-[56px] w-[44px] object-contain"} />
       </span>
-      <span className={`whitespace-nowrap font-bold tracking-tight ${compact ? "text-[12px] text-[#153d36]" : "text-sm text-white"}`}>Svasth <span className={compact ? "text-[#078775]" : "text-[#71dabe]"}>HMS</span></span>
+      <span className={`whitespace-nowrap font-bold tracking-tight ${compact ? "text-[12px] text-[#153d36]" : "text-sm text-white"}`}>Svaasth <span className={compact ? "text-[#078775]" : "text-[#71dabe]"}>HMS</span></span>
     </div>
   );
 }
@@ -38,14 +38,14 @@ export default function AuthLayout({
           <div className="absolute -right-48 top-[21%] h-[650px] w-[650px] rounded-full border border-white/[0.07]" />
           <div className="absolute -right-24 top-[28%] h-[500px] w-[500px] rounded-full border border-white/[0.055]" />
           <div className="absolute -bottom-56 left-[8%] h-[570px] w-[570px] rounded-full bg-[radial-gradient(circle,rgba(32,162,126,0.16),transparent_68%)]" />
-          <Image src="/Svasth_logo.png" alt="" aria-hidden="true" width={540} height={660} className="pointer-events-none absolute -bottom-20 right-[-54px] w-[min(35vw,460px)] opacity-[0.06]" />
+          <Image src={hospitalConfig.branding.svasthLogoUrl} alt="" aria-hidden="true" width={540} height={660} className="pointer-events-none absolute -bottom-20 right-[-54px] w-[min(35vw,460px)] opacity-[0.06]" />
 
           <div className="relative z-10"><BrandLockup /></div>
 
           <div className="relative z-10 max-w-[570px] py-4 xl:py-8">
             <div className="mb-6 flex items-center gap-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#89ddc4]"><span className="h-1.5 w-1.5 rounded-full bg-[#83dfc0] shadow-[0_0_12px_rgba(131,223,192,.8)]" /> Private hospital workspace</div>
             <h1 className="text-[42px] font-medium leading-[1.05] tracking-[-0.04em] xl:text-[54px]">{hospitalConfig.name}<span className="text-[#72dabb]">.</span></h1>
-            <p className="mt-4 max-w-[420px] text-[14px] leading-6 text-white/65">The people, care, and daily work of your hospital—connected through <span className="font-semibold text-white/90">Svasth HMS</span>.</p>
+            <p className="mt-4 max-w-[420px] text-[14px] leading-6 text-white/65">The people, care, and daily work of your hospital—connected through <span className="font-semibold text-white/90">Svaasth HMS</span>.</p>
 
             <div className="relative mt-7 flex h-[164px] max-w-[430px] items-center gap-5 overflow-hidden rounded-[24px] border border-white/[0.12] bg-[#0b3934] px-6">
               <div className="absolute -right-14 -top-24 h-[300px] w-[300px] rounded-full border border-white/[0.07]" />
@@ -56,7 +56,7 @@ export default function AuthLayout({
               </span>
               <div className="relative min-w-0">
                 <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#8adcc2]">Designed around care</p>
-                <p className="mt-2 text-lg font-semibold tracking-tight text-white">Svasth HMS</p>
+                <p className="mt-2 text-lg font-semibold tracking-tight text-white">Svaasth HMS</p>
                 <p className="mt-1 max-w-[190px] text-xs leading-5 text-white/55">A considered workspace for {hospitalConfig.name}.</p>
               </div>
               <ArrowUpRight className="absolute right-5 top-5 h-4 w-4 text-white/35" />

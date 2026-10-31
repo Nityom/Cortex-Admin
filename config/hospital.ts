@@ -1,5 +1,5 @@
 /**
- * Svasth-HMS White-Label Hospital Configuration
+ * Svaasth-HMS White-Label Hospital Configuration
  * 
  * To brand this application for any hospital or clinic:
  * Simply update this configuration file. All letterheads, billing receipts,
@@ -54,12 +54,12 @@ export interface HospitalConfig {
   branding: {
     primaryColor: string;       // Primary brand accent (e.g. #7B1828)
     primaryHover: string;
-    accentTeal: string;         // EMR brand secondary
+    accentTeal: string;         // Svaasth EMR brand secondary
     logoUrl: string;            // Main hospital logo (sidebar, letterhead)
     emailLogoUrl: string;       // Lightweight compressed logo for email HTML
     faviconUrl: string;
-    svasthLogoUrl: string;      // Svasth-HMS master engine badge
-    poweredBySvasth: boolean;   // Toggle "Powered by Svasth-HMS" footer/badge
+    svasthLogoUrl: string;      // Svaasth-HMS master engine badge
+    poweredBySvasth: boolean;   // Toggle "Powered by Svaasth-HMS" footer/badge
   };
   doctors: DoctorProfile[];
   modules: {
@@ -111,11 +111,11 @@ export const hospitalConfig: HospitalConfig = {
   branding: {
     primaryColor: "#7B1828", // Cortex Maroon
     primaryHover: "#5e121e",
-    accentTeal: "#0d9488",  // Svasth Teal
+    accentTeal: "#0d9488",  // Svaasth Teal
     logoUrl: "/cortex_logo.png",
     emailLogoUrl: "/cortex_logo_email.png",
-    faviconUrl: "/Svasth_favicon.png",
-    svasthLogoUrl: "/Svasth_logo.png",
+    faviconUrl: "/Svaasth_favicon.png",
+    svasthLogoUrl: "/Svaasth_logo.png",
     poweredBySvasth: true,
   },
   doctors: [

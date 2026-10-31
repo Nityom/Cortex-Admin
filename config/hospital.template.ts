@@ -1,5 +1,5 @@
 /**
- * Svasth-HMS White-Label Hospital Configuration Template
+ * Svaasth-HMS White-Label Hospital Configuration Template
  * 
  * Instructions:
  * 1. Duplicate or edit this file to configure a new hospital or clinic client.
@@ -59,8 +59,8 @@ export interface HospitalConfig {
     logoUrl: string;            // Main hospital logo (sidebar, letterhead)
     emailLogoUrl: string;       // Lightweight compressed logo for email HTML
     faviconUrl: string;
-    svasthLogoUrl: string;      // Svasth-HMS engine badge
-    poweredBySvasth: boolean;   // Toggle "Powered by Svasth-HMS" footer/badge
+    svasthLogoUrl: string;      // Svaasth-HMS engine badge
+    poweredBySvasth: boolean;   // Toggle "Powered by Svaasth-HMS" footer/badge
   };
   doctors: DoctorProfile[];
   modules: {
@@ -115,8 +115,8 @@ export const hospitalTemplateConfig: HospitalConfig = {
     accentTeal: "#0d9488",
     logoUrl: "/cortex_logo.png",
     emailLogoUrl: "/cortex_logo_email.png",
-    faviconUrl: "/Svasth_favicon.png",
-    svasthLogoUrl: "/Svasth_logo.png",
+    faviconUrl: "/Svaasth_favicon.png",
+    svasthLogoUrl: "/Svaasth_logo.png",
     poweredBySvasth: true,
   },
   doctors: [

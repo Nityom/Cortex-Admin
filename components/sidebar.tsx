@@ -206,10 +206,10 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 type="button"
                 className="flex min-w-0 items-center gap-2.5 pr-8 text-left"
                 onClick={() => router.push(items[0]?.url || '/admin/opd')}
-                title="Svasth HMS workspace"
+                title="Svaasth HMS workspace"
               >
-                <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-8 w-8 shrink-0 object-contain" />
-                <span className="whitespace-nowrap text-[13px] font-extrabold tracking-[0.12em] text-[#34785b]">SVASTH HMS</span>
+                <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-8 w-8 shrink-0 object-contain" />
+                <span className="whitespace-nowrap text-[13px] font-extrabold tracking-[0.12em] text-[#34785b]">SVAASTH HMS</span>
               </button>
               <button
                 onClick={toggleSidebar}
@@ -278,12 +278,12 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
               </button>
-              {/* Svasth HMS Branding */}
+              {/* Svaasth HMS Branding */}
               {hospitalConfig.branding.poweredBySvasth && (
                 <div className="pt-2 mt-1 border-t border-gray-100 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 select-none">
                   <span>Powered by</span>
-                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-4 w-4 rounded-xs object-contain" />
-                  <span className="font-semibold text-gray-600">Svasth HMS</span>
+                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-4 w-4 rounded-xs object-contain" />
+                  <span className="font-semibold text-gray-600">Svaasth HMS</span>
                 </div>
               )}
             </div>
@@ -302,10 +302,10 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
               >
                 <LogOut className="w-4 h-4" />
               </button>
-              {/* Svasth HMS Branding collapsed */}
+              {/* Svaasth HMS Branding collapsed */}
               {hospitalConfig.branding.poweredBySvasth && (
-                <div className="pt-1 border-t border-gray-100 flex items-center justify-center select-none" title="Powered by Svasth HMS">
-                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-5 w-5 rounded-xs object-contain opacity-70 hover:opacity-100 transition" />
+                <div className="pt-1 border-t border-gray-100 flex items-center justify-center select-none" title="Powered by Svaasth HMS">
+                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-5 w-5 rounded-xs object-contain opacity-70 hover:opacity-100 transition" />
                 </div>
               )}
             </>
