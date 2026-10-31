@@ -176,7 +176,7 @@ export default function PrescriptionComplaintsSection({
                 }
               }}
               placeholder="Add Complaints (e.g. Joint pain in right knee, fever, back pain)..."
-              className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white focus:ring-1 focus:ring-teal-500 outline-none"
+              className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
           <div className="col-span-2">
@@ -217,7 +217,7 @@ export default function PrescriptionComplaintsSection({
             <button
               type="button"
               onClick={handleAddComplaint}
-              className="px-2 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
+              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
               title="Add complaint"
             >
               +

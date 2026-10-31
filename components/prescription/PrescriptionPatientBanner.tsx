@@ -54,7 +54,7 @@ export default function PrescriptionPatientBanner({
             className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border shadow-2xs shrink-0 ${
               isGynae
                 ? 'bg-pink-50 text-pink-700 border-pink-200'
-                : 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
             }`}
           >
             ℞
@@ -68,7 +68,7 @@ export default function PrescriptionPatientBanner({
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   isGynae
                     ? 'bg-pink-50 text-pink-700 border-pink-200'
-                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}
               >
                 {isGynae
@@ -92,12 +92,12 @@ export default function PrescriptionPatientBanner({
             onClick={() => handleDoctorSelect('Dr. Vipeen Raut')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
               !isGynae
-                ? 'bg-blue-600 text-white shadow-xs hover:bg-blue-700'
+                ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
             }`}
           >
             <span>Dr. Vipeen Raut</span>
-            <span className={`text-[10px] ${!isGynae ? 'text-blue-100' : 'text-slate-400'}`}>(Ortho)</span>
+            <span className={`text-[10px] ${!isGynae ? 'text-emerald-100' : 'text-slate-400'}`}>(Ortho)</span>
           </button>
           <button
             type="button"
@@ -137,7 +137,7 @@ export default function PrescriptionPatientBanner({
             {formData.phoneNumber && (
               <a
                 href={'tel:' + formData.phoneNumber}
-                className="text-xs px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-semibold hover:bg-blue-100 flex items-center gap-1 transition"
+                className="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-semibold hover:bg-emerald-100 flex items-center gap-1 transition"
               >
                 <PhoneCall className="w-3 h-3" /> Call
               </a>
@@ -146,10 +146,10 @@ export default function PrescriptionPatientBanner({
               <button
                 type="button"
                 onClick={onOpenEmailModal}
-                className="text-xs px-2.5 py-0.5 bg-teal-50 text-teal-800 border border-teal-200 rounded font-semibold hover:bg-teal-100 flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                className="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-semibold hover:bg-emerald-100 flex items-center gap-1 transition cursor-pointer shadow-2xs"
                 title="Email prescription directly to patient"
               >
-                <Mail className="w-3 h-3 text-teal-700" /> Mail Rx
+                <Mail className="w-3 h-3 text-emerald-700" /> Mail Rx
               </button>
             )}
           </div>
@@ -158,7 +158,7 @@ export default function PrescriptionPatientBanner({
             {formData.token && (
               <div>
                 Token:{' '}
-                <span className="font-extrabold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   #{formData.token}
                 </span>
               </div>
@@ -191,7 +191,7 @@ export default function PrescriptionPatientBanner({
               onChange={handleChange}
               required
               placeholder="Patient Name"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
@@ -202,7 +202,7 @@ export default function PrescriptionPatientBanner({
               value={formData.phoneNumber}
               onChange={handlePhoneNumberChange}
               placeholder="Phone Number"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
@@ -213,7 +213,7 @@ export default function PrescriptionPatientBanner({
               value={formData.email || ''}
               onChange={handleChange}
               placeholder="patient@email.com"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
@@ -224,7 +224,7 @@ export default function PrescriptionPatientBanner({
               value={formData.age}
               onChange={handleChange}
               placeholder="Years"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
@@ -233,7 +233,7 @@ export default function PrescriptionPatientBanner({
               name="sex"
               value={formData.sex}
               onChange={handleChange}
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
             >
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -247,7 +247,7 @@ export default function PrescriptionPatientBanner({
               name="date"
               value={formData.date}
               onChange={handleChange}
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-teal-500"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
@@ -255,7 +255,7 @@ export default function PrescriptionPatientBanner({
             <select
               value={selectedDoctorName}
               onChange={(e) => handleDoctorSelect(e.target.value)}
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 bg-white focus:ring-1 focus:ring-teal-500 cursor-pointer"
+              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 cursor-pointer"
             >
               {availableDoctors.map((doc) => (
                 <option key={doc.id || doc._id || doc.name} value={doc.name}>
@@ -296,10 +296,10 @@ export default function PrescriptionPatientBanner({
           <button
             type="button"
             onClick={onOpenLoadTemplate}
-            className="hover:text-blue-700 flex items-center gap-1.5 font-bold transition text-xs cursor-pointer"
+            className="hover:text-emerald-700 flex items-center gap-1.5 font-bold transition text-xs cursor-pointer"
             title="Load master prescription template"
           >
-            <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
+            <FolderOpen className="w-3.5 h-3.5 text-emerald-600" />
             <span>Load template</span>
           </button>
           <button

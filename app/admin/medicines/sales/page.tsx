@@ -362,7 +362,7 @@ export default function SalesReportPage() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-          <TrendingUp className="mr-3 text-blue-600" size={32} />
+          <TrendingUp className="mr-3 text-emerald-600" size={32} />
           Sales & Revenue Report (OPD / IPD)
         </h1>
         <p className="text-gray-600 text-sm">
@@ -401,14 +401,14 @@ export default function SalesReportPage() {
               onClick={() => setDepartmentFilter('OPD')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
                 departmentFilter === 'OPD'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-blue-700'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-emerald-700'
               }`}
             >
-              <Stethoscope size={14} className={departmentFilter === 'OPD' ? 'text-white' : 'text-blue-600'} />
+              <Stethoscope size={14} className={departmentFilter === 'OPD' ? 'text-white' : 'text-emerald-600'} />
               <span>OPD (Outpatient)</span>
               <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                departmentFilter === 'OPD' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-700'
+                departmentFilter === 'OPD' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-700'
               }`}>
                 {opdStats.patients}
               </span>
@@ -442,7 +442,7 @@ export default function SalesReportPage() {
             <select
               value={reportType}
               onChange={(e) => handlePeriodChange(e.target.value as ReportPeriod)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="daily">Daily (Today)</option>
               <option value="weekly">Weekly (Last 7 Days)</option>
@@ -464,7 +464,7 @@ export default function SalesReportPage() {
                 setReportType('custom');
               }}
               max={getTodayIST()}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
 
@@ -480,7 +480,7 @@ export default function SalesReportPage() {
                 setReportType('custom');
               }}
               max={getTodayIST()}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
           </div>
         </div>
@@ -502,7 +502,7 @@ export default function SalesReportPage() {
                 onClick={() => handlePeriodChange(p)}
                 className={`px-3 py-1 text-xs rounded-full border transition font-medium cursor-pointer ${
                   active
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'
                 }`}
               >
@@ -516,7 +516,7 @@ export default function SalesReportPage() {
           <button
             onClick={fetchSalesReport}
             disabled={isLoading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center transition disabled:opacity-50 cursor-pointer text-sm font-semibold"
+            className="px-6 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 flex items-center transition disabled:opacity-50 cursor-pointer text-sm font-semibold"
           >
             <RefreshCw size={16} className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Refreshing Report...' : 'Refresh Report'}
@@ -533,20 +533,20 @@ export default function SalesReportPage() {
         {/* Card 1: OPD Revenue */}
         <div className={`rounded-xl p-5 border transition-all ${
           departmentFilter === 'OPD' || departmentFilter === 'ALL'
-            ? 'bg-gradient-to-br from-blue-50/80 via-white to-blue-50/30 border-blue-200 shadow-sm'
+            ? 'bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 border-emerald-200 shadow-sm'
             : 'bg-white border-slate-200 opacity-60'
         }`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                 <Stethoscope size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-blue-950">OPD Outpatient Sales</h3>
-                <p className="text-[11px] text-blue-600 font-medium">Consultations, Procedures & Pharmacy</p>
+                <h3 className="text-sm font-bold text-emerald-950">OPD Outpatient Sales</h3>
+                <p className="text-[11px] text-emerald-600 font-medium">Consultations, Procedures & Pharmacy</p>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wider">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">
               OPD
             </span>
           </div>
@@ -558,7 +558,7 @@ export default function SalesReportPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-blue-100/80 text-xs">
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-emerald-100/80 text-xs">
             <div>
               <span className="text-slate-500 text-[11px]">Collected:</span>
               <p className="font-bold text-emerald-600">₹{opdStats.paid.toFixed(2)}</p>
@@ -580,7 +580,7 @@ export default function SalesReportPage() {
           </div>
 
           {hospitalTotalStats.totalAmount > 0 && (
-            <div className="mt-3 pt-2 text-[11px] text-blue-700 font-medium flex items-center justify-between">
+            <div className="mt-3 pt-2 text-[11px] text-emerald-700 font-medium flex items-center justify-between">
               <span>Revenue Share:</span>
               <span className="font-bold">{((opdStats.amount / hospitalTotalStats.totalAmount) * 100).toFixed(1)}%</span>
             </div>
@@ -724,7 +724,7 @@ export default function SalesReportPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search name, UHID, ward, phone..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             {searchQuery && (
               <button
@@ -746,7 +746,7 @@ export default function SalesReportPage() {
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <RefreshCw size={32} className="animate-spin text-blue-500" />
+            <RefreshCw size={32} className="animate-spin text-emerald-500" />
           </div>
         ) : !Array.isArray(displayedSales) || displayedSales.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
@@ -806,8 +806,8 @@ export default function SalesReportPage() {
 
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       {row.department === 'OPD' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                          <Stethoscope size={12} className="text-blue-600" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Stethoscope size={12} className="text-emerald-600" />
                           OPD
                         </span>
                       ) : (

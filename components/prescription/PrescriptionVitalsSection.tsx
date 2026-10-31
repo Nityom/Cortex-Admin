@@ -114,7 +114,7 @@ export default function PrescriptionVitalsSection({
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">
               BP (Blood Pressure)
             </label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={bpSystolic}
@@ -143,7 +143,7 @@ export default function PrescriptionVitalsSection({
           {/* Pulse */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Pulse</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={pulseVal}
@@ -161,7 +161,7 @@ export default function PrescriptionVitalsSection({
           {/* Height */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Height</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={heightVal}
@@ -179,7 +179,7 @@ export default function PrescriptionVitalsSection({
           {/* Weight */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Weight</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={weightVal}
@@ -201,7 +201,7 @@ export default function PrescriptionVitalsSection({
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">
               Temperature
             </label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={tempVal}
@@ -225,7 +225,7 @@ export default function PrescriptionVitalsSection({
                 readOnly
                 placeholder="—"
                 title="Body Mass Index (Kg/m²)"
-                className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-extrabold text-teal-800 bg-transparent outline-none cursor-default"
+                className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-extrabold text-emerald-800 bg-transparent outline-none cursor-default"
               />
               <span className="inline-flex items-center px-2 py-2 bg-slate-100 border-l border-slate-200 text-xs font-semibold text-slate-500 select-none">
                 Kg/m²
@@ -235,7 +235,7 @@ export default function PrescriptionVitalsSection({
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Waist/Hip</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={waistHipVal}
@@ -252,7 +252,7 @@ export default function PrescriptionVitalsSection({
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">SPO2</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={spo2Val}
@@ -269,7 +269,7 @@ export default function PrescriptionVitalsSection({
 
           <div className="col-span-2 sm:col-span-1">
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">Waist/Hip</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
               <input
                 type="text"
                 value={waistHipVal}

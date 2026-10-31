@@ -1449,15 +1449,13 @@ function PrintPrescriptionContent() {
                         {activeDoc?.registrationNumber && (
                           <div className="doctor-reg">Reg. No. {activeDoc.registrationNumber}</div>
                         )}
-                        {activeDoc?.designation && (
+                        {activeDoc?.fellowshipOrDiplomate && (
                           <div className="doctor-diplomate">
-                            {activeDoc.designation}
+                            {activeDoc.fellowshipOrDiplomate}
                           </div>
                         )}
                         <div className="doctor-specialty">
-                          {activeDoc?.specialty === 'gynecology'
-                            ? 'Maternity, Infertility & Women Care Specialist'
-                            : activeDoc?.designation || hospitalConfig.tagline}
+                          {activeDoc?.subSpecialty || activeDoc?.designation || hospitalConfig.tagline}
                         </div>
                       </>
                     );

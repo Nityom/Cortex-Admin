@@ -62,7 +62,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon: Icon, title, url, isActive, o
       href="#"
       title={!isExpanded ? title : undefined}
       className={`flex items-center w-full py-3 px-3 rounded-lg transition-all duration-200 ${isActive
-        ? 'bg-blue-600 text-white shadow-sm'
+        ? 'bg-emerald-600 text-white shadow-sm'
         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
         } ${!isExpanded ? 'justify-center' : ''}`}
       onClick={(e) => {
@@ -273,12 +273,12 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
           {showExpanded ? (
             <div className="space-y-2">
               <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
                   <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-700 truncate">{userEmail}</p>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'}`}>
                     {isAdmin ? 'Admin' : 'Staff'}
                   </span>
                 </div>
@@ -302,7 +302,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
           ) : (
             <>
               <div
-                className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center cursor-pointer"
                 title={userEmail}
               >
                 <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>

@@ -84,7 +84,7 @@ export default function PrescriptionPaymentModal({
                 discountPercent: Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 100),
               }))
             }
-            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
             placeholder="0"
           />
         </div>
@@ -103,7 +103,7 @@ export default function PrescriptionPaymentModal({
               const val = Math.round(Math.min(Math.max(parseFloat(e.target.value) || 0, 0), payable));
               setPaymentDetails((prev) => ({ ...prev, amountPaid: val }));
             }}
-            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
           />
         </div>
 
@@ -114,7 +114,7 @@ export default function PrescriptionPaymentModal({
             onChange={(e) =>
               setPaymentDetails((prev) => ({ ...prev, paymentMethod: e.target.value }))
             }
-            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white cursor-pointer"
+            className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white cursor-pointer"
           >
             <option value="Cash">Cash</option>
             <option value="Card">Card</option>
@@ -142,7 +142,7 @@ export default function PrescriptionPaymentModal({
           <button
             type="button"
             onClick={handlePrintBill}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold shadow-xs cursor-pointer"
+            className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-bold shadow-xs cursor-pointer"
           >
             Print Bill
           </button>

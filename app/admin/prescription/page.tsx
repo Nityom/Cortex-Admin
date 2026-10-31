@@ -154,8 +154,8 @@ export default function PrescriptionPage() {
 
         {/* 8. Post-Save Quick Email Prompt Banner */}
         {form.emailSuccessPrompt && (
-          <div className="fixed bottom-6 right-6 z-40 bg-white border border-teal-200 rounded-2xl p-4 shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700 shrink-0">
+          <div className="fixed bottom-6 right-6 z-40 bg-white border border-emerald-200 rounded-2xl p-4 shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
               <Mail className="w-5 h-5" />
             </div>
             <div className="text-xs">
@@ -169,7 +169,7 @@ export default function PrescriptionPage() {
                   form.setEmailSuccessPrompt(false);
                   form.handleOpenEmailModal();
                 }}
-                className="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
               >
                 <span>Email Rx</span>
               </button>

@@ -50,7 +50,7 @@ export default function PrescriptionHistorySection({
             <button
               type="button"
               onClick={onCollapse}
-              className="text-[11px] font-bold text-slate-500 hover:text-teal-700 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition cursor-pointer"
+              className="text-[11px] font-bold text-slate-500 hover:text-emerald-700 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition cursor-pointer"
               title="Minimize / Collapse Medical History"
             >
               — Collapse
@@ -72,7 +72,7 @@ export default function PrescriptionHistorySection({
         onChange={(e) => onChange(e.target.value)}
         rows={3}
         placeholder="Record patient medical, surgical, allergy and drug history (e.g. Hypertension 5 yrs on Telmisartan, Type 2 Diabetes, NKDA, Previous appendectomy 2021)..."
-        className="w-full min-h-[90px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white shadow-2xs outline-none"
+        className="w-full min-h-[90px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-2xs outline-none"
       />
 
       {/* History Quick-Select Chips */}

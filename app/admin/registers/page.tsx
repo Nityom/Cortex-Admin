@@ -411,7 +411,7 @@ function RegistersContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <ClipboardList className="text-blue-600" />
+              <ClipboardList className="text-emerald-600" />
               <span>Registers & Clinical Records</span>
             </h1>
             <p className="text-xs md:text-sm text-gray-500 mt-1">
@@ -430,7 +430,7 @@ function RegistersContent() {
               </button>
               <button
                 onClick={openAddModal}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm transition"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm transition"
               >
                 <IndianRupee size={16} />
                 Record Payment
@@ -439,7 +439,7 @@ function RegistersContent() {
           ) : (
             <button
               onClick={openAddModal}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm transition"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs md:text-sm font-semibold shadow-sm transition"
             >
               <Plus size={16} />
               Add Entry
@@ -469,7 +469,7 @@ function RegistersContent() {
                 }}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
@@ -531,7 +531,7 @@ function RegistersContent() {
               placeholder="Search by name, phone, notes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -544,7 +544,7 @@ function RegistersContent() {
               <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between text-gray-500 text-xs font-semibold uppercase">
                   <span>Staff Members</span>
-                  <Users size={16} className="text-blue-600" />
+                  <Users size={16} className="text-emerald-600" />
                 </div>
                 <div className="text-2xl font-black text-gray-900 mt-1">{staffMembers.length}</div>
                 <p className="text-[11px] text-gray-500 mt-0.5">Active clinic personnel</p>
@@ -553,9 +553,9 @@ function RegistersContent() {
               <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between text-gray-500 text-xs font-semibold uppercase">
                   <span>Fixed Monthly Payroll</span>
-                  <IndianRupee size={16} className="text-indigo-600" />
+                  <IndianRupee size={16} className="text-emerald-600" />
                 </div>
-                <div className="text-2xl font-black text-indigo-900 mt-1">
+                <div className="text-2xl font-black text-emerald-900 mt-1">
                   ₹{staffTotals.totalFixedSalary.toLocaleString('en-IN')}
                 </div>
                 <p className="text-[11px] text-gray-500 mt-0.5">Total base salary commitment</p>
@@ -603,7 +603,7 @@ function RegistersContent() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100">
                 <div>
                   <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <Users size={18} className="text-blue-600" />
+                    <Users size={18} className="text-emerald-600" />
                     Staff Directory & Fixed Salaries
                   </h2>
                   <p className="text-xs text-gray-500">
@@ -633,7 +633,7 @@ function RegistersContent() {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm uppercase">
+                            <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-sm uppercase">
                               {member.name.charAt(0)}
                             </div>
                             <div>
@@ -649,7 +649,7 @@ function RegistersContent() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => openEditStaffModal(member)}
-                              className="text-gray-400 hover:text-blue-600 p-1"
+                              className="text-gray-400 hover:text-emerald-600 p-1"
                               title="Edit Staff Member & Fixed Salary"
                             >
                               <Edit size={14} />
@@ -729,10 +729,10 @@ function RegistersContent() {
 
             {/* Individual staff ledger summary if selected */}
             {staffLedgerSummary && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                 <div>
                   <span className="text-gray-500 font-semibold uppercase">Selected Staff</span>
-                  <div className="text-base font-bold text-blue-900">{staffLedgerSummary.staffName}</div>
+                  <div className="text-base font-bold text-emerald-900">{staffLedgerSummary.staffName}</div>
                 </div>
                 <div>
                   <span className="text-gray-500 font-semibold uppercase">Total Salary Paid</span>
@@ -755,7 +755,7 @@ function RegistersContent() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {loading ? (
             <div className="py-20 flex justify-center items-center">
-              <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+              <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -789,14 +789,14 @@ function RegistersContent() {
                           <td className="py-3 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               r.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                              r.status === 'Visited' ? 'bg-blue-100 text-blue-800' :
+                              r.status === 'Visited' ? 'bg-emerald-100 text-emerald-800' :
                               r.status === 'Scheduled' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
                             }`}>{r.status}</span>
                           </td>
                           <td className="py-3 px-3 text-gray-500 max-w-xs truncate">{r.findings_notes || '-'}</td>
                           <td className="py-3 px-3 text-right">
                             <div className="flex justify-end gap-1.5">
-                              <button onClick={() => { setReviewForm(r); setEditingId(r.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-800 p-1"><Edit size={14} /></button>
+                              <button onClick={() => { setReviewForm(r); setEditingId(r.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-emerald-600 hover:text-emerald-800 p-1"><Edit size={14} /></button>
                               {isAdmin && <button onClick={async () => { if (confirm('Delete?')) { await reviewService.delete(r.id!); fetchData(); } }} className="text-red-600 hover:text-red-800 p-1"><Trash2 size={14} /></button>}
                             </div>
                           </td>
@@ -836,7 +836,7 @@ function RegistersContent() {
                           <td className="py-3 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               rc.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                              rc.status === 'Contacted' ? 'bg-blue-100 text-blue-800' :
+                              rc.status === 'Contacted' ? 'bg-emerald-100 text-emerald-800' :
                               rc.status === 'Scheduled' ? 'bg-purple-100 text-purple-800' : 'bg-yellow-100 text-yellow-800'
                             }`}>{rc.status}</span>
                           </td>
@@ -844,7 +844,7 @@ function RegistersContent() {
                           <td className="py-3 px-3 text-gray-500 max-w-xs truncate">{rc.notes || '-'}</td>
                           <td className="py-3 px-3 text-right">
                             <div className="flex justify-end gap-1.5">
-                              <button onClick={() => { setRecallForm(rc); setEditingId(rc.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-800 p-1"><Edit size={14} /></button>
+                              <button onClick={() => { setRecallForm(rc); setEditingId(rc.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-emerald-600 hover:text-emerald-800 p-1"><Edit size={14} /></button>
                               {isAdmin && <button onClick={async () => { if (confirm('Delete?')) { await recallService.delete(rc.id!); fetchData(); } }} className="text-red-600 hover:text-red-800 p-1"><Trash2 size={14} /></button>}
                             </div>
                           </td>
@@ -884,14 +884,14 @@ function RegistersContent() {
                           <td className="py-3 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               f.status === 'Completed' || f.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                              f.status === 'Called - Reached' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                              f.status === 'Called - Reached' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                             }`}>{f.status}</span>
                           </td>
                           <td className="py-3 px-3 text-gray-600">{f.next_followup_date || '-'}</td>
                           <td className="py-3 px-3 text-gray-500 max-w-xs truncate">{f.notes || '-'}</td>
                           <td className="py-3 px-3 text-right">
                             <div className="flex justify-end gap-1.5">
-                              <button onClick={() => { setFollowupForm(f); setEditingId(f.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-800 p-1"><Edit size={14} /></button>
+                              <button onClick={() => { setFollowupForm(f); setEditingId(f.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-emerald-600 hover:text-emerald-800 p-1"><Edit size={14} /></button>
                               {isAdmin && <button onClick={async () => { if (confirm('Delete?')) { await followupService.delete(f.id!); fetchData(); } }} className="text-red-600 hover:text-red-800 p-1"><Trash2 size={14} /></button>}
                             </div>
                           </td>
@@ -932,7 +932,7 @@ function RegistersContent() {
                               <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                                 <span>{sp.staff_role}</span>
                                 {matchedStaff && (
-                                  <span className="text-[10px] text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded font-medium">
+                                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-medium">
                                     Fixed: ₹{matchedStaff.fixed_salary.toLocaleString('en-IN')}
                                   </span>
                                 )}
@@ -965,7 +965,7 @@ function RegistersContent() {
                             </td>
                             <td className="py-3 px-3 text-right">
                               <div className="flex justify-end gap-1.5">
-                                <button onClick={() => { setStaffPaymentForm(sp); setEditingId(sp.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-blue-600 hover:text-blue-800 p-1"><Edit size={14} /></button>
+                                <button onClick={() => { setStaffPaymentForm(sp); setEditingId(sp.id || null); setIsEditMode(true); setIsModalOpen(true); }} className="text-emerald-600 hover:text-emerald-800 p-1"><Edit size={14} /></button>
                                 {isAdmin && <button onClick={async () => { if (confirm('Delete this payment record?')) { await staffPaymentService.delete(sp.id!); fetchData(); } }} className="text-red-600 hover:text-red-800 p-1"><Trash2 size={14} /></button>}
                               </div>
                             </td>
@@ -1004,7 +1004,7 @@ function RegistersContent() {
                     placeholder="Search by name, phone or ref #..."
                     value={patientSearchQuery}
                     onChange={(e) => handlePatientQueryChange(e.target.value)}
-                    className="w-full px-3 py-1.5 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-1.5 border rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                   {showSuggestions && patientSuggestions.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
@@ -1012,7 +1012,7 @@ function RegistersContent() {
                         <div
                           key={p.id || p.phone_number}
                           onClick={() => selectPatientForForm(p)}
-                          className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-0"
+                          className="px-3 py-2 hover:bg-emerald-50 cursor-pointer border-b last:border-0"
                         >
                           <div className="font-bold text-gray-900">{p.name}</div>
                           <div className="text-[11px] text-gray-500">📱 {p.phone_number} {p.reference_number && `• ${p.reference_number}`}</div>
@@ -1153,7 +1153,7 @@ function RegistersContent() {
                           setIsModalOpen(false);
                           openAddStaffModal();
                         }}
-                        className="text-blue-600 hover:text-blue-800 text-[11px] font-medium"
+                        className="text-emerald-600 hover:text-emerald-800 text-[11px] font-medium"
                       >
                         + New Staff
                       </button>
@@ -1211,7 +1211,7 @@ function RegistersContent() {
                     if (!currentStaff) return null;
                     const hasAdv = (currentStaff.advance_balance || 0) > 0;
                     return (
-                      <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span className="text-[10px] uppercase font-semibold text-gray-500">Fixed Monthly Salary</span>
                           <div className="font-bold text-gray-900 text-sm">
@@ -1296,7 +1296,7 @@ function RegistersContent() {
                           onChange={(e) => setStaffPaymentForm({ ...staffPaymentForm, amount_paid: Number(e.target.value) })}
                           required
                           placeholder="Amount paid"
-                          className="w-full pl-7 pr-3 py-1.5 border rounded-lg font-bold text-gray-900 text-sm focus:ring-2 focus:ring-blue-500"
+                          className="w-full pl-7 pr-3 py-1.5 border rounded-lg font-bold text-gray-900 text-sm focus:ring-2 focus:ring-emerald-500"
                         />
                       </div>
                     </div>
@@ -1383,7 +1383,7 @@ function RegistersContent() {
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-xl hover:bg-gray-100">
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl">
+                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl">
                   {isEditMode ? 'Update' : 'Save'}
                 </button>
               </div>

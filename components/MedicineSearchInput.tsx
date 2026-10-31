@@ -173,7 +173,7 @@ export default function MedicineSearchInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full pl-9 pr-8 p-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition placeholder:text-gray-400"
+          className="w-full pl-9 pr-8 p-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition placeholder:text-gray-400"
         />
 
         {searchTerm && (
@@ -211,7 +211,7 @@ export default function MedicineSearchInput({
                     onMouseEnter={() => setHighlightedIndex(optIdx)}
                     className={`px-3 py-2 cursor-pointer transition text-left ${
                       isSelected
-                        ? 'bg-blue-50 text-blue-900'
+                        ? 'bg-emerald-50 text-emerald-900'
                         : 'hover:bg-gray-50 text-gray-800'
                     }`}
                   >

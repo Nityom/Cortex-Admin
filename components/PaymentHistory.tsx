@@ -105,7 +105,7 @@ export default function PaymentHistory({
         {/* Header Strip */}
         <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/80">
           <div className="flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-teal-700" />
+            <Receipt className="w-4 h-4 text-emerald-700" />
             <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
               Installment Ledger ({payments.length})
             </span>
@@ -114,7 +114,7 @@ export default function PaymentHistory({
             <Button
               onClick={onAddPaymentClick}
               size="sm"
-              className="h-7 text-xs bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-lg px-2.5 shadow-2xs cursor-pointer flex items-center gap-1"
+              className="h-7 text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg px-2.5 shadow-2xs cursor-pointer flex items-center gap-1"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Record Installment</span>
@@ -152,7 +152,7 @@ export default function PaymentHistory({
             payments.map((payment, idx) => (
               <div
                 key={payment.id || idx}
-                className="flex items-center justify-between bg-white border border-slate-200/70 rounded-xl p-3 hover:border-teal-300 transition shadow-2xs"
+                className="flex items-center justify-between bg-white border border-slate-200/70 rounded-xl p-3 hover:border-emerald-300 transition shadow-2xs"
               >
                 <div className="flex-1 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
@@ -163,7 +163,7 @@ export default function PaymentHistory({
                       <span className="font-extrabold text-emerald-800 text-sm">
                         {formatCurrency(Number(payment.amount))}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
                         {payment.payment_method || "Cash"}
                       </span>
                     </div>

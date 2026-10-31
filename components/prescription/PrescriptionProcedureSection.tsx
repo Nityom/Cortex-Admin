@@ -73,12 +73,12 @@ export default function PrescriptionProcedureSection({
   };
 
   return (
-    <div className="bg-gradient-to-br from-teal-50/70 to-emerald-50/40 border border-teal-200 rounded-xl p-4 shadow-xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-teal-200/80 gap-2">
+    <div className="bg-gradient-to-br from-emerald-50/70 to-emerald-50/40 border border-emerald-200 rounded-xl p-4 shadow-xs space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-emerald-200/80 gap-2">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-bold text-teal-900 flex items-center gap-1.5">
+          <label className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
             <span title="Edit Procedure Done" className="inline-flex">
-              <Edit2 className="w-4 h-4 text-teal-700" />
+              <Edit2 className="w-4 h-4 text-emerald-700" />
             </span>
             Procedure done / Treatment Done
           </label>
@@ -96,7 +96,7 @@ export default function PrescriptionProcedureSection({
               }
             }}
           />
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-300">
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
             Optional
           </span>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
@@ -106,7 +106,7 @@ export default function PrescriptionProcedureSection({
       </div>
 
       {/* Registration / Consultation Fee Checkbox */}
-      <div className="p-3 bg-white/95 rounded-lg border border-teal-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
+      <div className="p-3 bg-white/95 rounded-lg border border-emerald-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
         <label className="flex items-start gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -118,7 +118,7 @@ export default function PrescriptionProcedureSection({
                 setConsultationCharge(isNewPatient ? 400 : 200);
               }
             }}
-            className="mt-0.5 w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500 cursor-pointer"
+            className="mt-0.5 w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
           />
           <div>
             <div className="flex items-center gap-2">
@@ -129,7 +129,7 @@ export default function PrescriptionProcedureSection({
                 className={
                   isNewPatient
                     ? 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-300'
-                    : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-800 border-blue-300'
+                    : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-300'
                 }
               >
                 {isNewPatient ? `New Patient (₹${consultationCharge || 400})` : `Follow-up / Re-visit (₹${consultationCharge || 200})`}
@@ -151,7 +151,7 @@ export default function PrescriptionProcedureSection({
               min="0"
               value={consultationCharge || ''}
               onChange={(e) => setConsultationCharge(Math.max(0, parseFloat(e.target.value) || 0))}
-              className="w-20 p-1.5 text-xs font-bold border border-slate-300 rounded text-slate-900 focus:ring-1 focus:ring-teal-500 outline-none"
+              className="w-20 p-1.5 text-xs font-bold border border-slate-300 rounded text-slate-900 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
         )}
@@ -227,7 +227,7 @@ export default function PrescriptionProcedureSection({
             type="button"
             onClick={handleAddTreatment}
             disabled={!selectedTreatmentName.trim()}
-            className="w-full py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
+            className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
           >
             + Add
           </button>
@@ -236,7 +236,7 @@ export default function PrescriptionProcedureSection({
 
       {/* Treatment Items Table */}
       {treatmentItems.length > 0 && (
-        <div className="bg-white rounded-lg border border-teal-200 overflow-hidden text-xs">
+        <div className="bg-white rounded-lg border border-emerald-200 overflow-hidden text-xs">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50 text-slate-600 font-semibold uppercase text-[10px]">
               <tr>
@@ -257,7 +257,7 @@ export default function PrescriptionProcedureSection({
                   <td className="px-3 py-2 text-slate-500">{item.date || defaultDate}</td>
                   <td className="px-3 py-2 text-center font-bold">{item.quantity}</td>
                   <td className="px-3 py-2 text-right font-bold">₹{item.unitPrice}</td>
-                  <td className="px-3 py-2 text-right font-bold text-teal-800">₹{item.total}</td>
+                  <td className="px-3 py-2 text-right font-bold text-emerald-800">₹{item.total}</td>
                   <td className="px-3 py-2 text-center">
                     <button
                       type="button"

@@ -907,7 +907,7 @@ export default function OPDManagementPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+              <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
                 <Stethoscope className="w-6 h-6" />
               </span>
               <div>
@@ -939,7 +939,7 @@ export default function OPDManagementPage() {
                       }}
                       className={`px-2.5 py-1 rounded-md font-bold transition cursor-pointer ${
                         selectedDoctorFilter === 'Dr. Vipeen Raut'
-                          ? 'bg-blue-600 text-white shadow-sm'
+                          ? 'bg-emerald-600 text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -969,8 +969,8 @@ export default function OPDManagementPage() {
             <button
               onClick={() => setActiveTab("register")}
               className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition ${activeTab === "register"
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
                 }`}
             >
               <UserPlus className="w-4 h-4" />
@@ -1013,7 +1013,7 @@ export default function OPDManagementPage() {
           <button
             onClick={() => setActiveTab("appointments")}
             className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${activeTab === "appointments"
-                ? "bg-blue-600 text-white shadow-xs"
+                ? "bg-emerald-600 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
           >
@@ -1022,8 +1022,8 @@ export default function OPDManagementPage() {
             {todayAppointments.length > 0 && (
               <span
                 className={`text-[11px] font-bold px-1.5 py-0.2 rounded-full ${activeTab === "appointments"
-                    ? "bg-white text-blue-600"
-                    : "bg-blue-100 text-blue-700"
+                    ? "bg-white text-emerald-600"
+                    : "bg-emerald-100 text-emerald-700"
                   }`}
               >
                 {todayAppointments.length}
@@ -1034,7 +1034,7 @@ export default function OPDManagementPage() {
           <button
             onClick={() => setActiveTab("register")}
             className={`px-4 py-2 font-semibold text-sm rounded-lg transition flex items-center gap-2 shrink-0 ${activeTab === "register"
-                ? "bg-blue-600 text-white"
+                ? "bg-emerald-600 text-white"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
           >
@@ -1085,7 +1085,7 @@ export default function OPDManagementPage() {
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <Calendar className="w-4 h-4 text-emerald-600" />
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
                     Today&apos;s Scheduled Appointments ({todayAppointments.length})
                   </span>
@@ -1096,7 +1096,7 @@ export default function OPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("appointments")}
-                  className="text-xs font-bold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1"
                 >
                   View All Appointments <ArrowRight className="w-3 h-3" />
                 </button>
@@ -1109,12 +1109,12 @@ export default function OPDManagementPage() {
                   return (
                     <div
                       key={appt._id}
-                      className="bg-white rounded-lg border border-blue-100 p-2.5 min-w-[250px] shrink-0 shadow-xs flex items-center justify-between gap-3"
+                      className="bg-white rounded-lg border border-emerald-100 p-2.5 min-w-[250px] shrink-0 shadow-xs flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold text-slate-900 truncate">{appt.name}</span>
-                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-mono">
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
                             {appt.time}
                           </span>
                         </div>
@@ -1132,7 +1132,7 @@ export default function OPDManagementPage() {
                           type="button"
                           disabled={submitting}
                           onClick={() => handleCheckInAppointment(appt)}
-                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-bold transition shrink-0 shadow-xs disabled:opacity-50"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold transition shrink-0 shadow-xs disabled:opacity-50"
                         >
                           + Check In
                         </button>
@@ -1153,7 +1153,7 @@ export default function OPDManagementPage() {
                 value={queueSearch}
                 onChange={(e) => setQueueSearch(e.target.value)}
                 placeholder="Search patient, phone, UHID..."
-                className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -1170,7 +1170,7 @@ export default function OPDManagementPage() {
                 </button>
 
                 <div className="flex items-center gap-1 px-1">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <input
                     type="date"
                     value={selectedQueueDate}
@@ -1193,7 +1193,7 @@ export default function OPDManagementPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedQueueDate(todayStr)}
-                    className="ml-1 px-2 py-0.5 bg-blue-600 text-white rounded text-[11px] font-bold hover:bg-blue-700 transition"
+                    className="ml-1 px-2 py-0.5 bg-emerald-600 text-white rounded text-[11px] font-bold hover:bg-emerald-700 transition"
                   >
                     Today
                   </button>
@@ -1235,9 +1235,9 @@ export default function OPDManagementPage() {
 
           {/* Calendar Filter Notice Banner if not viewing Today */}
           {selectedQueueDate !== todayStr && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-blue-900 shadow-2xs">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-emerald-900 shadow-2xs">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-600" />
+                <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>
                   Viewing OPD Queue for <strong>{selectedQueueDate}</strong> ({filteredQueue.length} {filteredQueue.length === 1 ? 'patient' : 'patients'}). Not showing today.
                 </span>
@@ -1245,7 +1245,7 @@ export default function OPDManagementPage() {
               <button
                 type="button"
                 onClick={() => setSelectedQueueDate(todayStr)}
-                className="font-bold text-blue-700 hover:underline hover:text-blue-900"
+                className="font-bold text-emerald-700 hover:underline hover:text-emerald-900"
               >
                 Switch to Today&apos;s Queue →
               </button>
@@ -1255,7 +1255,7 @@ export default function OPDManagementPage() {
           {/* Queue List */}
           {filteredQueue.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900">
@@ -1279,7 +1279,7 @@ export default function OPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("register")}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
                 >
                   + Register Patient
                 </button>
@@ -1291,7 +1291,7 @@ export default function OPDManagementPage() {
                 <div
                   key={item.id}
                   className={`bg-white rounded-xl border p-4 shadow-sm hover:shadow transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${item.status === "In Consultation"
-                      ? "border-blue-300 bg-blue-50/20"
+                      ? "border-emerald-300 bg-emerald-50/20"
                       : item.status === "Completed"
                         ? "border-emerald-200 bg-emerald-50/10"
                         : "border-slate-200"
@@ -1334,7 +1334,7 @@ export default function OPDManagementPage() {
                             className={
                               item.doctor?.toLowerCase().includes("shilpa") || item.doctor?.toLowerCase().includes("shillpa")
                                 ? "text-pink-700 font-bold"
-                                : "text-blue-700 font-bold"
+                                : "text-emerald-700 font-bold"
                             }
                           >
                             {item.doctor}
@@ -1346,7 +1346,7 @@ export default function OPDManagementPage() {
                       {/* Vitals summary if recorded */}
                       {(item.vitals.bp || item.vitals.spo2 || item.vitals.pulse || item.vitals.weight) && (
                         <div className="flex items-center gap-2 mt-2 text-[11px] font-medium text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 w-fit">
-                          <Activity className="w-3.5 h-3.5 text-blue-600" />
+                          <Activity className="w-3.5 h-3.5 text-emerald-600" />
                           {item.vitals.bp && <span>BP: <strong>{item.vitals.bp}</strong></span>}
                           {item.vitals.pulse && <span>• Pulse: <strong>{item.vitals.pulse}</strong></span>}
                           {item.vitals.spo2 && <span>• SpO₂: <strong>{item.vitals.spo2}%</strong></span>}
@@ -1365,7 +1365,7 @@ export default function OPDManagementPage() {
                       className={`text-xs font-bold px-3 py-1.5 rounded-lg border focus:outline-none transition ${item.status === "Waiting"
                           ? "bg-amber-50 text-amber-800 border-amber-300"
                           : item.status === "In Consultation"
-                            ? "bg-blue-50 text-blue-800 border-blue-300"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                             : "bg-emerald-50 text-emerald-800 border-emerald-300"
                         }`}
                     >
@@ -1434,7 +1434,7 @@ export default function OPDManagementPage() {
                       onClick={() => startPrescription(item)}
                       className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-sm ${item.status === "Completed"
                           ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                          : "bg-emerald-600 hover:bg-emerald-700 text-white"
                         }`}
                     >
                       <FileText className="w-3.5 h-3.5" />
@@ -1461,7 +1461,7 @@ export default function OPDManagementPage() {
                   type="button"
                   onClick={() => setSelectedApptDate(todayStr)}
                   className={`px-3 py-1 text-xs font-bold rounded-md transition ${selectedApptDate === todayStr
-                      ? "bg-white text-blue-600 shadow-xs"
+                      ? "bg-white text-emerald-600 shadow-xs"
                       : "text-slate-600 hover:text-slate-900"
                     }`}
                 >
@@ -1488,7 +1488,7 @@ export default function OPDManagementPage() {
                 type="date"
                 value={selectedApptDate}
                 onChange={(e) => setSelectedApptDate(e.target.value)}
-                className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
               />
 
               {/* Doctor Filter */}
@@ -1515,7 +1515,7 @@ export default function OPDManagementPage() {
                 value={apptSearchQuery}
                 onChange={(e) => setApptSearchQuery(e.target.value)}
                 placeholder="Search by name or phone..."
-                className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
           </div>
@@ -1527,7 +1527,7 @@ export default function OPDManagementPage() {
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Scheduled</span>
                 <span className="text-xl font-black text-slate-900">{appointmentsForSelectedDate.length}</span>
               </div>
-              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                 <Calendar className="w-5 h-5" />
               </div>
             </div>
@@ -1560,7 +1560,7 @@ export default function OPDManagementPage() {
           {/* Appointments List */}
           {appointmentsForSelectedDate.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <Calendar className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900">No Appointments Found</h3>
@@ -1593,7 +1593,7 @@ export default function OPDManagementPage() {
                           <h3 className="font-bold text-slate-900 text-base">{appt.name}</h3>
                           <a
                             href={`tel:${appt.phone}`}
-                            className="text-xs font-mono font-semibold px-2 py-0.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded flex items-center gap-1 transition"
+                            className="text-xs font-mono font-semibold px-2 py-0.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-600 rounded flex items-center gap-1 transition"
                           >
                             <Phone className="w-3 h-3 text-slate-400" />
                             {appt.phone}
@@ -1611,7 +1611,7 @@ export default function OPDManagementPage() {
                           </span>
                           {appt.dental_problem && (
                             <span className="flex items-center gap-1 text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                              <Stethoscope className="w-3 h-3 text-blue-600" />
+                              <Stethoscope className="w-3 h-3 text-emerald-600" />
                               {appt.dental_problem}
                             </span>
                           )}
@@ -1646,14 +1646,14 @@ export default function OPDManagementPage() {
                             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
                             title="Add BP, Pulse, Weight before checking in"
                           >
-                            <Activity className="w-3.5 h-3.5 text-blue-600" />
+                            <Activity className="w-3.5 h-3.5 text-emerald-600" />
                             With Vitals
                           </button>
                           <button
                             type="button"
                             disabled={submitting}
                             onClick={() => handleCheckInAppointment(appt)}
-                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition disabled:opacity-50"
+                            className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition disabled:opacity-50"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             + Check In to OPD
@@ -1685,9 +1685,9 @@ export default function OPDManagementPage() {
 
             {/* Found existing patient alert */}
             {existingPatientFound && (
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl flex items-center justify-between text-xs text-blue-900">
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between text-xs text-emerald-900">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>
                     Existing patient found: <strong>{existingPatientFound.name}</strong> ({existingPatientFound.reference_number || "UHID Registered"}). Details pre-filled.
                   </span>
@@ -1695,7 +1695,7 @@ export default function OPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setExistingPatientFound(null)}
-                  className="text-blue-700 underline font-semibold"
+                  className="text-emerald-700 underline font-semibold"
                 >
                   Clear
                 </button>
@@ -1750,7 +1750,7 @@ export default function OPDManagementPage() {
                       value={formData.age}
                       onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                       placeholder="Age"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -1776,7 +1776,7 @@ export default function OPDManagementPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="e.g. patient@gmail.com"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -1789,7 +1789,7 @@ export default function OPDManagementPage() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="e.g. Shivaji Nagar, Wardha"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1860,7 +1860,7 @@ export default function OPDManagementPage() {
             <div className="pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-blue-600" />
+                  <Activity className="w-4 h-4 text-emerald-600" />
                   3. Recorded Vitals (Optional)
                 </h3>
                 <span className="text-[11px] text-slate-400">Auto-transferred to Digital Prescription</span>
@@ -1949,7 +1949,7 @@ export default function OPDManagementPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-sm transition disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-sm transition disabled:opacity-50 flex items-center gap-2"
               >
                 {submitting ? (
                   <>
@@ -1986,14 +1986,14 @@ export default function OPDManagementPage() {
                 value={directorySearch}
                 onChange={(e) => setDirectorySearch(e.target.value)}
                 placeholder="Search by name, phone, UHID..."
-                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
           </div>
 
           {loadingPatients ? (
             <div className="py-12 text-center text-slate-500 text-sm">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-600" />
               Loading patient directory...
             </div>
           ) : allPatients.length === 0 ? (
@@ -2038,7 +2038,7 @@ export default function OPDManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleSelectFromDirectory(pt)}
-                            className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-bold text-xs transition"
+                            className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs transition"
                           >
                             + OPD Re-Visit
                           </button>
@@ -2084,7 +2084,7 @@ export default function OPDManagementPage() {
                     value={checkInVitals.age}
                     onChange={(e) => setCheckInVitals({ ...checkInVitals, age: e.target.value })}
                     placeholder="e.g. 35"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -2092,7 +2092,7 @@ export default function OPDManagementPage() {
                   <select
                     value={checkInVitals.sex}
                     onChange={(e) => setCheckInVitals({ ...checkInVitals, sex: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -2183,7 +2183,7 @@ export default function OPDManagementPage() {
                 type="button"
                 disabled={submitting}
                 onClick={() => handleCheckInAppointment(checkInModalAppt, checkInVitals)}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {submitting ? "Assigning Token..." : "Check In & Generate Token"}

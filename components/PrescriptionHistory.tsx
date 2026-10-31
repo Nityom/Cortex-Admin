@@ -43,7 +43,7 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
                     <button
                       type="button"
                       title="Edit Prescription"
-                      className="inline-flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                      className="inline-flex items-center justify-center w-8 h-8 bg-emerald-600 text-white rounded hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -74,13 +74,13 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
                   <div className="space-y-3">
                     {prescription.chief_complaint && (
                       <div>
-                        <p className="text-sm font-semibold text-indigo-700">Chief Complaint:</p>
+                        <p className="text-sm font-semibold text-emerald-700">Chief Complaint:</p>
                         <p className="text-gray-700">{prescription.chief_complaint}</p>
                       </div>
                     )}
                     {prescription.diagnosis && (
                       <div>
-                        <p className="text-sm font-semibold text-indigo-700">Diagnosis:</p>
+                        <p className="text-sm font-semibold text-emerald-700">Diagnosis:</p>
                         <p className="text-gray-700">{prescription.diagnosis}</p>
                       </div>
                     )}
@@ -93,12 +93,12 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
                 </div>
                 {/* Oral Examination Details */}
                 {(prescription.oral_exam_notes || (prescription.selected_teeth && prescription.selected_teeth.length > 0)) && (
-                  <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
-                    <h6 className="text-sm font-semibold text-indigo-800">Oral Examination:</h6>
+                  <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
+                    <h6 className="text-sm font-semibold text-emerald-800">Oral Examination:</h6>
 
                     {prescription.selected_teeth && prescription.selected_teeth.length > 0 && (
                       <div className="mt-2">
-                        <p className="text-sm font-medium text-indigo-700">Selected Teeth:</p>
+                        <p className="text-sm font-medium text-emerald-700">Selected Teeth:</p>
                         <p className="text-gray-700">
                           {prescription.selected_teeth.map((tooth: { id: number | string; type: string; category?: string; disease?: string; name?: string; }) => {
                             if (tooth.category === 'General') return tooth.disease || '';
@@ -114,7 +114,7 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
 
                     {prescription.oral_exam_notes && (
                       <div className="mt-2">
-                        <p className="text-sm font-medium text-indigo-700">Notes:</p>
+                        <p className="text-sm font-medium text-emerald-700">Notes:</p>
                         <p className="text-gray-700">{prescription.oral_exam_notes}</p>
                       </div>
                     )}

@@ -180,7 +180,7 @@ export default function PatientSearchInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoComplete="off"
-          className={`w-full pl-9 pr-8 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition placeholder:text-slate-400 ${inputClassName}`}
+          className={`w-full pl-9 pr-8 py-2 border border-slate-300 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition placeholder:text-slate-400 ${inputClassName}`}
         />
 
         {searchTerm && (
@@ -200,7 +200,7 @@ export default function PatientSearchInput({
         <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto divide-y divide-slate-100 z-50">
           <div className="px-3 py-1.5 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
             <span>Existing Patients ({filteredOptions.length})</span>
-            <span className="text-[10px] text-blue-600 lowercase font-normal">Click to auto-fill</span>
+            <span className="text-[10px] text-emerald-600 lowercase font-normal">Click to auto-fill</span>
           </div>
 
           {filteredOptions.map((pt, idx) => {
@@ -216,7 +216,7 @@ export default function PatientSearchInput({
                 }}
                 onMouseEnter={() => setHighlightedIndex(idx)}
                 className={`px-3 py-2.5 cursor-pointer transition text-left ${
-                  isSelected ? 'bg-blue-50 text-blue-900' : 'hover:bg-slate-50 text-slate-800'
+                  isSelected ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-slate-50 text-slate-800'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -228,7 +228,7 @@ export default function PatientSearchInput({
                       </span>
                     )}
                   </div>
-                  <span className="text-xs font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                  <span className="text-xs font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
                     {pt.phone_number}
                   </span>
                 </div>

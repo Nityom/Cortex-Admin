@@ -54,7 +54,7 @@ export default function PrescriptionDoctorSignatureCard({
                 onClick={() => handleDoctorSelect(doc.name)}
                 className={
                   isSelected
-                    ? 'p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between border-blue-600 bg-blue-50/70 shadow-xs ring-1 ring-blue-600'
+                    ? 'p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-600'
                     : 'p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                 }
               >
@@ -64,11 +64,11 @@ export default function PrescriptionDoctorSignatureCard({
                     name="doctor_selection_radio"
                     checked={isSelected}
                     onChange={() => {}}
-                    className="h-4 w-4 text-blue-600 cursor-pointer"
+                    className="h-4 w-4 text-emerald-600 cursor-pointer"
                   />
                   <div>
                     <p className="text-xs font-bold text-slate-900 leading-tight">{doc.name}</p>
-                    <p className="text-[10px] text-blue-700 font-semibold">
+                    <p className="text-[10px] text-emerald-700 font-semibold">
                       {doc.name.toLowerCase().includes('shillpa')
                         ? 'Gynecologist & Obstetrician'
                         : 'Orthopaedic & Joint Replacement Surgeon'}
@@ -102,7 +102,7 @@ export default function PrescriptionDoctorSignatureCard({
               onClick={() => setIncludeSignature(true)}
               className={
                 includeSignature
-                  ? 'px-2.5 py-1 rounded text-xs font-semibold transition bg-blue-600 text-white shadow-xs cursor-pointer'
+                  ? 'px-2.5 py-1 rounded text-xs font-semibold transition bg-emerald-600 text-white shadow-xs cursor-pointer'
                   : 'px-2.5 py-1 rounded text-xs font-semibold transition text-slate-600 hover:bg-slate-100 cursor-pointer'
               }
             >
@@ -113,7 +113,7 @@ export default function PrescriptionDoctorSignatureCard({
               onClick={() => setIncludeSignature(false)}
               className={
                 !includeSignature
-                  ? 'px-2.5 py-1 rounded text-xs font-semibold transition bg-blue-600 text-white shadow-xs cursor-pointer'
+                  ? 'px-2.5 py-1 rounded text-xs font-semibold transition bg-emerald-600 text-white shadow-xs cursor-pointer'
                   : 'px-2.5 py-1 rounded text-xs font-semibold transition text-slate-600 hover:bg-slate-100 cursor-pointer'
               }
             >
@@ -129,7 +129,7 @@ export default function PrescriptionDoctorSignatureCard({
           <button
             type="submit"
             disabled={loading || saving}
-            className="flex-1 px-8 py-3.5 bg-blue-600 text-white text-base font-bold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-1 px-8 py-3.5 bg-emerald-600 text-white text-base font-bold rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
           >
             <Save className="w-5 h-5" />
             {loading
@@ -156,7 +156,7 @@ export default function PrescriptionDoctorSignatureCard({
               type="button"
               onClick={onEmailPrescription}
               disabled={loading || saving}
-              className="px-6 py-3.5 bg-teal-700 text-white text-base font-bold rounded-xl hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="px-6 py-3.5 bg-emerald-700 text-white text-base font-bold rounded-xl hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Mail className="w-5 h-5" />
               Email Rx

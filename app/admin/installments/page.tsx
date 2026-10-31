@@ -108,7 +108,7 @@ export default function InstallmentsPage() {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
         <div className="text-center space-y-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-700 border-t-transparent mx-auto"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-emerald-700 border-t-transparent mx-auto"></div>
           <p className="text-xs font-bold text-slate-600">Loading installment portfolio & dues...</p>
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function InstallmentsPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shadow-xs shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-xs shrink-0">
             <CreditCard className="w-6 h-6" />
           </div>
           <div>
@@ -175,13 +175,13 @@ export default function InstallmentsPage() {
         </div>
 
         {/* Total Billed Value */}
-        <div className="bg-white border border-teal-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between bg-teal-50/20">
+        <div className="bg-white border border-emerald-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between bg-emerald-50/20">
           <div>
-            <span className="text-[10px] font-bold text-teal-800 uppercase tracking-wider block">Total Billed</span>
-            <div className="text-2xl font-black text-teal-900 mt-0.5">₹{totalAmount.toLocaleString('en-IN')}</div>
+            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Total Billed</span>
+            <div className="text-2xl font-black text-emerald-900 mt-0.5">₹{totalAmount.toLocaleString('en-IN')}</div>
             <span className="text-[11px] text-slate-500 font-medium block mt-1">Across all pending visits</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
             <Receipt className="w-5 h-5" />
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function InstallmentsPage() {
             onClick={() => setCategoryFilter('ALL')}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
               categoryFilter === 'ALL'
-                ? 'bg-teal-700 text-white shadow-2xs'
+                ? 'bg-emerald-700 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -204,7 +204,7 @@ export default function InstallmentsPage() {
             onClick={() => setCategoryFilter('EXTRACTION')}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
               categoryFilter === 'EXTRACTION'
-                ? 'bg-teal-700 text-white shadow-2xs'
+                ? 'bg-emerald-700 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -214,7 +214,7 @@ export default function InstallmentsPage() {
             onClick={() => setCategoryFilter('OTHER')}
             className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap ${
               categoryFilter === 'OTHER'
-                ? 'bg-teal-700 text-white shadow-2xs'
+                ? 'bg-emerald-700 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -229,7 +229,7 @@ export default function InstallmentsPage() {
             placeholder="Search patient, phone, bill #..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9.5 pr-3 text-xs font-semibold h-10 rounded-xl bg-white border-slate-200 focus:ring-teal-500 shadow-2xs"
+            className="pl-9.5 pr-3 text-xs font-semibold h-10 rounded-xl bg-white border-slate-200 focus:ring-emerald-500 shadow-2xs"
           />
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function InstallmentsPage() {
       {/* Content Area */}
       {filteredBills.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <h3 className="text-base font-extrabold text-slate-900">
@@ -292,7 +292,7 @@ export default function InstallmentsPage() {
                         <td className="px-4 py-3">
                           <div className="font-extrabold text-slate-900">{bill.patient_name || 'Patient'}</div>
                           {bill.reference_number && (
-                            <span className="font-mono text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                            <span className="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded mt-0.5 inline-block">
                               {bill.reference_number.replace(/^CH/i, 'CRX')}
                             </span>
                           )}
@@ -332,7 +332,7 @@ export default function InstallmentsPage() {
                             {bal > 0 && (
                               <button
                                 onClick={() => setQuickPayBill(bill)}
-                                className="px-2.5 py-1 text-[11px] font-bold bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                                className="px-2.5 py-1 text-[11px] font-bold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer"
                               >
                                 <PlusCircle className="w-3 h-3" />
                                 <span>Pay</span>

@@ -128,7 +128,7 @@ export function BillHistoryWithPayments({
               <Button
                 size="sm"
                 onClick={handlePrintSelected}
-                className="flex items-center gap-1.5 text-xs font-bold rounded-xl bg-teal-700 hover:bg-teal-800 text-white shadow-2xs"
+                className="flex items-center gap-1.5 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
               >
                 <Printer className="h-3.5 w-3.5" />
                 Print Selected ({selectedBillIds.size})
@@ -138,9 +138,9 @@ export function BillHistoryWithPayments({
                 size="sm"
                 variant="outline"
                 onClick={handlePrintAll}
-                className="flex items-center gap-1.5 text-xs font-bold rounded-xl border-teal-200 text-teal-800 hover:bg-teal-50"
+                className="flex items-center gap-1.5 text-xs font-bold rounded-xl border-emerald-200 text-emerald-800 hover:bg-emerald-50"
               >
-                <Printer className="h-3.5 w-3.5 text-teal-700" />
+                <Printer className="h-3.5 w-3.5 text-emerald-700" />
                 Print All Statements
               </Button>
             )}
@@ -186,7 +186,7 @@ export function BillHistoryWithPayments({
               <div
                 className={`bg-white rounded-2xl border transition-all duration-200 shadow-xs overflow-hidden ${
                   selectedBillIds.has(bill.id)
-                    ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-md'
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
@@ -198,7 +198,7 @@ export function BillHistoryWithPayments({
                         type="checkbox"
                         checked={selectedBillIds.has(bill.id)}
                         onChange={() => bill.id && toggleSelect(bill.id)}
-                        className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500 cursor-pointer shrink-0"
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500 cursor-pointer shrink-0"
                       />
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -207,7 +207,7 @@ export function BillHistoryWithPayments({
                           </span>
 
                           {bill.reference_number && (
-                            <span className="font-mono text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">
+                            <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                               {bill.reference_number.replace(/^CH/i, 'CRX')}
                             </span>
                           )}
@@ -306,7 +306,7 @@ export function BillHistoryWithPayments({
                         <Button
                           size="sm"
                           onClick={() => handleAddPaymentClick(bill)}
-                          className="h-8 text-xs font-bold rounded-xl bg-teal-700 hover:bg-teal-800 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                          className="h-8 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                         >
                           <PlusCircle className="h-3.5 w-3.5" />
                           <span>Add Installment</span>
@@ -320,7 +320,7 @@ export function BillHistoryWithPayments({
                     <button
                       type="button"
                       onClick={() => bill.id && toggleBillExpansion(bill.id)}
-                      className="w-full py-1 text-xs font-bold text-slate-600 hover:text-teal-700 transition flex items-center justify-center gap-1 cursor-pointer"
+                      className="w-full py-1 text-xs font-bold text-slate-600 hover:text-emerald-700 transition flex items-center justify-center gap-1 cursor-pointer"
                     >
                       {isExpanded ? (
                         <>

@@ -181,7 +181,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
           <div className="flex items-center gap-2">
             <h5 className="font-bold text-slate-800 text-sm">Bill Summary</h5>
             {bill.reference_number && (
-              <span className="text-[10px] font-mono text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.2 rounded font-semibold">
+              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded font-semibold">
                 {bill.reference_number.replace(/^CH/i, 'CRX')}
               </span>
             )}
@@ -285,7 +285,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
             <Button
               size="sm"
               onClick={openPaymentModal}
-              className="h-7 text-xs px-2.5 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer"
+              className="h-7 text-xs px-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Collect ₹{displayBalance}</span>
@@ -299,7 +299,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
         <div className="mt-3 pt-3 border-t border-slate-100 animate-in fade-in duration-150">
           <div className="text-[11px] font-bold text-slate-700 mb-1.5 flex items-center justify-between">
             <span>Installment History:</span>
-            {loadingHistory && <span className="text-[10px] text-teal-600 animate-pulse">Loading...</span>}
+            {loadingHistory && <span className="text-[10px] text-emerald-600 animate-pulse">Loading...</span>}
           </div>
 
           {transactions.length === 0 ? (
@@ -331,15 +331,15 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-5 py-3.5 bg-teal-700 text-white flex items-center justify-between">
+            <div className="px-5 py-3.5 bg-emerald-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-teal-200" />
+                <CreditCard className="w-4 h-4 text-emerald-200" />
                 <h4 className="text-sm font-bold">Collect Installment / Balance</h4>
               </div>
               <button
                 type="button"
                 onClick={() => setShowInstallmentModal(false)}
-                className="text-teal-200 hover:text-white transition cursor-pointer"
+                className="text-emerald-200 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -348,7 +348,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
             {/* Modal Form */}
             <form onSubmit={handleRecordPayment} className="p-4 space-y-3.5">
               {/* Summary strip */}
-              <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-3 flex justify-between text-xs">
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 flex justify-between text-xs">
                 <div>
                   <span className="text-slate-500 block text-[10px] uppercase font-bold">Total Bill</span>
                   <span className="font-bold text-slate-800">₹{totalAmount.toLocaleString('en-IN')}</span>
@@ -375,7 +375,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
                   max={displayBalance}
                   value={payAmount || ''}
                   onChange={(e) => setPayAmount(Math.min(Math.max(0, parseFloat(e.target.value) || 0), displayBalance))}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   placeholder="Enter amount"
                 />
 
@@ -384,7 +384,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
                   <button
                     type="button"
                     onClick={() => setPayAmount(displayBalance)}
-                    className="flex-1 text-[11px] font-bold py-1 px-2 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg transition"
+                    className="flex-1 text-[11px] font-bold py-1 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg transition"
                   >
                     Full Balance (₹{displayBalance})
                   </button>
@@ -414,7 +414,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
                 <select
                   value={payMethod}
                   onChange={(e) => setPayMethod(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 >
                   <option value="Cash">Cash (रोख)</option>
                   <option value="UPI">UPI / GPay / PhonePe</option>
@@ -432,7 +432,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
                   value={payNotes}
                   onChange={(e) => setPayNotes(e.target.value)}
                   placeholder="e.g. Installment 1, Txn #..."
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -449,7 +449,7 @@ export function BillSummary({ bill, onBillUpdated }: BillSummaryProps) {
                 <button
                   type="submit"
                   disabled={submittingPayment || payAmount <= 0}
-                  className="flex-1 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
+                  className="flex-1 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
                 >
                   {submittingPayment ? "Recording..." : `Confirm ₹${payAmount}`}
                 </button>

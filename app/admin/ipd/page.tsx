@@ -1937,7 +1937,7 @@ export default function IPDManagementPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <span className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                 <Bed className="w-5 h-5" />
               </span>
               <div>
@@ -1954,7 +1954,7 @@ export default function IPDManagementPage() {
               onClick={() => setActiveTab("dashboard")}
               className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
                 activeTab === "dashboard"
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-emerald-600 text-white shadow-xs"
                   : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               }`}
             >
@@ -1975,7 +1975,7 @@ export default function IPDManagementPage() {
               onClick={() => setActiveTab("admit")}
               className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
                 activeTab === "admit"
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-emerald-600 text-white shadow-xs"
                   : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               }`}
             >
@@ -1987,7 +1987,7 @@ export default function IPDManagementPage() {
               onClick={() => setActiveTab("history")}
               className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
                 activeTab === "history"
-                  ? "bg-blue-600 text-white shadow-xs"
+                  ? "bg-emerald-600 text-white shadow-xs"
                   : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
               }`}
             >
@@ -2139,7 +2139,7 @@ export default function IPDManagementPage() {
                           className={`p-2.5 rounded-lg border cursor-pointer transition text-left relative overflow-hidden ${
                             isOccupied
                               ? "bg-slate-50 border-slate-300 hover:bg-slate-100"
-                              : "bg-white border-slate-200 hover:border-blue-400 hover:bg-slate-50/50"
+                              : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-slate-50/50"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -2191,7 +2191,7 @@ export default function IPDManagementPage() {
             {/* List Controls */}
             <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div className="flex items-center gap-2">
-                <HeartPulse className="w-5 h-5 text-blue-600" />
+                <HeartPulse className="w-5 h-5 text-emerald-600" />
                 <h2 className="text-base font-bold text-slate-900">
                   Currently Admitted Inpatients ({activeAdmissions.length})
                 </h2>
@@ -2205,7 +2205,7 @@ export default function IPDManagementPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search name, UHID, IPD No..."
-                    className="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-56"
+                    className="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none w-56"
                   />
                 </div>
 
@@ -2243,7 +2243,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("admit")}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition"
                 >
                   + Admit First Patient
                 </button>
@@ -2315,7 +2315,7 @@ export default function IPDManagementPage() {
                               setActiveAdmission(adm);
                               setActiveModal("profile");
                             }}
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
                             title="Clinical Stay Sheet (Vitals, Notes, Meds)"
                           >
                             <Stethoscope className="w-3.5 h-3.5" />
@@ -2351,7 +2351,7 @@ export default function IPDManagementPage() {
                             className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
                             title="View / Print Small Payment Receipts"
                           >
-                            <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                            <Receipt className="w-3.5 h-3.5 text-emerald-600" />
                             Receipts ({adm.advances?.length || 0})
                           </button>
 
@@ -2449,12 +2449,12 @@ export default function IPDManagementPage() {
 
             {/* OPD Patient Import Banner & Selector */}
             {importedFromOpd ? (
-              <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-xl flex items-center justify-between text-xs text-blue-900 shadow-2xs">
+              <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl flex items-center justify-between text-xs text-emerald-900 shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   <div>
                     <span className="font-bold text-sm block">Selected from OPD: {importedFromOpd.name}</span>
-                    <span className="text-[11px] text-blue-700">
+                    <span className="text-[11px] text-emerald-700">
                       Token #{importedFromOpd.token} • Date: {importedFromOpd.date} • Demographics & vitals imported automatically.
                     </span>
                   </div>
@@ -2462,7 +2462,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setImportedFromOpd(null)}
-                  className="px-2.5 py-1 text-xs font-semibold text-blue-800 hover:text-blue-950 underline"
+                  className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:text-emerald-950 underline"
                 >
                   Clear OPD Selection
                 </button>
@@ -2496,7 +2496,7 @@ export default function IPDManagementPage() {
                       onClick={() => setSelectedOpdDate(new Date().toISOString().split("T")[0])}
                       className={`px-2 py-1 text-[11px] font-semibold rounded-lg border transition ${
                         selectedOpdDate === new Date().toISOString().split("T")[0]
-                          ? "bg-blue-600 text-white border-blue-600"
+                          ? "bg-emerald-600 text-white border-emerald-600"
                           : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
                       }`}
                     >
@@ -2536,7 +2536,7 @@ export default function IPDManagementPage() {
                       {matchingOpd.map((opdPt) => (
                         <div
                           key={opdPt.id}
-                          className="bg-white border border-slate-200 hover:border-blue-400 rounded-xl p-3 shadow-2xs flex flex-col justify-between gap-2 transition hover:shadow-xs"
+                          className="bg-white border border-slate-200 hover:border-emerald-400 rounded-xl p-3 shadow-2xs flex flex-col justify-between gap-2 transition hover:shadow-xs"
                         >
                           <div>
                             <div className="flex items-center justify-between mb-1">
@@ -2561,7 +2561,7 @@ export default function IPDManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleSelectOpdPatient(opdPt)}
-                            className="w-full py-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-1 transition shadow-2xs"
+                            className="w-full py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center gap-1 transition shadow-2xs"
                           >
                             <UserPlus className="w-3.5 h-3.5" />
                             Select for IPD Admission
@@ -2576,9 +2576,9 @@ export default function IPDManagementPage() {
 
             {/* Existing patient banner */}
             {existingPatientFound && (
-              <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl flex items-center justify-between text-xs text-blue-900">
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between text-xs text-emerald-900">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>
                     Existing patient found: <strong>{existingPatientFound.name}</strong> (UHID: <strong>{newAdmissionForm.uhid}</strong>). Demographic details pre-filled.
                   </span>
@@ -2586,7 +2586,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setExistingPatientFound(null)}
-                  className="text-blue-700 underline font-semibold"
+                  className="text-emerald-700 underline font-semibold"
                 >
                   Clear
                 </button>
@@ -2596,7 +2596,7 @@ export default function IPDManagementPage() {
             {/* SECTION 1: Patient Demographics */}
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-blue-600" />
+                <Users className="w-4 h-4 text-emerald-600" />
                 1. Patient Demographics & UHID
               </h3>
 
@@ -2616,7 +2616,7 @@ export default function IPDManagementPage() {
                         handlePhoneLookup(e.target.value);
                       }}
                       placeholder="e.g. 9823012345"
-                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
                   <span className="text-[10px] text-slate-400 mt-0.5 block">Type 10 digits to auto-lookup UHID</span>
@@ -2645,7 +2645,7 @@ export default function IPDManagementPage() {
                     value={newAdmissionForm.name}
                     onChange={(e) => setNewAdmissionForm({ ...newAdmissionForm, name: e.target.value })}
                     placeholder="Enter patient full name"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
 
@@ -2707,7 +2707,7 @@ export default function IPDManagementPage() {
             {/* SECTION 2: Clinical Details on Admission */}
             <div className="pt-2 border-t border-slate-100">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <Stethoscope className="w-4 h-4 text-blue-600" />
+                <Stethoscope className="w-4 h-4 text-emerald-600" />
                 2. Clinical Diagnosis & Reason for Admission
               </h3>
 
@@ -2764,7 +2764,7 @@ export default function IPDManagementPage() {
             {/* SECTION 3: Ward & Bed Allocation */}
             <div className="pt-2 border-t border-slate-100">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-                <Bed className="w-4 h-4 text-blue-600" />
+                <Bed className="w-4 h-4 text-emerald-600" />
                 3. Doctor, Ward & Bed Allocation
               </h3>
 
@@ -2808,7 +2808,7 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setNewAdmissionForm((prev) => ({ ...prev, isCustomWard: !prev.isCustomWard }))}
-                      className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                      className="text-[10px] text-emerald-600 hover:text-emerald-800 font-semibold underline cursor-pointer"
                     >
                       {newAdmissionForm.isCustomWard ? "Choose Standard" : "+ Custom Ward"}
                     </button>
@@ -2852,7 +2852,7 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setNewAdmissionForm((prev) => ({ ...prev, isCustomBed: !prev.isCustomBed }))}
-                      className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                      className="text-[10px] text-emerald-600 hover:text-emerald-800 font-semibold underline cursor-pointer"
                     >
                       {newAdmissionForm.isCustomBed ? "Choose Standard" : "+ Custom Bed"}
                     </button>
@@ -2998,7 +2998,7 @@ export default function IPDManagementPage() {
               <button
                 type="submit"
                 disabled={submittingAdmission}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition disabled:opacity-50 flex items-center gap-2"
               >
                 {submittingAdmission ? (
                   <>
@@ -3148,7 +3148,7 @@ export default function IPDManagementPage() {
               {/* 1. Demographics */}
               <div>
                 <h3 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-blue-600" />
+                  <Users className="w-3.5 h-3.5 text-emerald-600" />
                   1. Patient Demographics & Contact
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
@@ -3208,7 +3208,7 @@ export default function IPDManagementPage() {
               {/* 2. Ward Category & Bed Selection (Editable) */}
               <div>
                 <h3 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
-                  <Bed className="w-3.5 h-3.5 text-blue-600" />
+                  <Bed className="w-3.5 h-3.5 text-emerald-600" />
                   2. Ward Category & Bed Allocation (Editable)
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -3218,7 +3218,7 @@ export default function IPDManagementPage() {
                       <button
                         type="button"
                         onClick={() => setEditAdmissionForm((prev) => ({ ...prev, isCustomWard: !prev.isCustomWard }))}
-                        className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                        className="text-[10px] text-emerald-600 hover:text-emerald-800 font-semibold underline cursor-pointer"
                       >
                         {editAdmissionForm.isCustomWard ? "Choose Standard" : "+ Custom Ward"}
                       </button>
@@ -3258,7 +3258,7 @@ export default function IPDManagementPage() {
                       <button
                         type="button"
                         onClick={() => setEditAdmissionForm((prev) => ({ ...prev, isCustomBed: !prev.isCustomBed }))}
-                        className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                        className="text-[10px] text-emerald-600 hover:text-emerald-800 font-semibold underline cursor-pointer"
                       >
                         {editAdmissionForm.isCustomBed ? "Choose Standard" : "+ Custom Bed ID"}
                       </button>
@@ -3346,7 +3346,7 @@ export default function IPDManagementPage() {
               {/* 4. Doctor, Department & Diagnosis */}
               <div>
                 <h3 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
-                  <Stethoscope className="w-3.5 h-3.5 text-blue-600" />
+                  <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
                   4. Doctor, Clinical Diagnosis & Dates
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
@@ -3442,7 +3442,7 @@ export default function IPDManagementPage() {
               <button
                 type="button"
                 onClick={handleSaveEditAdmission}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
@@ -3462,7 +3462,7 @@ export default function IPDManagementPage() {
             <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/90 rounded-t-2xl shrink-0">
               <div className="flex-1 min-w-[280px]">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-mono font-bold text-xs">
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono font-bold text-xs">
                     {activeAdmission.ipdNumber}
                   </span>
                   <span className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded font-mono text-xs">
@@ -3471,13 +3471,13 @@ export default function IPDManagementPage() {
                   <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-xs">
                     Bed: {activeAdmission.bedNumber} ({activeAdmission.ward})
                   </span>
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-800 rounded text-xs font-semibold">
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-xs font-semibold">
                     Admitted: {activeAdmission.admissionDate}
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
                 <p className="text-xs text-slate-600 font-medium">
-                  {activeAdmission.age}y • {activeAdmission.sex} • Doctor: <strong className="text-slate-800">{activeAdmission.consultantDoctor}</strong> • Diagnosis: <strong className="text-indigo-900">{activeAdmission.provisionalDiagnosis}</strong>
+                  {activeAdmission.age}y • {activeAdmission.sex} • Doctor: <strong className="text-slate-800">{activeAdmission.consultantDoctor}</strong> • Diagnosis: <strong className="text-emerald-900">{activeAdmission.provisionalDiagnosis}</strong>
                 </p>
               </div>
 
@@ -3497,17 +3497,17 @@ export default function IPDManagementPage() {
                   className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs"
                   title="Edit patient diagnosis, doctor, or admission notes"
                 >
-                  <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                  <Pencil className="w-3.5 h-3.5 text-emerald-600" />
                   {isEditingAdmissionInfo ? "Close Edit Info" : "Edit Diagnosis & Bed"}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => window.open(`/print-discharge?id=${activeAdmission.id}&includeSignature=true&includeClinicalSheet=true`, "_blank")}
-                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs"
+                  className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs"
                   title="Print Full Inpatient Clinical Sheet"
                 >
-                  <Printer className="w-3.5 h-3.5 text-blue-600" />
+                  <Printer className="w-3.5 h-3.5 text-emerald-600" />
                   Print Clinical Sheet
                 </button>
 
@@ -3528,31 +3528,31 @@ export default function IPDManagementPage() {
 
             {/* Inline Admission Diagnosis & Info Editor */}
             {isEditingAdmissionInfo && (
-              <div className="p-4 bg-indigo-50/80 border-b border-indigo-200 flex flex-wrap items-end gap-3 text-xs animate-in slide-in-from-top-2 duration-150 shrink-0">
+              <div className="p-4 bg-emerald-50/80 border-b border-emerald-200 flex flex-wrap items-end gap-3 text-xs animate-in slide-in-from-top-2 duration-150 shrink-0">
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Provisional Diagnosis</label>
+                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Provisional Diagnosis</label>
                   <input
                     type="text"
                     value={editAdmissionInfoForm.provisionalDiagnosis}
                     onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, provisionalDiagnosis: e.target.value })}
-                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white font-semibold"
+                    className="w-full p-1.5 text-xs border border-emerald-300 rounded bg-white font-semibold"
                   />
                 </div>
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Reason for Admission</label>
+                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Reason for Admission</label>
                   <input
                     type="text"
                     value={editAdmissionInfoForm.reasonForAdmission}
                     onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, reasonForAdmission: e.target.value })}
-                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white"
+                    className="w-full p-1.5 text-xs border border-emerald-300 rounded bg-white"
                   />
                 </div>
                 <div className="w-48">
-                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Consultant Doctor</label>
+                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Consultant Doctor</label>
                   <select
                     value={editAdmissionInfoForm.consultantDoctor}
                     onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, consultantDoctor: e.target.value })}
-                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white"
+                    className="w-full p-1.5 text-xs border border-emerald-300 rounded bg-white"
                   >
                     {DOCTORS.map((d) => (
                       <option key={d.name} value={d.name}>{d.name}</option>
@@ -3560,18 +3560,18 @@ export default function IPDManagementPage() {
                   </select>
                 </div>
                 <div className="w-24">
-                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Bed No.</label>
+                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Bed No.</label>
                   <input
                     type="text"
                     value={editAdmissionInfoForm.bedNumber}
                     onChange={(e) => setEditAdmissionInfoForm({ ...editAdmissionInfoForm, bedNumber: e.target.value })}
-                    className="w-full p-1.5 text-xs border border-indigo-300 rounded bg-white font-mono"
+                    className="w-full p-1.5 text-xs border border-emerald-300 rounded bg-white font-mono"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => handleUpdateAdmissionInfo(activeAdmission.id)}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow transition"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow transition"
                 >
                   Save Details
                 </button>
@@ -3596,7 +3596,7 @@ export default function IPDManagementPage() {
                   }}
                   className={`pb-2.5 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
                     profileTab === tab.id
-                      ? "border-blue-600 text-blue-700 font-bold"
+                      ? "border-emerald-600 text-emerald-700 font-bold"
                       : "border-transparent text-slate-500 hover:text-slate-800"
                   }`}
                 >
@@ -3690,7 +3690,7 @@ export default function IPDManagementPage() {
                       <button
                         type="button"
                         onClick={() => handleAddVitals(activeAdmission.id)}
-                        className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow transition"
+                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow transition"
                       >
                         + Record Vitals
                       </button>
@@ -3735,7 +3735,7 @@ export default function IPDManagementPage() {
                                         recordedBy: v.recordedBy || "Staff Nurse",
                                       });
                                     }}
-                                    className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                    className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                     title="Edit vitals entry"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
@@ -3826,7 +3826,7 @@ export default function IPDManagementPage() {
                             <button
                               type="button"
                               onClick={() => handleAddDoctorNote(activeAdmission.id)}
-                              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
+                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
                             >
                               + Add Round Note
                             </button>
@@ -3841,7 +3841,7 @@ export default function IPDManagementPage() {
                       activeAdmission.doctorNotes.map((dn) => (
                         <div key={dn.id} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-1.5 hover:shadow-xs transition">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-indigo-900 text-sm">{dn.doctor}</span>
+                            <span className="font-bold text-emerald-900 text-sm">{dn.doctor}</span>
                             <div className="flex items-center gap-2">
                               <span className="text-slate-400 font-mono text-[11px]">{dn.date} • {dn.time}</span>
                               <button
@@ -3850,7 +3850,7 @@ export default function IPDManagementPage() {
                                   setEditingClinicalItem({ type: 'doctorNotes', id: dn.id, data: dn });
                                   setDoctorNoteInput({ doctor: dn.doctor, note: dn.note, plan: dn.plan || "" });
                                 }}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                 title="Edit round note"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -3957,7 +3957,7 @@ export default function IPDManagementPage() {
                       <button
                         type="button"
                         onClick={() => handleAddMedication(activeAdmission.id)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow"
                       >
                         + Add Medication
                       </button>
@@ -3982,7 +3982,7 @@ export default function IPDManagementPage() {
                             <tr key={m.id} className="hover:bg-slate-50/70">
                               <td className="p-3 font-bold text-slate-900">{m.name}</td>
                               <td className="p-3 font-mono">{m.route}</td>
-                              <td className="p-3 font-semibold text-blue-700">{m.frequency}</td>
+                              <td className="p-3 font-semibold text-emerald-700">{m.frequency}</td>
                               <td className="p-3 text-slate-600">{m.timing}</td>
                               <td className="p-3">
                                 <button
@@ -4012,7 +4012,7 @@ export default function IPDManagementPage() {
                                         timing: m.timing,
                                       });
                                     }}
-                                    className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                    className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                     title="Edit medication"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
@@ -4091,7 +4091,7 @@ export default function IPDManagementPage() {
                         <button
                         type="button"
                         onClick={() => handleAddInvestigation(activeAdmission.id)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow"
                       >
                         + Order Test
                       </button>
@@ -4124,7 +4124,7 @@ export default function IPDManagementPage() {
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
                                     inv.status === 'Completed'
                                       ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                      : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                                      : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                                   }`}
                                   title="Click to toggle status"
                                 >
@@ -4140,7 +4140,7 @@ export default function IPDManagementPage() {
                                       setEditingClinicalItem({ type: 'investigations', id: inv.id, data: inv });
                                       setInvestigationInput({ name: inv.name, cost: inv.cost });
                                     }}
-                                    className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                    className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                     title="Edit investigation"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
@@ -4239,7 +4239,7 @@ export default function IPDManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleAddProcedure(activeAdmission.id)}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs whitespace-nowrap shadow"
                           >
                             + Record Procedure
                           </button>
@@ -4258,7 +4258,7 @@ export default function IPDManagementPage() {
                             {p.notes && <p className="text-slate-600 italic text-[11px] mt-0.5">{p.notes}</p>}
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-mono font-bold text-indigo-700 text-sm">₹{p.cost}</span>
+                            <span className="font-mono font-bold text-emerald-700 text-sm">₹{p.cost}</span>
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
@@ -4266,7 +4266,7 @@ export default function IPDManagementPage() {
                                   setEditingClinicalItem({ type: 'procedures', id: p.id, data: p });
                                   setProcedureInput({ name: p.name, surgeon: p.surgeon, cost: p.cost, notes: p.notes || "" });
                                 }}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                 title="Edit procedure"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -4343,7 +4343,7 @@ export default function IPDManagementPage() {
                       <button
                         type="button"
                         onClick={() => handleAddNursingNote(activeAdmission.id)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow"
                       >
                         + Add Note
                       </button>
@@ -4364,7 +4364,7 @@ export default function IPDManagementPage() {
                                   setEditingClinicalItem({ type: 'nursing', id: nn.id, data: nn });
                                   setNursingNoteInput({ shift: nn.shift, note: nn.note, nurse: nn.nurse });
                                 }}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                 title="Edit nursing note"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
@@ -4431,7 +4431,7 @@ export default function IPDManagementPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenPatientReceipt(activeAdmission)}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
                     title="Print Small Payment Receipt"
                   >
                     <Receipt className="w-3.5 h-3.5" />
@@ -4473,7 +4473,7 @@ export default function IPDManagementPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-2 border-b border-slate-100 gap-2">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                        <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
                         1. Itemized Charge Accumulation (All Charges Editable)
                       </h3>
                       <p className="text-[11px] text-slate-500">
@@ -4525,7 +4525,7 @@ export default function IPDManagementPage() {
                                   bedOverride: activeAdmission.bedChargesOverride || 0,
                                 });
                               }}
-                              className="px-2 py-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 flex items-center gap-1 mx-auto transition"
+                              className="px-2 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 mx-auto transition"
                             >
                               <Pencil className="w-2.5 h-2.5" />
                               {editingChargeKey === "bed" ? "Cancel" : "Edit"}
@@ -4535,44 +4535,44 @@ export default function IPDManagementPage() {
 
                         {/* Inline Edit Box for Bed Charges */}
                         {editingChargeKey === "bed" && (
-                          <tr className="bg-indigo-50/70 border-b border-indigo-200">
+                          <tr className="bg-emerald-50/70 border-b border-emerald-200">
                             <td colSpan={5} className="p-3">
                               <div className="flex flex-wrap items-end gap-3 text-xs">
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Daily Rate (₹)</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Daily Rate (₹)</label>
                                   <input
                                     type="number"
                                     min="0"
                                     value={chargeEditForm.dailyRate}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, dailyRate: Number(e.target.value) })}
-                                    className="w-28 p-1.5 border border-indigo-300 rounded font-bold text-xs bg-white"
+                                    className="w-28 p-1.5 border border-emerald-300 rounded font-bold text-xs bg-white"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Billable Days</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Billable Days</label>
                                   <input
                                     type="number"
                                     min="1"
                                     value={chargeEditForm.billableDays}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, billableDays: Number(e.target.value) })}
-                                    className="w-24 p-1.5 border border-indigo-300 rounded font-bold text-xs bg-white"
+                                    className="w-24 p-1.5 border border-emerald-300 rounded font-bold text-xs bg-white"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Or Manual Total Override (₹)</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Or Manual Total Override (₹)</label>
                                   <input
                                     type="number"
                                     min="0"
                                     placeholder="0 (auto-calc)"
                                     value={chargeEditForm.bedOverride || ""}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, bedOverride: Number(e.target.value) })}
-                                    className="w-36 p-1.5 border border-indigo-300 rounded text-xs bg-white"
+                                    className="w-36 p-1.5 border border-emerald-300 rounded text-xs bg-white"
                                   />
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => handleSaveChargeOverrides(activeAdmission.id)}
-                                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow flex items-center gap-1"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow flex items-center gap-1"
                                 >
                                   <Save className="w-3 h-3" />
                                   Save Bed Rate
@@ -4602,7 +4602,7 @@ export default function IPDManagementPage() {
                                   nursingOverride: activeAdmission.nursingChargesOverride || 0,
                                 });
                               }}
-                              className="px-2 py-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 flex items-center gap-1 mx-auto transition"
+                              className="px-2 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 mx-auto transition"
                             >
                               <Pencil className="w-2.5 h-2.5" />
                               {editingChargeKey === "nursing" ? "Cancel" : "Edit"}
@@ -4612,34 +4612,34 @@ export default function IPDManagementPage() {
 
                         {/* Inline Edit Box for Nursing Charges */}
                         {editingChargeKey === "nursing" && (
-                          <tr className="bg-indigo-50/70 border-b border-indigo-200">
+                          <tr className="bg-emerald-50/70 border-b border-emerald-200">
                             <td colSpan={5} className="p-3">
                               <div className="flex flex-wrap items-end gap-3 text-xs">
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Nursing Rate/Day (₹)</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Nursing Rate/Day (₹)</label>
                                   <input
                                     type="number"
                                     min="0"
                                     value={chargeEditForm.nursingRate}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, nursingRate: Number(e.target.value) })}
-                                    className="w-28 p-1.5 border border-indigo-300 rounded font-bold text-xs bg-white"
+                                    className="w-28 p-1.5 border border-emerald-300 rounded font-bold text-xs bg-white"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Or Manual Total Override (₹)</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Or Manual Total Override (₹)</label>
                                   <input
                                     type="number"
                                     min="0"
                                     placeholder="0 (auto-calc)"
                                     value={chargeEditForm.nursingOverride || ""}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, nursingOverride: Number(e.target.value) })}
-                                    className="w-36 p-1.5 border border-indigo-300 rounded text-xs bg-white"
+                                    className="w-36 p-1.5 border border-emerald-300 rounded text-xs bg-white"
                                   />
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => handleSaveChargeOverrides(activeAdmission.id)}
-                                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow flex items-center gap-1"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow flex items-center gap-1"
                                 >
                                   <Save className="w-3 h-3" />
                                   Save Nursing Rate
@@ -4670,7 +4670,7 @@ export default function IPDManagementPage() {
                                   doctorOverride: activeAdmission.doctorChargesOverride || 0,
                                 });
                               }}
-                              className="px-2 py-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-200 flex items-center gap-1 mx-auto transition"
+                              className="px-2 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 flex items-center gap-1 mx-auto transition"
                             >
                               <Pencil className="w-2.5 h-2.5" />
                               {editingChargeKey === "doctor" ? "Cancel" : "Edit"}
@@ -4680,44 +4680,44 @@ export default function IPDManagementPage() {
 
                         {/* Inline Edit Box for Doctor Rounds */}
                         {editingChargeKey === "doctor" && (
-                          <tr className="bg-indigo-50/70 border-b border-indigo-200">
+                          <tr className="bg-emerald-50/70 border-b border-emerald-200">
                             <td colSpan={5} className="p-3">
                               <div className="flex flex-wrap items-end gap-3 text-xs">
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Rate Per Visit (₹)</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Rate Per Visit (₹)</label>
                                   <input
                                     type="number"
                                     min="0"
                                     value={chargeEditForm.doctorRate}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, doctorRate: Number(e.target.value) })}
-                                    className="w-28 p-1.5 border border-indigo-300 rounded font-bold text-xs bg-white"
+                                    className="w-28 p-1.5 border border-emerald-300 rounded font-bold text-xs bg-white"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Number of Visits</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Number of Visits</label>
                                   <input
                                     type="number"
                                     min="1"
                                     value={chargeEditForm.doctorVisits}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, doctorVisits: Number(e.target.value) })}
-                                    className="w-24 p-1.5 border border-indigo-300 rounded font-bold text-xs bg-white"
+                                    className="w-24 p-1.5 border border-emerald-300 rounded font-bold text-xs bg-white"
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-bold text-indigo-900 uppercase">Or Total Override (₹)</label>
+                                  <label className="block text-[10px] font-bold text-emerald-900 uppercase">Or Total Override (₹)</label>
                                   <input
                                     type="number"
                                     min="0"
                                     placeholder="0 (auto-calc)"
                                     value={chargeEditForm.doctorOverride || ""}
                                     onChange={(e) => setChargeEditForm({ ...chargeEditForm, doctorOverride: Number(e.target.value) })}
-                                    className="w-36 p-1.5 border border-indigo-300 rounded text-xs bg-white"
+                                    className="w-36 p-1.5 border border-emerald-300 rounded text-xs bg-white"
                                   />
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => handleSaveChargeOverrides(activeAdmission.id)}
-                                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow flex items-center gap-1"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow flex items-center gap-1"
                                 >
                                   <Save className="w-3 h-3" />
                                   Save Doctor Charges
@@ -4729,7 +4729,7 @@ export default function IPDManagementPage() {
 
                         {/* 4. INVESTIGATIONS - ITEMIZED */}
                         {activeAdmission.investigations.map((inv) => (
-                          <tr key={inv.id} className="bg-blue-50/20 hover:bg-blue-50/40">
+                          <tr key={inv.id} className="bg-emerald-50/20 hover:bg-emerald-50/40">
                             <td className="p-3">
                               <span className="font-semibold text-slate-800 block">🔬 Lab: {inv.name}</span>
                               <span className="text-[10px] text-slate-500">Ordered: {inv.date} ({inv.status})</span>
@@ -4743,7 +4743,7 @@ export default function IPDManagementPage() {
                                   min="0"
                                   value={editingInvestigation.cost}
                                   onChange={(e) => setEditingInvestigation({ ...editingInvestigation, cost: Number(e.target.value) })}
-                                  className="w-20 p-1 border border-blue-400 rounded text-right font-bold text-xs"
+                                  className="w-20 p-1 border border-emerald-400 rounded text-right font-bold text-xs"
                                 />
                               ) : (
                                 `₹${inv.cost}`
@@ -4763,7 +4763,7 @@ export default function IPDManagementPage() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingInvestigation({ id: inv.id, name: inv.name, cost: inv.cost })}
-                                    className="p-1 text-slate-500 hover:text-indigo-600 rounded hover:bg-slate-100"
+                                    className="p-1 text-slate-500 hover:text-emerald-600 rounded hover:bg-slate-100"
                                     title="Edit test price"
                                   >
                                     <Pencil className="w-3 h-3" />
@@ -4882,7 +4882,7 @@ export default function IPDManagementPage() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingCustomCharge(cc)}
-                                    className="p-1 text-slate-500 hover:text-indigo-600 rounded hover:bg-slate-100"
+                                    className="p-1 text-slate-500 hover:text-emerald-600 rounded hover:bg-slate-100"
                                     title="Edit charge"
                                   >
                                     <Pencil className="w-3 h-3" />
@@ -4907,8 +4907,8 @@ export default function IPDManagementPage() {
                   {/* QUICK ADD CHARGE CONTROLS */}
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* Add Investigation Charge Box */}
-                    <div className="bg-blue-50/40 border border-blue-200 rounded-xl p-3 space-y-2 text-xs">
-                      <span className="text-[11px] font-bold text-blue-900 block flex items-center gap-1">
+                    <div className="bg-emerald-50/40 border border-emerald-200 rounded-xl p-3 space-y-2 text-xs">
+                      <span className="text-[11px] font-bold text-emerald-900 block flex items-center gap-1">
                         + Add Lab Test / Investigation Charge
                       </span>
                       <div className="flex items-center gap-2">
@@ -4917,19 +4917,19 @@ export default function IPDManagementPage() {
                           value={newInvBilling.name}
                           onChange={(e) => setNewInvBilling({ ...newInvBilling, name: e.target.value })}
                           placeholder="e.g. Serum Electrolytes / MRI Spine"
-                          className="flex-1 p-1.5 border border-blue-300 rounded text-xs bg-white"
+                          className="flex-1 p-1.5 border border-emerald-300 rounded text-xs bg-white"
                         />
                         <input
                           type="number"
                           min="0"
                           value={newInvBilling.cost}
                           onChange={(e) => setNewInvBilling({ ...newInvBilling, cost: Number(e.target.value) })}
-                          className="w-20 p-1.5 border border-blue-300 rounded font-bold text-xs bg-white"
+                          className="w-20 p-1.5 border border-emerald-300 rounded font-bold text-xs bg-white"
                         />
                         <button
                           type="button"
                           onClick={() => handleAddInvestigationCharge(activeAdmission.id)}
-                          className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded font-bold text-xs"
+                          className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-xs"
                         >
                           Add Test
                         </button>
@@ -5038,12 +5038,12 @@ export default function IPDManagementPage() {
                             <td className="p-3 font-mono font-bold text-slate-900">{adv.receiptNumber}</td>
                             <td className="p-3 text-slate-600">{adv.date}</td>
                             <td className="p-3">
-                              <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 font-semibold text-[11px]">
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold text-[11px]">
                                 {adv.mode}
                               </span>
                             </td>
                             <td className="p-3 text-slate-500">{adv.notes || "—"}</td>
-                            <td className="p-3 font-bold font-mono text-teal-700 text-right">₹{adv.amount}</td>
+                            <td className="p-3 font-bold font-mono text-emerald-700 text-right">₹{adv.amount}</td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
@@ -5062,7 +5062,7 @@ export default function IPDManagementPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditPaymentReceipt(activeAdmission, adv)}
-                                  className="p-1 text-slate-400 hover:text-blue-600 rounded hover:bg-blue-50"
+                                  className="p-1 text-slate-400 hover:text-emerald-600 rounded hover:bg-emerald-50"
                                   title="Edit payment receipt"
                                 >
                                   <Pencil className="w-3 h-3" />
@@ -5084,23 +5084,23 @@ export default function IPDManagementPage() {
                   </div>
 
                   {/* Record New Advance Form */}
-                  <div className="mt-3 bg-teal-50/60 border border-teal-200 rounded-xl p-3.5 flex flex-wrap items-end gap-3 text-xs">
+                  <div className="mt-3 bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-end gap-3 text-xs">
                     <div>
-                      <label className="block text-[10px] font-bold text-teal-800 uppercase">Collect Advance (₹)</label>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase">Collect Advance (₹)</label>
                       <input
                         type="number"
                         min="1"
                         value={advanceInput.amount}
                         onChange={(e) => setAdvanceInput({ ...advanceInput, amount: Number(e.target.value) })}
-                        className="w-28 p-1.5 border border-teal-300 rounded font-bold text-sm"
+                        className="w-28 p-1.5 border border-emerald-300 rounded font-bold text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-teal-800 uppercase">Mode</label>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase">Mode</label>
                       <select
                         value={advanceInput.mode}
                         onChange={(e) => setAdvanceInput({ ...advanceInput, mode: e.target.value as any })}
-                        className="p-1.5 border border-teal-300 rounded bg-white text-xs"
+                        className="p-1.5 border border-emerald-300 rounded bg-white text-xs"
                       >
                         <option value="Cash">Cash</option>
                         <option value="UPI">UPI (GPay / PhonePe)</option>
@@ -5109,19 +5109,19 @@ export default function IPDManagementPage() {
                       </select>
                     </div>
                     <div className="flex-1 min-w-[150px]">
-                      <label className="block text-[10px] font-bold text-teal-800 uppercase">Remarks</label>
+                      <label className="block text-[10px] font-bold text-emerald-800 uppercase">Remarks</label>
                       <input
                         type="text"
                         value={advanceInput.notes}
                         onChange={(e) => setAdvanceInput({ ...advanceInput, notes: e.target.value })}
                         placeholder="e.g. Surgery advance deposit"
-                        className="w-full p-1.5 border border-teal-300 rounded text-xs"
+                        className="w-full p-1.5 border border-emerald-300 rounded text-xs"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRecordAdvance(activeAdmission.id)}
-                      className="px-4 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded font-bold text-xs shadow flex items-center gap-1.5"
+                      className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-xs shadow flex items-center gap-1.5"
                     >
                       <Receipt className="w-3.5 h-3.5" />
                       Record & Print Receipt
@@ -5138,7 +5138,7 @@ export default function IPDManagementPage() {
                     initDischargeFormForAdmission(activeAdmission);
                     setActiveModal("discharge");
                   }}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow transition"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition"
                 >
                   Proceed to Final Discharge & Settlement →
                 </button>
@@ -5317,7 +5317,7 @@ export default function IPDManagementPage() {
                       <span className="font-mono text-sm">₹{netTotal.toLocaleString("en-IN")}</span>
                     </div>
 
-                    <div className="flex justify-between items-center text-teal-800">
+                    <div className="flex justify-between items-center text-emerald-800">
                       <span>Less: Advance Payments Deposited:</span>
                       <span className="font-mono font-bold">− ₹{bill.totalAdvances.toLocaleString("en-IN")}</span>
                     </div>
@@ -5388,7 +5388,7 @@ export default function IPDManagementPage() {
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div className="flex items-center gap-2">
-                  <span className={`p-2 ${editingAdvanceId ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'} rounded-xl`}>
+                  <span className={`p-2 ${editingAdvanceId ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'} rounded-xl`}>
                     <Receipt className="w-5 h-5" />
                   </span>
                   <div>
@@ -5417,7 +5417,7 @@ export default function IPDManagementPage() {
                 <div>
                   <div className="font-bold text-slate-900 text-sm">{pt.name}</div>
                   <div className="text-slate-500 font-mono text-[11px] mt-0.5">
-                    UHID: <strong className="text-slate-800">{pt.uhid}</strong> • IPD: <strong className="text-blue-700">{pt.ipdNumber}</strong>
+                    UHID: <strong className="text-slate-800">{pt.uhid}</strong> • IPD: <strong className="text-emerald-700">{pt.ipdNumber}</strong>
                   </div>
                   <div className="text-slate-500 text-[11px]">
                     {pt.ward} (Bed {pt.bedNumber}) • {pt.consultantDoctor}
@@ -5555,7 +5555,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => handleSaveQuickPayment(true)}
-                  className={`px-5 py-2 ${editingAdvanceId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow transition`}
+                  className={`px-5 py-2 ${editingAdvanceId ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow transition`}
                 >
                   <Receipt className="w-4 h-4" />
                   {editingAdvanceId ? "Update & Open Receipt Slip" : "Record & Print Small Receipt"}
@@ -5634,7 +5634,7 @@ export default function IPDManagementPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenEditPaymentReceipt(pt, adv)}
-                    className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[11px] font-bold whitespace-nowrap border border-blue-200 flex items-center gap-1"
+                    className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-[11px] font-bold whitespace-nowrap border border-emerald-200 flex items-center gap-1"
                     title="Edit amount, mode, or notes of this receipt"
                   >
                     <Pencil className="w-3 h-3" />
@@ -5697,7 +5697,7 @@ export default function IPDManagementPage() {
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span className="text-slate-500">IPD No:</span>
-                    <span className="font-mono font-bold text-blue-700">{pt.ipdNumber}</span>
+                    <span className="font-mono font-bold text-emerald-700">{pt.ipdNumber}</span>
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span className="text-slate-500">Ward &amp; Bed:</span>
@@ -5777,7 +5777,7 @@ export default function IPDManagementPage() {
                   <button
                     type="button"
                     onClick={() => handleOpenEditPaymentReceipt(pt, adv)}
-                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold border border-blue-200 flex items-center gap-1.5 transition"
+                    className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 flex items-center gap-1.5 transition"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Edit Receipt
@@ -5842,14 +5842,14 @@ export default function IPDManagementPage() {
               </div>
               <div>
                 <span className="text-slate-500 block text-[10px]">Allocated Bed:</span>
-                <span className="font-black text-indigo-700">{activeAdmission.bedNumber} ({activeAdmission.ward})</span>
+                <span className="font-black text-emerald-700">{activeAdmission.bedNumber} ({activeAdmission.ward})</span>
               </div>
               <div>
                 <span className="text-slate-500 block text-[10px]">Category:</span>
                 <span>{activeAdmission.paymentCategory}</span>
               </div>
-              <div className="col-span-2 p-2 bg-indigo-50 border border-indigo-100 rounded-lg">
-                <span className="text-[10px] text-indigo-800 font-bold uppercase block">Provisional Diagnosis:</span>
+              <div className="col-span-2 p-2 bg-emerald-50 border border-emerald-100 rounded-lg">
+                <span className="text-[10px] text-emerald-800 font-bold uppercase block">Provisional Diagnosis:</span>
                 <span className="text-slate-900 font-medium">{activeAdmission.provisionalDiagnosis}</span>
               </div>
             </div>
@@ -5858,7 +5858,7 @@ export default function IPDManagementPage() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Print Bed Ticket
@@ -5887,7 +5887,7 @@ export default function IPDManagementPage() {
             {/* Modal Top Header Bar */}
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 rounded-t-2xl">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                   Official Prescription-Format Summary
                 </span>
                 <h2 className="text-base font-bold text-slate-900 mt-0.5">
@@ -5901,7 +5901,7 @@ export default function IPDManagementPage() {
                     type="checkbox"
                     checked={dischargeIncludeSignature}
                     onChange={(e) => setDischargeIncludeSignature(e.target.checked)}
-                    className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer"
+                    className="w-3.5 h-3.5 text-emerald-600 rounded cursor-pointer"
                   />
                   <span>{dischargeIncludeSignature ? "✓ Doctor Signature Included" : "Without Sign (Name Only)"}</span>
                 </label>
@@ -5909,7 +5909,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => window.open(`/print-discharge?id=${activeAdmission.id}&includeSignature=${dischargeIncludeSignature}`, "_blank")}
-                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition"
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1.5 transition"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   Print A4 Document
@@ -6091,8 +6091,8 @@ export default function IPDManagementPage() {
                     <span className="text-[10px] font-extrabold text-emerald-800 uppercase block">Condition at Discharge:</span>
                     <span className="font-bold text-slate-900">{activeAdmission.dischargeSummary?.conditionAtDischarge || "Cured / Stable"}</span>
                   </div>
-                  <div className="p-2.5 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <span className="text-[10px] font-extrabold text-indigo-800 uppercase block">Follow-up Review (फेरतपासणी):</span>
+                  <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <span className="text-[10px] font-extrabold text-emerald-800 uppercase block">Follow-up Review (फेरतपासणी):</span>
                     <span className="font-bold text-slate-900">{activeAdmission.dischargeSummary?.followupDate || "After 7 days in OPD"}</span>
                   </div>
                 </div>
@@ -6136,7 +6136,7 @@ export default function IPDManagementPage() {
                     type="checkbox"
                     checked={dischargeIncludeSignature}
                     onChange={(e) => setDischargeIncludeSignature(e.target.checked)}
-                    className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer"
+                    className="w-3.5 h-3.5 text-emerald-600 rounded cursor-pointer"
                   />
                   <span>{dischargeIncludeSignature ? "✓ Doctor Signature Included" : "Without Sign (Name Only)"}</span>
                 </label>
@@ -6154,7 +6154,7 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => window.open(`/print-discharge?id=${activeAdmission.id}&includeSignature=${dischargeIncludeSignature}`, "_blank")}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2 transition"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2 transition"
                 >
                   <Printer className="w-4 h-4" />
                   Print Official Discharge Summary (A4)
@@ -6174,7 +6174,7 @@ export default function IPDManagementPage() {
             {/* Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
               <div className="flex items-center gap-2">
-                <span className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+                <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
                   <Settings className="w-5 h-5" />
                 </span>
                 <div>
@@ -6233,16 +6233,16 @@ export default function IPDManagementPage() {
               {/* 2. Add New Bed to Ward */}
               <div>
                 <h3 className="font-bold text-slate-900 uppercase tracking-wide text-xs mb-3 flex items-center gap-1.5">
-                  <Plus className="w-4 h-4 text-indigo-600" />
+                  <Plus className="w-4 h-4 text-emerald-600" />
                   2. Add New Bed to Matrix
                 </h3>
-                <form onSubmit={handleAddBed} className="p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl flex flex-wrap items-end gap-3">
+                <form onSubmit={handleAddBed} className="p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl flex flex-wrap items-end gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-indigo-900 uppercase mb-1">Ward Category</label>
+                    <label className="block text-[10px] font-bold text-emerald-900 uppercase mb-1">Ward Category</label>
                     <select
                       value={newBedForm.ward}
                       onChange={(e) => setNewBedForm({ ...newBedForm, ward: e.target.value })}
-                      className="p-1.5 border border-indigo-300 rounded text-xs bg-white font-medium"
+                      className="p-1.5 border border-emerald-300 rounded text-xs bg-white font-medium"
                     >
                       {wardBedConfig.map((w) => (
                         <option key={w.ward} value={w.ward}>{w.ward}</option>
@@ -6250,19 +6250,19 @@ export default function IPDManagementPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-indigo-900 uppercase mb-1">Bed Number / Code</label>
+                    <label className="block text-[10px] font-bold text-emerald-900 uppercase mb-1">Bed Number / Code</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. GW-07 / ICU-03"
                       value={newBedForm.bedNumber}
                       onChange={(e) => setNewBedForm({ ...newBedForm, bedNumber: e.target.value })}
-                      className="p-1.5 border border-indigo-300 rounded text-xs font-mono font-bold bg-white w-32 uppercase"
+                      className="p-1.5 border border-emerald-300 rounded text-xs font-mono font-bold bg-white w-32 uppercase"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold text-xs shadow"
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow"
                   >
                     + Add Bed
                   </button>
@@ -6272,7 +6272,7 @@ export default function IPDManagementPage() {
               {/* 3. Manage Existing Beds (Delete Vacant) */}
               <div>
                 <h3 className="font-bold text-slate-900 uppercase tracking-wide text-xs mb-3 flex items-center gap-1.5">
-                  <Bed className="w-4 h-4 text-blue-600" />
+                  <Bed className="w-4 h-4 text-emerald-600" />
                   3. All Beds in Matrix
                 </h3>
                 <div className="space-y-3">
@@ -6329,7 +6329,7 @@ export default function IPDManagementPage() {
               <button
                 type="button"
                 onClick={() => setShowBedConfigModal(false)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow"
               >
                 Done
               </button>
@@ -6419,7 +6419,7 @@ export default function IPDManagementPage() {
               <button
                 type="button"
                 onClick={handleTransferBed}
-                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Confirm Bed Transfer
@@ -6573,7 +6573,7 @@ export default function IPDManagementPage() {
                           </p>
 
                           {pt.vitals?.bp && (
-                            <div className="mt-2 p-2 bg-indigo-50/60 rounded-lg text-[11px] text-indigo-900 flex flex-wrap gap-2">
+                            <div className="mt-2 p-2 bg-emerald-50/60 rounded-lg text-[11px] text-emerald-900 flex flex-wrap gap-2">
                               <span><strong>BP:</strong> {pt.vitals.bp}</span>
                               <span><strong>Pulse:</strong> {pt.vitals.pulse || "—"}</span>
                               <span><strong>Temp:</strong> {pt.vitals.temperature || "98.6"}°F</span>

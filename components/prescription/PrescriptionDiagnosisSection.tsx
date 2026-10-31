@@ -369,7 +369,7 @@ export default function PrescriptionDiagnosisSection({
 
           {/* Auto-save status indicator */}
           {saveStatus === 'saving' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 animate-pulse border border-blue-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 animate-pulse border border-emerald-200">
               <Loader2 className="w-2.5 h-2.5 animate-spin" />
               Auto-saving...
             </span>
@@ -470,7 +470,7 @@ export default function PrescriptionDiagnosisSection({
                   value={d.diagnosis}
                   onChange={(e) => handleUpdateRow(d.id, 'diagnosis', e.target.value)}
                   onBlur={() => triggerAutoSave(diagnosesList)}
-                  className="w-full p-1 text-xs font-bold text-slate-800 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-teal-500 rounded outline-none transition"
+                  className="w-full p-1 text-xs font-bold text-slate-800 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
                   title="Click to edit diagnosis name"
                 />
               </div>
@@ -481,7 +481,7 @@ export default function PrescriptionDiagnosisSection({
                   onChange={(e) => handleUpdateRow(d.id, 'snomed_code', e.target.value)}
                   onBlur={() => triggerAutoSave(diagnosesList)}
                   placeholder="—"
-                  className="w-full p-1 text-xs font-mono text-slate-600 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-teal-500 rounded outline-none transition"
+                  className="w-full p-1 text-xs font-mono text-slate-600 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
                   title="Click to edit SNOMED / ICD code"
                 />
               </div>
@@ -492,7 +492,7 @@ export default function PrescriptionDiagnosisSection({
                   onChange={(e) => handleUpdateRow(d.id, 'duration', e.target.value)}
                   onBlur={() => triggerAutoSave(diagnosesList)}
                   placeholder="—"
-                  className="w-full p-1 text-xs text-slate-700 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-teal-500 rounded outline-none transition"
+                  className="w-full p-1 text-xs text-slate-700 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
                   title="Click to edit duration"
                 />
               </div>
@@ -502,7 +502,7 @@ export default function PrescriptionDiagnosisSection({
                   value={d.date || date}
                   onChange={(e) => handleUpdateRow(d.id, 'date', e.target.value)}
                   onBlur={() => triggerAutoSave(diagnosesList)}
-                  className="w-full p-1 text-[11px] font-mono text-slate-600 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-teal-500 rounded outline-none transition"
+                  className="w-full p-1 text-[11px] font-mono text-slate-600 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
                   title="Click to edit date"
                 />
               </div>
@@ -544,7 +544,7 @@ export default function PrescriptionDiagnosisSection({
                 }
               }}
               placeholder="Add diagnosis (e.g. Osteoarthritis, Diabetes, Lumbar spondylosis)..."
-              className="w-full p-1.5 text-xs border border-slate-300 rounded text-slate-800 bg-white focus:ring-1 focus:ring-teal-500 outline-none"
+              className="w-full p-1.5 text-xs border border-slate-300 rounded text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
             />
 
             {/* Quick Autocomplete dropdown for inline input - NEVER clipped */}
@@ -571,12 +571,12 @@ export default function PrescriptionDiagnosisSection({
                         e.preventDefault();
                         handleSelectSuggestion(item);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-teal-50 transition cursor-pointer flex items-center justify-between gap-2"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
                     >
                       <span className="font-bold text-slate-800">{item.name}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {item.snomed_code && (
-                          <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-mono font-bold border border-blue-200">
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-200">
                             {item.snomed_code}
                           </span>
                         )}
@@ -629,7 +629,7 @@ export default function PrescriptionDiagnosisSection({
             <button
               type="button"
               onClick={handleAddDiagnosis}
-              className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs transition"
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs transition"
               title="Add diagnosis to table"
             >
               +

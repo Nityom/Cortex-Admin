@@ -66,7 +66,7 @@ export const BillActionButtons: React.FC<BillActionButtonsProps> = ({
     <div className="flex flex-col sm:flex-row gap-3">
       <Button
         onClick={handlePrintableBill}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded flex items-center gap-2"
+        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded flex items-center gap-2"
       >
         <svg
           className="w-5 h-5"
@@ -106,7 +106,7 @@ export const BillActionButtons: React.FC<BillActionButtonsProps> = ({
 
       <Button
         onClick={handlePrint}
-        className="bg-blue-400 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded flex items-center gap-2"
+        className="bg-emerald-400 hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded flex items-center gap-2"
       >
         <svg
           className="w-5 h-5"

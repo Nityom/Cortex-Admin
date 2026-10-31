@@ -618,15 +618,13 @@ export default function PrescriptionLivePreview({
                   {activeDoc?.registrationNumber && (
                     <div className="text-[11px] text-slate-500">Reg. No. {activeDoc.registrationNumber}</div>
                   )}
-                  {activeDoc?.designation && (
+                  {activeDoc?.fellowshipOrDiplomate && (
                     <div className="text-xs font-semibold text-slate-800">
-                      {activeDoc.designation}
+                      {activeDoc.fellowshipOrDiplomate}
                     </div>
                   )}
                   <div className="text-xs font-semibold text-slate-800">
-                    {activeDoc?.specialty === 'gynecology'
-                      ? 'Maternity, Infertility & Women Care Specialist'
-                      : activeDoc?.designation || hospitalConfig.tagline}
+                    {activeDoc?.subSpecialty || activeDoc?.designation || hospitalConfig.tagline}
                   </div>
                 </>
               );
@@ -639,7 +637,7 @@ export default function PrescriptionLivePreview({
           <div className="flex-1 min-w-[240px]">
             <span>{formData.reference_number || patientReferenceNumber || 'CRX0001'}</span>
             {formData.token ? (
-              <span className="ml-1 px-1.5 py-0.5 bg-teal-50 text-teal-800 rounded border border-teal-200 text-[10px] font-black">
+              <span className="ml-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-800 rounded border border-emerald-200 text-[10px] font-black">
                 Token #{formData.token}
               </span>
             ) : null}{' '}
@@ -735,7 +733,7 @@ export default function PrescriptionLivePreview({
           <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
             <span>Powered by</span>
             <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-3 w-auto inline-block" />
-            <strong className="text-teal-700 font-extrabold">Svasth-HMS</strong>
+            <strong className="text-emerald-700 font-extrabold">Svasth-HMS</strong>
           </div>
         )}
       </div>

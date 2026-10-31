@@ -13,7 +13,9 @@ export interface DoctorProfile {
   name: string;
   degrees: string;
   registrationNumber: string;
+  fellowshipOrDiplomate?: string;
   designation: string;
+  subSpecialty?: string;
   specialty: 'orthopaedic' | 'gynecology' | 'dental' | 'general' | 'pediatric' | 'other';
   email: string;
   signatureUrl: string;

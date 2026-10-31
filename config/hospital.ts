@@ -12,7 +12,9 @@ export interface DoctorProfile {
   name: string;
   degrees: string;
   registrationNumber: string;
+  fellowshipOrDiplomate?: string;
   designation: string;
+  subSpecialty?: string;
   specialty: 'orthopaedic' | 'gynecology' | 'dental' | 'general' | 'pediatric' | 'other';
   email: string;
   signatureUrl: string;
@@ -122,6 +124,7 @@ export const hospitalConfig: HospitalConfig = {
       name: "Dr. Vipeen Raut",
       degrees: "M.B.B.S., Dip.Ortho., DNB Ortho",
       registrationNumber: "1692/03/2002",
+      fellowshipOrDiplomate: "Diplomate of National Board (Orthopaedics)",
       designation: "Consulting Orthopaedic and Joint Replacement Surgeon",
       specialty: "orthopaedic",
       email: "drvipeenraut@cortexhospital.com",
@@ -138,6 +141,7 @@ export const hospitalConfig: HospitalConfig = {
       degrees: "M.B.B.S., M.D. (Gynecology & Obstetrics)",
       registrationNumber: "2004/05/1842",
       designation: "Consulting Gynecologist & Obstetrician",
+      subSpecialty: "Maternity, Infertility & Women Care Specialist",
       specialty: "gynecology",
       email: "drshillparaut@cortexhospital.com",
       signatureUrl: "/sign1.png",

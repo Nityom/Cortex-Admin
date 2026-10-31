@@ -322,9 +322,9 @@ function DischargeSheetContent() {
                       <h1 className="doctor-title-name">{activeDoc?.name || doctorName}</h1>
                       <div className="doctor-qualifications">{activeDoc?.degrees || (doctorIsGynae ? "M.B.B.S., M.D. (Gynecology & Obstetrics)" : "M.B.B.S., Dip.Ortho., DNB Ortho")}</div>
                       {activeDoc?.registrationNumber && <div className="doctor-reg">Reg. No. {activeDoc.registrationNumber}</div>}
-                      {activeDoc?.designation && <div className="doctor-diplomate">{activeDoc.designation}</div>}
+                      {activeDoc?.fellowshipOrDiplomate && <div className="doctor-diplomate">{activeDoc.fellowshipOrDiplomate}</div>}
                       <div className="doctor-specialty">
-                        {activeDoc?.specialty === 'gynecology' ? 'Maternity, Infertility & Women Care Specialist' : 'Consulting Orthopaedic and Joint Replacement Surgeon'}
+                        {activeDoc?.subSpecialty || activeDoc?.designation || (doctorIsGynae ? 'Consulting Gynecologist & Obstetrician' : 'Consulting Orthopaedic and Joint Replacement Surgeon')}
                       </div>
                     </>
                   );

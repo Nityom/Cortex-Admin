@@ -288,7 +288,7 @@ export default function DiagnosisSearchInput({
           </label>
           {/* Live Auto-save badge */}
           {saveStatus === 'saving' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 animate-pulse border border-blue-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 animate-pulse border border-emerald-200">
               <Loader2 className="w-3 h-3 animate-spin" />
               Auto-saving...
             </span>
@@ -334,12 +334,12 @@ export default function DiagnosisSearchInput({
           disabled={disabled}
           rows={4}
           placeholder={placeholder}
-          className="block w-full min-h-[105px] p-4 pr-10 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base leading-relaxed text-gray-900 bg-white transition disabled:bg-slate-50 disabled:cursor-not-allowed"
+          className="block w-full min-h-[105px] p-4 pr-10 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base leading-relaxed text-gray-900 bg-white transition disabled:bg-slate-50 disabled:cursor-not-allowed"
         />
 
         {/* Indicator icon */}
         <div className="absolute right-3 top-3.5 flex items-center gap-1.5 text-slate-400 pointer-events-none">
-          <Sparkles className="w-4 h-4 text-blue-500/70" />
+          <Sparkles className="w-4 h-4 text-emerald-500/70" />
         </div>
 
         {/* Autocomplete Suggestions Dropdown */}
@@ -369,15 +369,15 @@ export default function DiagnosisSearchInput({
                     }}
                     onMouseEnter={() => setHighlightedIndex(idx)}
                     className={`px-3.5 py-2 text-sm cursor-pointer flex items-center justify-between transition ${
-                      isSelected ? 'bg-blue-50 text-blue-900 font-medium' : 'text-slate-800 hover:bg-slate-50'
+                      isSelected ? 'bg-emerald-50 text-emerald-900 font-medium' : 'text-slate-800 hover:bg-slate-50'
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      <span className="text-blue-500 text-xs">🩺</span>
+                      <span className="text-emerald-500 text-xs">🩺</span>
                       {matchIndex >= 0 && activeQuery ? (
                         <span>
                           {suggestion.slice(0, matchIndex)}
-                          <strong className="text-blue-600 underline font-semibold">
+                          <strong className="text-emerald-600 underline font-semibold">
                             {suggestion.slice(matchIndex, matchIndex + activeQuery.trim().length)}
                           </strong>
                           {suggestion.slice(matchIndex + activeQuery.trim().length)}

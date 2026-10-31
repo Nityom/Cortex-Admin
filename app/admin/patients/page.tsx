@@ -458,7 +458,7 @@ const ViewPatients = () => {
           <div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
               <span>Patient Directory &amp; Records</span>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                 {patients.length} Total
               </span>
             </h2>
@@ -477,7 +477,7 @@ const ViewPatients = () => {
               placeholder="Search patient, phone, UHID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/60"
+              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50/60"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-slate-400" />
@@ -518,13 +518,13 @@ const ViewPatients = () => {
               type="button"
               onClick={() => setSelectedDoctorFilter('Dr. Vipeen Raut')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${selectedDoctorFilter === 'Dr. Vipeen Raut'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-blue-700 hover:bg-blue-50'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
                 }`}
             >
               <span>Dr. Vipeen Raut</span>
               <span className="text-[10px] opacity-80">(Ortho)</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Vipeen Raut' ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-800'
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${selectedDoctorFilter === 'Dr. Vipeen Raut' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'
                 }`}>
                 {orthoCount}
               </span>
@@ -558,7 +558,7 @@ const ViewPatients = () => {
 
             <button
               onClick={() => fetchPatients()}
-              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
               title="Refresh Records"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -569,14 +569,14 @@ const ViewPatients = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
-          <div className="bg-blue-50/80 p-4 sm:p-5 rounded-xl border border-blue-200/80 shadow-xs">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900 mb-1">
+          <div className="bg-emerald-50/80 p-4 sm:p-5 rounded-xl border border-emerald-200/80 shadow-xs">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-1">
               {selectedDoctorFilter === 'All' ? 'Total Patients' : `${selectedDoctorFilter} Patients`}
             </h4>
             <div className="flex items-baseline gap-2">
-              <p className="text-2xl sm:text-3xl font-black text-blue-700">{filteredPatients.length}</p>
+              <p className="text-2xl sm:text-3xl font-black text-emerald-700">{filteredPatients.length}</p>
               {selectedDoctorFilter !== 'All' && (
-                <span className="text-xs text-blue-600 font-bold">of {patients.length} total</span>
+                <span className="text-xs text-emerald-600 font-bold">of {patients.length} total</span>
               )}
             </div>
           </div>
@@ -604,7 +604,7 @@ const ViewPatients = () => {
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
               <p className="mt-2 text-xs font-bold text-slate-600">Loading patient directory...</p>
             </div>
           ) : error ? (
@@ -612,7 +612,7 @@ const ViewPatients = () => {
               <p className="font-bold text-sm">{error}</p>
               <button
                 onClick={() => fetchPatients()}
-                className="mt-3 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700"
+                className="mt-3 px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700"
               >
                 Try Again
               </button>
@@ -681,10 +681,10 @@ const ViewPatients = () => {
                                   key={d}
                                   className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md border ${isGynae
                                       ? 'bg-pink-50 text-pink-700 border-pink-200'
-                                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                     }`}
                                 >
-                                  <span className={`w-1.5 h-1.5 rounded-full ${isGynae ? 'bg-pink-500' : 'bg-blue-500'}`} />
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isGynae ? 'bg-pink-500' : 'bg-emerald-500'}`} />
                                   <span>{d}</span>
                                   <span className="text-[9.5px] opacity-75">{isGynae ? '(Gynae)' : '(Ortho)'}</span>
                                 </span>
@@ -711,7 +711,7 @@ const ViewPatients = () => {
                             <button
                               type="button"
                               onClick={() => openPatientDetails(patient)}
-                              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition flex items-center justify-center shadow-2xs cursor-pointer"
+                              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg transition flex items-center justify-center shadow-2xs cursor-pointer"
                               title={`View details for ${patient.name}`}
                             >
                               <Eye className="w-4 h-4" />
@@ -788,7 +788,7 @@ const ViewPatients = () => {
                           key={pageNum}
                           onClick={() => paginate(pageNum)}
                           className={`relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium ${currentPage === pageNum
-                            ? 'z-10 bg-blue-50 border-blue-600 text-blue-600'
+                            ? 'z-10 bg-emerald-50 border-emerald-600 text-emerald-600'
                             : 'text-gray-500 hover:bg-gray-50'
                             }`}
                         >
@@ -833,7 +833,7 @@ const ViewPatients = () => {
                 aria-labelledby="modal-headline"
               >
                 {/* Modal Header */}
-                <div className="bg-blue-600 px-6 py-4 flex justify-between items-center">
+                <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center">
                   <h3 className="text-xl font-semibold text-white" id="modal-headline">
                     Patient Details
                   </h3>
@@ -851,8 +851,8 @@ const ViewPatients = () => {
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <div className="mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <h4 className="text-lg font-semibold text-blue-800 mb-3">Patient Information</h4>
+                      <div className="bg-emerald-50 p-4 rounded-lg">
+                        <h4 className="text-lg font-semibold text-emerald-800 mb-3">Patient Information</h4>
                         <div className="space-y-2">
                           <p><span className="font-medium">Name:</span> {selectedPatient.name}</p>
                           <p><span className="font-medium">Phone:</span> {selectedPatient.phone_number}</p>
@@ -914,7 +914,7 @@ const ViewPatients = () => {
                                         });
                                         window.open(`/print-bill/statement?${params.toString()}`, '_blank');
                                       }}
-                                      className="w-full inline-flex justify-center items-center gap-2 rounded-md px-4 py-2 bg-blue-600 text-sm font-medium text-white hover:bg-blue-700"
+                                      className="w-full inline-flex justify-center items-center gap-2 rounded-md px-4 py-2 bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-700"
                                     >
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -971,7 +971,7 @@ const ViewPatients = () => {
                       <button
                         type="button"
                         onClick={() => handleEmailPatientRx(selectedPatient, selectedPatient.prescriptions[0])}
-                        className="w-full inline-flex justify-center items-center gap-1.5 rounded-md border border-transparent shadow-sm px-4 py-2 bg-teal-700 text-base font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 sm:ml-3 sm:w-auto sm:text-sm cursor-pointer"
+                        className="w-full inline-flex justify-center items-center gap-1.5 rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-700 text-base font-medium text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm cursor-pointer"
                       >
                         <Mail className="w-4 h-4" />
                         <span>Email Latest Rx</span>
@@ -1004,7 +1004,7 @@ const ViewPatients = () => {
                             });
                             window.open(`/print-bill/statement?${params.toString()}`, '_blank');
                           }}
-                          className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                          className="mt-3 w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                         >
                           Print All Bills ({allBillIds.length})
                         </button>
@@ -1013,7 +1013,7 @@ const ViewPatients = () => {
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                     >
                       Close
                     </button>

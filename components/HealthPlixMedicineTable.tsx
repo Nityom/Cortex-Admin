@@ -763,7 +763,7 @@ export default function HealthPlixMedicineTable({
                                         }
                                       }}
                                       autoFocus
-                                      className="px-1.5 py-0.5 border border-blue-400 rounded text-xs bg-white outline-none w-full"
+                                      className="px-1.5 py-0.5 border border-emerald-400 rounded text-xs bg-white outline-none w-full"
                                     />
                                   ) : (
                                     <span className="italic line-clamp-1">
@@ -814,7 +814,7 @@ export default function HealthPlixMedicineTable({
                             }
                             placeholder=""
                             list={`dosage-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2.5 py-2.5 bg-transparent text-slate-900 text-sm font-bold focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2.5 py-2.5 bg-transparent text-slate-900 text-sm font-bold focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                           <datalist id={`dosage-list-${medIndex}-${schIndex}`}>
                             {DOSAGE_OPTIONS.map((opt) => (
@@ -833,7 +833,7 @@ export default function HealthPlixMedicineTable({
                             }
                             placeholder=""
                             list={`unit-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                           <datalist id={`unit-list-${medIndex}-${schIndex}`}>
                             {UNIT_OPTIONS.map((opt) => (
@@ -852,7 +852,7 @@ export default function HealthPlixMedicineTable({
                             }
                             placeholder=""
                             list={`time-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                           <datalist id={`time-list-${medIndex}-${schIndex}`}>
                             {TIME_OPTIONS.map((opt) => (
@@ -868,7 +868,7 @@ export default function HealthPlixMedicineTable({
                             onChange={(e) =>
                               handleUpdateSchedule(medIndex, schIndex, 'when', e.target.value)
                             }
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none cursor-pointer transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none cursor-pointer transition"
                           >
                             <option value="">—</option>
                             {WHEN_OPTIONS.map((opt) => (
@@ -889,7 +889,7 @@ export default function HealthPlixMedicineTable({
                             }
                             placeholder=""
                             list={`where-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                           <datalist id={`where-list-${medIndex}-${schIndex}`}>
                             {WHERE_OPTIONS.map((opt) => (
@@ -905,7 +905,7 @@ export default function HealthPlixMedicineTable({
                             onChange={(e) =>
                               handleUpdateSchedule(medIndex, schIndex, 'frequency', e.target.value)
                             }
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none cursor-pointer transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none cursor-pointer transition"
                           >
                             <option value="">—</option>
                             {FREQUENCY_OPTIONS.map((opt) => (
@@ -926,7 +926,7 @@ export default function HealthPlixMedicineTable({
                             }
                             placeholder=""
                             list={`duration-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-semibold focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-semibold focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                           <datalist id={`duration-list-${medIndex}-${schIndex}`}>
                             {DURATION_OPTIONS.map((opt) => (
@@ -967,7 +967,7 @@ export default function HealthPlixMedicineTable({
                               handleUpdateSchedule(medIndex, schIndex, 'details', e.target.value)
                             }
                             placeholder=""
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                         </td>
 
@@ -981,7 +981,7 @@ export default function HealthPlixMedicineTable({
                             }
                             placeholder=""
                             list={`notes-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2.5 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-blue-50/50 focus:outline-none transition"
+                            className="w-full h-full min-h-[48px] px-2.5 py-2.5 bg-transparent text-slate-800 text-sm font-medium focus:bg-emerald-50/50 focus:outline-none transition"
                           />
                           <datalist id={`notes-list-${medIndex}-${schIndex}`}>
                             {NOTE_PRESETS.map((note) => (
@@ -1027,7 +1027,7 @@ export default function HealthPlixMedicineTable({
                       type="button"
                       onClick={() => handleAddNewCustomMedicine(newMedSearch)}
                       title={`Add "${newMedSearch}" to prescription`}
-                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition whitespace-nowrap cursor-pointer shadow-2xs"
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded transition whitespace-nowrap cursor-pointer shadow-2xs"
                     >
                       + Add
                     </button>
@@ -1084,7 +1084,7 @@ export default function HealthPlixMedicineTable({
             } catch {}
           }}
           title="Load Previous Consultation Medicines"
-          className="flex items-center gap-1 hover:text-blue-600 transition cursor-pointer"
+          className="flex items-center gap-1 hover:text-emerald-600 transition cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Load Prev</span>
@@ -1097,9 +1097,9 @@ export default function HealthPlixMedicineTable({
             setIsMedicalModalOpen(true);
           }}
           title="Load Medical Template (Drug Regimen)"
-          className="flex items-center gap-1 hover:text-blue-600 transition cursor-pointer font-medium"
+          className="flex items-center gap-1 hover:text-emerald-600 transition cursor-pointer font-medium"
         >
-          <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
+          <FolderOpen className="w-3.5 h-3.5 text-emerald-600" />
           <span>Load template</span>
         </button>
 
@@ -1142,7 +1142,7 @@ export default function HealthPlixMedicineTable({
             {/* Modal Header */}
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
@@ -1178,7 +1178,7 @@ export default function HealthPlixMedicineTable({
                   value={medSearchQuery}
                   onChange={(e) => setMedSearchQuery(e.target.value)}
                   placeholder="Search medical templates by condition, category, or drug..."
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
                 />
               </div>
 
@@ -1188,7 +1188,7 @@ export default function HealthPlixMedicineTable({
                   onClick={() => setMedModalTab('presets')}
                   className={`flex-1 py-1.5 text-xs font-bold rounded-md transition text-center ${
                     medModalTab === 'presets'
-                      ? 'bg-white text-blue-700 shadow-xs'
+                      ? 'bg-white text-emerald-700 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -1231,14 +1231,14 @@ export default function HealthPlixMedicineTable({
                   .map((preset) => (
                     <div
                       key={preset.id}
-                      className="border border-slate-200 hover:border-blue-300 rounded-xl p-3.5 bg-white hover:bg-blue-50/30 transition shadow-xs"
+                      className="border border-slate-200 hover:border-emerald-300 rounded-xl p-3.5 bg-white hover:bg-emerald-50/30 transition shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-slate-900 text-sm">{preset.name}</span>
                             {preset.category && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 {preset.category}
                               </span>
                             )}
@@ -1251,7 +1251,7 @@ export default function HealthPlixMedicineTable({
                           <button
                             type="button"
                             onClick={() => handleApplyMedPreset(preset.data, 'replace')}
-                            className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs cursor-pointer transition"
                             title="Replace table with this regimen"
                           >
                             Apply Regimen

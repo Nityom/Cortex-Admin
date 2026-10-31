@@ -707,7 +707,7 @@ export default function HospitalBillingPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <span className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+              <span className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
                 <ReceiptText className="w-6 h-6" />
               </span>
               <div>
@@ -730,7 +730,7 @@ export default function HospitalBillingPage() {
                 onClick={() => switchDoctor("Dr. Vipeen Raut")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                   activeDoctor === "Dr. Vipeen Raut"
-                    ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-emerald-600 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
@@ -741,7 +741,7 @@ export default function HospitalBillingPage() {
                 onClick={() => switchDoctor("Dr. Shillpa Raut")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                   activeDoctor === "Dr. Shillpa Raut"
-                    ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-emerald-600 text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
@@ -766,7 +766,7 @@ export default function HospitalBillingPage() {
               onClick={() => setActiveTab("opd")}
               className={`px-5 py-2.5 font-bold text-sm rounded-xl transition flex items-center gap-2 ${
                 activeTab === "opd"
-                  ? "bg-blue-600 text-white shadow-sm"
+                  ? "bg-emerald-600 text-white shadow-sm"
                   : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
@@ -789,9 +789,9 @@ export default function HospitalBillingPage() {
 
           <Link
             href="/admin/ipd"
-            className="px-4 py-2 font-semibold text-xs rounded-xl border border-indigo-200 bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 flex items-center gap-2 shadow-sm transition"
+            className="px-4 py-2 font-semibold text-xs rounded-xl border border-emerald-200 bg-emerald-50/70 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 flex items-center gap-2 shadow-sm transition"
           >
-            <Bed className="w-4 h-4 text-indigo-600" />
+            <Bed className="w-4 h-4 text-emerald-600" />
             <span>IPD Management & Inpatient Billing</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -836,7 +836,7 @@ export default function HospitalBillingPage() {
                     href={`/print-prescription?prescriptionId=${linkedPrescriptionId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-2 bg-white text-teal-700 hover:bg-teal-50 border border-teal-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                    className="px-3 py-2 bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     Print Rx
@@ -856,14 +856,14 @@ export default function HospitalBillingPage() {
 
           {/* Linked Clinical Prescription Banner */}
           {(linkedPrescriptionId || linkedOpdVisitId) && (
-            <div className="bg-gradient-to-r from-teal-50 via-blue-50 to-indigo-50 border-2 border-teal-300 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+            <div className="bg-gradient-to-r from-emerald-50 via-emerald-50 to-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 bg-teal-100 border border-teal-300 px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md">
                       Linked Clinical Record
                     </span>
                     {linkedPrescriptionId && (
@@ -884,7 +884,7 @@ export default function HospitalBillingPage() {
                     href={`/print-prescription?prescriptionId=${linkedPrescriptionId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-white text-teal-700 hover:bg-teal-50 border border-teal-300 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                    className="px-3 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                   >
                     <Printer className="w-3.5 h-3.5" />
                     Print Rx
@@ -893,7 +893,7 @@ export default function HospitalBillingPage() {
                 {linkedPrescriptionId && (
                   <a
                     href={`/admin/prescription?prescriptionId=${linkedPrescriptionId}`}
-                    className="px-3 py-1.5 bg-white text-blue-700 hover:bg-blue-50 border border-blue-300 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                    className="px-3 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     Edit Rx
@@ -917,7 +917,7 @@ export default function HospitalBillingPage() {
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-black">
+                    <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-black">
                       1
                     </span>
                     Step 1: Patient Registration & Visit Selection
@@ -939,7 +939,7 @@ export default function HospitalBillingPage() {
                         value={opdPatient.phone}
                         onChange={(e) => handleOpdPhoneLookup(e.target.value)}
                         placeholder="e.g. 9876543210"
-                        className="w-full pl-10 pr-3.5 py-3 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full pl-10 pr-3.5 py-3 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
                     <span className="text-xs text-slate-500 mt-1 block">Type to auto-fill patient</span>
@@ -954,7 +954,7 @@ export default function HospitalBillingPage() {
                       value={opdPatient.name}
                       onChange={(e) => setOpdPatient({ ...opdPatient, name: e.target.value })}
                       placeholder="e.g. Dhiraj Bhandekar"
-                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     />
                   </div>
 
@@ -966,7 +966,7 @@ export default function HospitalBillingPage() {
                         value={opdPatient.age}
                         onChange={(e) => setOpdPatient({ ...opdPatient, age: e.target.value })}
                         placeholder="34"
-                        className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -974,7 +974,7 @@ export default function HospitalBillingPage() {
                       <select
                         value={opdPatient.sex}
                         onChange={(e) => setOpdPatient({ ...opdPatient, sex: e.target.value })}
-                        className="w-full px-3 py-3 border border-slate-300 rounded-xl text-base font-semibold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full px-3 py-3 border border-slate-300 rounded-xl text-base font-semibold bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       >
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -996,7 +996,7 @@ export default function HospitalBillingPage() {
                 <div className="flex flex-wrap items-center justify-between pb-3.5 border-b border-slate-100 gap-2">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-black text-slate-900 flex items-center gap-2.5">
-                      <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-black">
+                      <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-black">
                         2
                       </span>
                       Step 2: Add Charges &amp; Procedures
@@ -1044,7 +1044,7 @@ export default function HospitalBillingPage() {
                                   saveProcedureToCatalog(item.name.trim(), item.unitPrice, item.category);
                                 }
                               }}
-                              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-base font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none placeholder:text-slate-400 placeholder:italic placeholder:font-normal"
+                              className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-base font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-slate-400 placeholder:italic placeholder:font-normal"
                             />
                           </td>
                           <td className="py-3 px-4">
@@ -1058,7 +1058,7 @@ export default function HospitalBillingPage() {
                                   saveProcedureToCatalog(updated[idx].name.trim(), updated[idx].unitPrice, e.target.value as any);
                                 }
                               }}
-                              className="px-3 py-2.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                              className="px-3 py-2.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-emerald-500"
                             >
                               <option value="Procedure">Procedure</option>
                               <option value="Consultation">Consultation</option>
@@ -1075,7 +1075,7 @@ export default function HospitalBillingPage() {
                               value={item.unitPrice === 0 ? "" : item.unitPrice}
                               placeholder="0"
                               onChange={(e) => handleChargePriceChange(idx, Number(e.target.value) || 0)}
-                              className="w-28 px-3 py-2.5 border border-slate-300 rounded-xl text-base text-right font-mono font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              className="w-28 px-3 py-2.5 border border-slate-300 rounded-xl text-base text-right font-mono font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
                             />
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -1090,7 +1090,7 @@ export default function HospitalBillingPage() {
                                 updated[idx].total = updated[idx].unitPrice * qty;
                                 setOpdCharges(updated);
                               }}
-                              className="w-16 px-2.5 py-2.5 border border-slate-300 rounded-xl text-base text-center font-mono font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              className="w-16 px-2.5 py-2.5 border border-slate-300 rounded-xl text-base text-center font-mono font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
                             />
                           </td>
                           <td className="py-3 px-4 text-right font-black text-lg text-slate-900 font-mono">
@@ -1126,7 +1126,7 @@ export default function HospitalBillingPage() {
                   <button
                     type="button"
                     onClick={handleAddCustomCharge}
-                    className="text-sm font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 py-2 px-3 rounded-lg hover:bg-blue-50 cursor-pointer transition"
+                    className="text-sm font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1.5 py-2 px-3 rounded-lg hover:bg-emerald-50 cursor-pointer transition"
                   >
                     <Plus className="w-4 h-4" /> Add Custom Charge Item
                   </button>
@@ -1139,7 +1139,7 @@ export default function HospitalBillingPage() {
               <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-sm space-y-5">
                 <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                   <h2 className="text-lg font-black text-slate-900 flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-black">
+                    <span className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-black">
                       3
                     </span>
                     Step 3: Collect Payment
@@ -1173,14 +1173,14 @@ export default function HospitalBillingPage() {
                         min="0"
                         value={opdDiscount}
                         onChange={(e) => setOpdDiscount(Math.max(0, Number(e.target.value)))}
-                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-right text-sm font-mono font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-right text-sm font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center text-lg font-black text-slate-900 pt-2.5 border-t border-slate-200">
                     <span>Net Bill Amount:</span>
-                    <span className="font-mono text-blue-700 text-xl font-black">₹{opdNetTotal}</span>
+                    <span className="font-mono text-emerald-700 text-xl font-black">₹{opdNetTotal}</span>
                   </div>
 
                   <div className="pt-2 border-t border-slate-100">
@@ -1221,7 +1221,7 @@ export default function HospitalBillingPage() {
                           setHasManuallyEditedPaid(true);
                           setOpdPaidAmount(Number(e.target.value) || 0);
                         }}
-                        className="w-full pl-8 pr-4 py-3 border border-slate-300 rounded-xl text-lg font-black text-slate-900 font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-full pl-8 pr-4 py-3 border border-slate-300 rounded-xl text-lg font-black text-slate-900 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
                     </div>
                   </div>
@@ -1241,7 +1241,7 @@ export default function HospitalBillingPage() {
                     <select
                       value={opdPaymentMode}
                       onChange={(e) => setOpdPaymentMode(e.target.value as any)}
-                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none"
                     >
                       <option value="Cash">Cash</option>
                       <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
@@ -1256,7 +1256,7 @@ export default function HospitalBillingPage() {
                     type="button"
                     onClick={handleSaveOpdBill}
                     disabled={opdSubmitting}
-                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-base shadow transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-base shadow transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     <ReceiptText className="w-5 h-5" />
                     {opdSubmitting ? "Generating Bill..." : "Step 4: Generate OPD Bill & Receipt"}
@@ -1265,7 +1265,7 @@ export default function HospitalBillingPage() {
                   <div className="text-center pt-2">
                     <Link
                       href={`/admin/prescription?patientName=${encodeURIComponent(opdPatient.name)}&phoneNumber=${encodeURIComponent(opdPatient.phone)}&doctorName=${encodeURIComponent(activeDoctor)}`}
-                      className="text-xs font-semibold text-slate-500 hover:text-blue-600 inline-flex items-center gap-1"
+                      className="text-xs font-semibold text-slate-500 hover:text-emerald-600 inline-flex items-center gap-1"
                     >
                       <span>Prescription can be created separately</span>
                       <ArrowRight className="w-3 h-3" />
@@ -1362,14 +1362,14 @@ export default function HospitalBillingPage() {
                           <span className="block truncate">{b.notes || (b.prescription_id === "IPD_DIRECT" ? "IPD Final Bill" : "OPD Consultation")}</span>
                           {b.prescription_id && !["DIRECT_BILL", "OPD_DIRECT", "IPD_DIRECT"].includes(b.prescription_id) && (
                             <div className="flex items-center gap-1.5 mt-1">
-                              <span className="text-[10px] text-teal-800 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded font-mono font-semibold">
+                              <span className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-mono font-semibold">
                                 Linked Rx #{b.prescription_id.slice(-6)}
                               </span>
                               <a
                                 href={`/print-prescription?prescriptionId=${b.prescription_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[10px] text-blue-600 hover:underline font-bold"
+                                className="text-[10px] text-emerald-600 hover:underline font-bold"
                               >
                                 View Rx ↗
                               </a>

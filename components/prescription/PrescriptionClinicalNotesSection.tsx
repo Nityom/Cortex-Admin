@@ -133,7 +133,7 @@ export default function PrescriptionClinicalNotesSection({
             onChange={(e) => setDrNotes(e.target.value)}
             rows={3}
             placeholder="Doctor private remarks / internal clinical notes (e.g. Patient reluctant for surgery, follow up in OPD personally)..."
-            className="w-full min-h-[85px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white outline-none"
+            className="w-full min-h-[85px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white outline-none"
           />
         </div>
 
@@ -173,7 +173,7 @@ export default function PrescriptionClinicalNotesSection({
             onChange={(e) => setQuickNotes(e.target.value)}
             rows={3}
             placeholder="Brief clinical quick notes..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
         </div>
       </div>
@@ -224,7 +224,7 @@ export default function PrescriptionClinicalNotesSection({
             onChange={(e) => setProcedureAdvice(e.target.value)}
             rows={3}
             placeholder="Pre/post procedure advice..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
         </div>
 
@@ -264,7 +264,7 @@ export default function PrescriptionClinicalNotesSection({
             onChange={(e) => onUpdateAdvice(e.target.value)}
             rows={3}
             placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids)..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
           <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
             <span>*</span> Prescription is valid for 30 days only
@@ -374,7 +374,7 @@ export default function PrescriptionClinicalNotesSection({
               <button
                 type="button"
                 onClick={handleAddTest}
-                className="px-2 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
+                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
               >
                 +
               </button>
@@ -503,7 +503,7 @@ export default function PrescriptionClinicalNotesSection({
             onChange={(e) => setDietExercise(e.target.value)}
             rows={3}
             placeholder="Soft diet, avoid sugary snacks, 30 min daily walk..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
         </div>
 
@@ -545,7 +545,7 @@ export default function PrescriptionClinicalNotesSection({
             onChange={(e) => setInvestigationText(e.target.value)}
             rows={2}
             placeholder="e.g. OPG, IOPAR wrt 16, CBCT, Blood sugar..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-teal-500 outline-none"
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
         </div>
       </div>

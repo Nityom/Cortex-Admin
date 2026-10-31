@@ -382,14 +382,14 @@ export default function TreatmentLinksPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-            <Link href="/admin/inventory" className="hover:text-blue-600 transition flex items-center gap-1">
+            <Link href="/admin/inventory" className="hover:text-emerald-600 transition flex items-center gap-1">
               <Layers size={14} /> Inventory Management
             </Link>
             <span>/</span>
             <span className="text-slate-800 font-semibold">Treatment Auto-Link</span>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-            <span className="p-2.5 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/20">
+            <span className="p-2.5 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20">
               <Link2 size={24} />
             </span>
             Treatment & Inventory Auto-Link
@@ -403,15 +403,15 @@ export default function TreatmentLinksPage() {
           <Button
             variant="outline"
             onClick={handleSeedPresets}
-            className="border-blue-200 bg-blue-50/50 hover:bg-blue-100/70 text-blue-700 text-xs font-semibold rounded-xl h-10 shadow-sm transition"
+            className="border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-700 text-xs font-semibold rounded-xl h-10 shadow-sm transition"
           >
-            <Sparkles size={15} className="mr-1.5 text-blue-600" />
+            <Sparkles size={15} className="mr-1.5 text-emerald-600" />
             Load Common Dental Presets
           </Button>
 
           <Button
             onClick={handleAddNew}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl h-10 px-4 shadow-md shadow-blue-600/20 transition flex items-center gap-1.5"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl h-10 px-4 shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5"
           >
             <Plus size={16} />
             Add Treatment Rule
@@ -426,7 +426,7 @@ export default function TreatmentLinksPage() {
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Total Rules
             </span>
-            <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+            <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <Sliders size={18} />
             </span>
           </div>
@@ -456,7 +456,7 @@ export default function TreatmentLinksPage() {
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Materials Mapped
             </span>
-            <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+            <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <Package size={18} />
             </span>
           </div>
@@ -543,12 +543,12 @@ export default function TreatmentLinksPage() {
       {/* Rules List / Cards */}
       {loading ? (
         <div className="py-20 text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
+          <RefreshCw className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
           <p className="text-slate-500 font-medium text-sm">Loading treatment link rules...</p>
         </div>
       ) : filteredLinks.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-slate-300">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Link2 size={28} />
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-1">No Auto-Link Rules Found</h3>
@@ -561,14 +561,14 @@ export default function TreatmentLinksPage() {
             <Button
               variant="outline"
               onClick={handleSeedPresets}
-              className="text-xs rounded-xl border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+              className="text-xs rounded-xl border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
             >
               <Sparkles size={14} className="mr-1.5" />
               Load Common Dental Presets
             </Button>
             <Button
               onClick={handleAddNew}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-xl"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-xl"
             >
               <Plus size={14} className="mr-1.5" />
               Add First Rule
@@ -625,7 +625,7 @@ export default function TreatmentLinksPage() {
                       </button>
                       <button
                         onClick={() => handleEdit(rule)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition"
+                        className="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-emerald-50 transition"
                         title="Edit Rule"
                       >
                         <Edit size={16} />
@@ -657,7 +657,7 @@ export default function TreatmentLinksPage() {
                             className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 text-xs"
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="w-5 h-5 rounded-lg bg-blue-100/70 text-blue-700 font-bold flex items-center justify-center shrink-0 text-[10px]">
+                              <span className="w-5 h-5 rounded-lg bg-emerald-100/70 text-emerald-700 font-bold flex items-center justify-center shrink-0 text-[10px]">
                                 {item.quantity}x
                               </span>
                               <span className="font-semibold text-slate-800 truncate">
@@ -843,7 +843,7 @@ export default function TreatmentLinksPage() {
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <span className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+                <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
                   <Link2 size={18} />
                 </span>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -880,7 +880,7 @@ export default function TreatmentLinksPage() {
                         key={proc}
                         type="button"
                         onClick={() => setFormTreatmentName(proc)}
-                        className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 transition"
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 transition"
                       >
                         {proc}
                       </button>
@@ -898,7 +898,7 @@ export default function TreatmentLinksPage() {
                   <button
                     type="button"
                     onClick={handleAddItemRow}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1 rounded-lg transition"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 px-2.5 py-1 rounded-lg transition"
                   >
                     <Plus size={13} /> Add Another Material
                   </button>
@@ -991,7 +991,7 @@ export default function TreatmentLinksPage() {
                   type="button"
                   onClick={() => setFormEnabled(!formEnabled)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formEnabled ? 'bg-blue-600' : 'bg-slate-300'
+                    formEnabled ? 'bg-emerald-600' : 'bg-slate-300'
                   }`}
                 >
                   <span
@@ -1029,7 +1029,7 @@ export default function TreatmentLinksPage() {
                 <Button
                   type="submit"
                   disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs h-10 px-5 font-semibold shadow-md shadow-blue-600/20"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs h-10 px-5 font-semibold shadow-md shadow-emerald-600/20"
                 >
                   {isSaving ? (
                     <RefreshCw size={14} className="animate-spin mr-1.5" />

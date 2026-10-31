@@ -113,7 +113,7 @@ export default function InvestigationsPage() {
       {/* Header Banner */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
             <Activity size={26} />
           </div>
           <div>
@@ -131,7 +131,7 @@ export default function InvestigationsPage() {
 
         <button
           onClick={() => fetchInvestigationReport()}
-          className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-blue-600 bg-gray-100 hover:bg-blue-50 px-3.5 py-2 rounded-xl font-medium transition-all self-start md:self-auto"
+          className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-emerald-600 bg-gray-100 hover:bg-emerald-50 px-3.5 py-2 rounded-xl font-medium transition-all self-start md:self-auto"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           <span>Refresh Counts</span>
@@ -145,22 +145,22 @@ export default function InvestigationsPage() {
           onClick={() => setTypeFilter(typeFilter === 'OPG' ? 'ALL' : 'OPG')}
           className={`p-5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             typeFilter === 'OPG'
-              ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-600'
-              : 'bg-white border-gray-200 hover:border-blue-300'
+              ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-600'
+              : 'bg-white border-gray-200 hover:border-emerald-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className={`text-xs font-semibold uppercase tracking-wider ${typeFilter === 'OPG' ? 'text-blue-100' : 'text-gray-500'}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${typeFilter === 'OPG' ? 'text-emerald-100' : 'text-gray-500'}`}>
               OPG Count
             </p>
-            <span className={`text-xs px-2 py-0.5 rounded font-bold ${typeFilter === 'OPG' ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded font-bold ${typeFilter === 'OPG' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700'}`}>
               Full Mouth
             </span>
           </div>
           <p className={`text-3xl font-black mt-3 ${typeFilter === 'OPG' ? 'text-white' : 'text-gray-900'}`}>
             {reportData.totalOpg}
           </p>
-          <p className={`text-xs mt-1 ${typeFilter === 'OPG' ? 'text-blue-100' : 'text-gray-400'}`}>
+          <p className={`text-xs mt-1 ${typeFilter === 'OPG' ? 'text-emerald-100' : 'text-gray-400'}`}>
             Auto-detected from prescriptions
           </p>
         </div>
@@ -170,22 +170,22 @@ export default function InvestigationsPage() {
           onClick={() => setTypeFilter(typeFilter === 'IOPAR' ? 'ALL' : 'IOPAR')}
           className={`p-5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             typeFilter === 'IOPAR'
-              ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-600'
-              : 'bg-white border-gray-200 hover:border-indigo-300'
+              ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-600'
+              : 'bg-white border-gray-200 hover:border-emerald-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className={`text-xs font-semibold uppercase tracking-wider ${typeFilter === 'IOPAR' ? 'text-indigo-100' : 'text-gray-500'}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${typeFilter === 'IOPAR' ? 'text-emerald-100' : 'text-gray-500'}`}>
               IOPAR Count
             </p>
-            <span className={`text-xs px-2 py-0.5 rounded font-bold ${typeFilter === 'IOPAR' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-700'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded font-bold ${typeFilter === 'IOPAR' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700'}`}>
               Periapical
             </span>
           </div>
           <p className={`text-3xl font-black mt-3 ${typeFilter === 'IOPAR' ? 'text-white' : 'text-gray-900'}`}>
             {reportData.totalIopar}
           </p>
-          <p className={`text-xs mt-1 ${typeFilter === 'IOPAR' ? 'text-indigo-100' : 'text-gray-400'}`}>
+          <p className={`text-xs mt-1 ${typeFilter === 'IOPAR' ? 'text-emerald-100' : 'text-gray-400'}`}>
             Auto-detected from prescriptions
           </p>
         </div>
@@ -236,7 +236,7 @@ export default function InvestigationsPage() {
                 onClick={() => applyDatePreset(preset.id as any)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   dateRangePreset === preset.id
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -258,7 +258,7 @@ export default function InvestigationsPage() {
             <button
               onClick={() => setTypeFilter('OPG')}
               className={`px-3 py-1 text-xs font-bold rounded-md transition ${
-                typeFilter === 'OPG' ? 'bg-white text-blue-700 shadow-xs' : 'text-gray-600'
+                typeFilter === 'OPG' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-600'
               }`}
             >
               OPG Only
@@ -266,7 +266,7 @@ export default function InvestigationsPage() {
             <button
               onClick={() => setTypeFilter('IOPAR')}
               className={`px-3 py-1 text-xs font-bold rounded-md transition ${
-                typeFilter === 'IOPAR' ? 'bg-white text-indigo-700 shadow-xs' : 'text-gray-600'
+                typeFilter === 'IOPAR' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-600'
               }`}
             >
               IOPAR Only
@@ -306,7 +306,7 @@ export default function InvestigationsPage() {
               placeholder="Search patient, doctor, investigation text..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full pl-9 pr-4 py-1.5 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
             />
           </div>
         </div>
@@ -316,7 +316,7 @@ export default function InvestigationsPage() {
       {reportData.dateWiseBreakdown.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
           <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <BarChart3 size={16} className="text-blue-600" />
+            <BarChart3 size={16} className="text-emerald-600" />
             <span>Date-wise Investigation Frequency</span>
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
@@ -324,10 +324,10 @@ export default function InvestigationsPage() {
               <div key={item.date} className="p-3 bg-gray-50 border border-gray-100 rounded-xl text-center">
                 <p className="text-[11px] font-semibold text-gray-500">{item.date}</p>
                 <div className="flex items-center justify-center gap-2 mt-1.5">
-                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
                     OPG: {item.opgCount}
                   </span>
-                  <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
                     IOPAR: {item.ioparCount}
                   </span>
                 </div>
@@ -350,7 +350,7 @@ export default function InvestigationsPage() {
 
         {loading ? (
           <div className="p-16 text-center text-gray-400">
-            <RefreshCw size={32} className="animate-spin mx-auto mb-2 text-blue-600" />
+            <RefreshCw size={32} className="animate-spin mx-auto mb-2 text-emerald-600" />
             <p className="font-medium">Scanning prescriptions for OPG & IOPAR investigations...</p>
           </div>
         ) : reportData.records.length === 0 ? (
@@ -399,12 +399,12 @@ export default function InvestigationsPage() {
                     <td className="px-4 py-4 text-center">
                       <div className="flex items-center justify-center gap-1.5 flex-wrap">
                         {rec.has_opg && (
-                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                             OPG
                           </span>
                         )}
                         {rec.has_iopar && (
-                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                             IOPAR
                           </span>
                         )}
@@ -413,7 +413,7 @@ export default function InvestigationsPage() {
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/admin/prescription?patientId=${rec.prescription_id}&reference=${rec.reference_number || ''}`}
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition"
+                        className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 font-semibold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition"
                       >
                         <span>View Rx</span>
                         <ExternalLink size={12} />

@@ -122,7 +122,7 @@ export default function PrescriptionEmailModal({
         {/* Header */}
         <div className="px-5 py-4 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-xs">
               <Mail className="w-4 h-4" />
             </div>
             <div>
@@ -154,7 +154,7 @@ export default function PrescriptionEmailModal({
             {data.referenceNumber && (
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500 font-semibold">UHID / Ref:</span>
-                <span className="font-bold text-teal-700 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded text-[11px]">
+                <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
                   {data.referenceNumber.replace(/^CH/i, 'CRX')}
                 </span>
               </div>
@@ -167,7 +167,7 @@ export default function PrescriptionEmailModal({
 
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 font-semibold">Sending From:</span>
-              <span className="font-mono text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+              <span className="font-mono text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                 {senderEmail}
               </span>
             </div>
@@ -185,7 +185,7 @@ export default function PrescriptionEmailModal({
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
                 placeholder="patient@example.com"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-2xs"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition shadow-2xs"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute right-3.5 top-3 pointer-events-none" />
             </div>
@@ -212,8 +212,8 @@ export default function PrescriptionEmailModal({
 
             {/* Medicines preview count */}
             {data.medicines && data.medicines.length > 0 && (
-              <div className="flex items-center gap-2 p-2 bg-teal-50/70 border border-teal-200 rounded-lg text-xs text-teal-900">
-                <FileText className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+              <div className="flex items-center gap-2 p-2 bg-emerald-50/70 border border-emerald-200 rounded-lg text-xs text-emerald-900">
+                <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                 <span>Includes <strong>{data.medicines.length} prescribed medicines</strong> with Marathi timing instructions.</span>
               </div>
             )}
@@ -247,7 +247,7 @@ export default function PrescriptionEmailModal({
             <button
               type="submit"
               disabled={loading || !recipientEmail}
-              className="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 active:scale-[0.99] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md cursor-pointer"
+              className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md cursor-pointer"
             >
               {loading ? (
                 <>

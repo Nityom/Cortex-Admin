@@ -579,7 +579,7 @@ export default function HealthPlixDrawingBoard({
       {/* Top Bar Indicator showing Local Storage Only */}
       <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
         <div className="flex items-center gap-2 font-semibold">
-          <ImageIcon className="w-4 h-4 text-blue-600" />
+          <ImageIcon className="w-4 h-4 text-emerald-600" />
           <span>Image Annotation & Clinical Sketch Board</span>
 
         </div>
@@ -594,12 +594,12 @@ export default function HealthPlixDrawingBoard({
               >
                 {fitMode === 'fill-width' ? (
                   <>
-                    <Minimize2 className="w-3.5 h-3.5 text-blue-600" />
+                    <Minimize2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Fit View</span>
                   </>
                 ) : (
                   <>
-                    <Maximize2 className="w-3.5 h-3.5 text-blue-600" />
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Fill Width</span>
                   </>
                 )}
@@ -660,7 +660,7 @@ export default function HealthPlixDrawingBoard({
             type="button"
             onClick={() => setTool('eraser')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${tool === 'eraser'
-              ? 'bg-blue-100 text-blue-900 border border-blue-300 shadow-2xs'
+              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs'
               : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
               }`}
             title="Eraser Tool"
@@ -715,7 +715,7 @@ export default function HealthPlixDrawingBoard({
                   setTool('pen');
                 }}
                 className={`w-5 h-5 rounded-full border transition cursor-pointer ${selectedColor === c.value && tool === 'pen'
-                  ? 'ring-2 ring-offset-2 ring-blue-500 scale-110 shadow-xs'
+                  ? 'ring-2 ring-offset-2 ring-emerald-500 scale-110 shadow-xs'
                   : 'border-slate-300 hover:scale-105'
                   }`}
                 style={{ backgroundColor: c.value }}
@@ -751,7 +751,7 @@ export default function HealthPlixDrawingBoard({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border shadow-2xs ${hasAttachedImage
-              ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+              ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700'
               : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
               }`}
             title="Attach image or photo from your computer (stored in Local Storage only)"

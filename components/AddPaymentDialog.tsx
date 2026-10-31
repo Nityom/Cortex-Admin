@@ -133,14 +133,14 @@ export default function AddPaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-slate-200">
         {/* Header */}
-        <div className="px-5 py-4 bg-gradient-to-r from-teal-700 to-teal-800 text-white flex items-center justify-between">
+        <div className="px-5 py-4 bg-gradient-to-r from-emerald-700 to-emerald-800 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/20 text-white flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-teal-200" />
+              <CreditCard className="w-5 h-5 text-emerald-200" />
             </div>
             <div>
               <DialogTitle className="text-base font-extrabold text-white">Record Installment Payment</DialogTitle>
-              <p className="text-xs text-teal-100 font-medium mt-0.5">
+              <p className="text-xs text-emerald-100 font-medium mt-0.5">
                 {billNumber || "Bill"} {patientName ? `• ${patientName}` : ""}
               </p>
             </div>
@@ -176,7 +176,7 @@ export default function AddPaymentDialog({
               <Label htmlFor="amount" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Installment Amount (₹) <span className="text-rose-500">*</span>
               </Label>
-              <span className="text-[11px] text-teal-700 font-bold">Max: ₹{safeBalanceAmount.toLocaleString("en-IN")}</span>
+              <span className="text-[11px] text-emerald-700 font-bold">Max: ₹{safeBalanceAmount.toLocaleString("en-IN")}</span>
             </div>
             <Input
               id="amount"
@@ -192,7 +192,7 @@ export default function AddPaymentDialog({
                 })
               }
               placeholder="Enter amount"
-              className="text-base font-bold text-slate-900 border-slate-300 rounded-xl h-11 focus:ring-teal-500"
+              className="text-base font-bold text-slate-900 border-slate-300 rounded-xl h-11 focus:ring-emerald-500"
               required
             />
 
@@ -201,7 +201,7 @@ export default function AddPaymentDialog({
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, amount: safeBalanceAmount })}
-                className="flex-1 py-1.5 px-2 bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold rounded-lg border border-teal-200 transition"
+                className="flex-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200 transition"
               >
                 Full Due (₹{safeBalanceAmount})
               </button>
@@ -283,7 +283,7 @@ export default function AddPaymentDialog({
             <Button
               type="submit"
               disabled={loading || !formData.amount || formData.amount <= 0}
-              className="rounded-xl text-xs font-bold px-5 bg-teal-700 hover:bg-teal-800 text-white shadow-xs cursor-pointer disabled:opacity-50"
+              className="rounded-xl text-xs font-bold px-5 bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs cursor-pointer disabled:opacity-50"
             >
               {loading ? "Recording..." : `Confirm Payment: ₹${(formData.amount || 0).toLocaleString("en-IN")}`}
             </Button>
