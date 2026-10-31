@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { DM_Sans, Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
 import { hospitalConfig } from "@/config/hospital";
 
-const inter = Inter({
-  variable: "--font-inter",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -37,7 +45,7 @@ export default function RootLayout({
         <link rel="icon" href={hospitalConfig.branding.faviconUrl} />
       </head>
       <body
-        className={`${inter.variable} ${geistMono.variable} font-sans antialiased text-slate-900 bg-slate-50/50`}
+        className={`${dmSans.variable} ${manrope.variable} ${geistMono.variable} font-sans antialiased text-slate-900`}
       >
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>

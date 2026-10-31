@@ -11,9 +11,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [profileInitials, setProfileInitials] = useState("CH");
+  const routeSlug = pathname?.split("/").filter(Boolean).at(-1) || "overview";
+  const routeLabels: Record<string, string> = { opd: "OPD queue", patients: "Patient management", appointments: "Appointments", ipd: "Inpatient care", billing: "Hospital billing", prescription: "Prescriptions", templates: "Clinical templates", inventory: "Inventory", doctors: "Care team", registers: "Registers", installments: "Payment plans", medicines: "Medicines", crowns: "Dental care", stockists: "Stockists", investigations: "Investigations", "treatment-links": "Treatment links", "consumable-settings": "Consumable settings", sales: "Sales report" };
+  const currentSection = routeLabels[routeSlug] || routeSlug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   useEffect(() => {
     const session = getSession();
+    if (session?.name) {
+      setProfileInitials(session.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase());
+    }
 
     // Not logged in → redirect to login
     if (!session) {
@@ -92,9 +99,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden bg-gray-50">
+      <div className="admin-app-frame flex w-[calc(100%-36px)] overflow-hidden bg-white max-md:m-2 max-md:h-[calc(100dvh-16px)] max-md:w-[calc(100%-16px)]">
         <AppSidebar />
-        <div className="flex-1 min-w-0 p-4 pt-16 md:p-6 md:pt-6 overflow-y-auto">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="admin-topbar flex h-14 shrink-0 items-center justify-between border-b border-[#e5ece6] bg-white/90 px-5 md:px-8">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-[#9aa99f]">Workspace</span><span className="text-[#c2cdc5]">/</span>
+              <span className="font-medium text-[#536c5e]">{currentSection}</span>
+            </div>
+            <span aria-label="Current user" className="grid h-9 w-9 place-items-center rounded-full bg-[#eaf3ec] text-[10px] font-bold text-[#4a8464]">{profileInitials}</span>
+          </header>
+          <main className="admin-page-content min-w-0 flex-1 overflow-y-auto p-4 pt-5 md:p-7 md:pt-7">{children}</main>
+        </div>
       </div>
     </SidebarProvider>
   );

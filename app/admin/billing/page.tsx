@@ -1256,7 +1256,7 @@ export default function HospitalBillingPage() {
                     type="button"
                     onClick={handleSaveOpdBill}
                     disabled={opdSubmitting}
-                    className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-base shadow transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    className="svasth-action svasth-action-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <ReceiptText className="w-5 h-5" />
                     {opdSubmitting ? "Generating Bill..." : "Step 4: Generate OPD Bill & Receipt"}

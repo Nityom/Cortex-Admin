@@ -129,7 +129,7 @@ export default function PrescriptionDoctorSignatureCard({
           <button
             type="submit"
             disabled={loading || saving}
-            className="flex-1 px-8 py-3.5 bg-emerald-600 text-white text-base font-bold rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            className="svasth-action svasth-action-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="w-5 h-5" />
             {loading
@@ -145,7 +145,7 @@ export default function PrescriptionDoctorSignatureCard({
             type="button"
             onClick={handlePrintablePrescription}
             disabled={loading || saving}
-            className="flex-1 px-8 py-3.5 bg-purple-600 text-white text-base font-bold rounded-xl hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            className="svasth-action svasth-action-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Printer className="w-5 h-5" />
             Print Prescription
@@ -156,7 +156,7 @@ export default function PrescriptionDoctorSignatureCard({
               type="button"
               onClick={onEmailPrescription}
               disabled={loading || saving}
-              className="px-6 py-3.5 bg-emerald-700 text-white text-base font-bold rounded-xl hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-300 focus:ring-offset-2 disabled:opacity-50 transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="svasth-action svasth-action-tertiary disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Mail className="w-5 h-5" />
               Email Rx

@@ -34,18 +34,6 @@ const CustomSidebar: React.FC<CustomSidebarProps> = ({ children, className }) =>
   </aside>
 );
 
-interface MenuGroupProps {
-  label?: string;
-  children: React.ReactNode;
-}
-
-const MenuGroup: React.FC<MenuGroupProps> = ({ label, children }) => (
-  <div className="mb-4">
-    {label && <h3 className="text-gray-400 text-xs uppercase tracking-wider px-4 mb-2 font-semibold">{label}</h3>}
-    <div>{children}</div>
-  </div>
-);
-
 interface MenuItemProps {
   icon: React.ElementType;
   title: string;
@@ -62,15 +50,15 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon: Icon, title, url, isActive, o
       href="#"
       title={!isExpanded ? title : undefined}
       className={`flex items-center w-full py-3 px-3 rounded-lg transition-all duration-200 ${isActive
-        ? 'bg-emerald-600 text-white shadow-sm'
-        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+        ? 'bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-100'
+        : 'text-gray-600 hover:text-emerald-800 hover:bg-emerald-50/70'
         } ${!isExpanded ? 'justify-center' : ''}`}
       onClick={(e) => {
         e.preventDefault();
         onClick(id, url);
       }}
     >
-      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-emerald-700' : 'text-gray-500'}`} />
       {isExpanded && (
         <>
           <span className="ml-3 whitespace-nowrap font-medium text-sm">{title}</span>
@@ -184,6 +172,7 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
 
   const showExpanded = isMobile || isExpanded;
 
+
   return (
     <>
       {isMobile && isExpanded && (
@@ -195,9 +184,9 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
 
       <CustomSidebar
         className={`
-          bg-white border-r border-gray-200 text-gray-900
+          bg-[#f5f8f5] border-r border-[#e2eae3] text-gray-900
           flex flex-col shrink-0
-          ${isMobile ? 'fixed z-30 h-full' : 'relative h-screen'}
+          ${isMobile ? 'fixed z-30 h-full' : 'relative h-full'}
           ${isMobile
             ? (isExpanded ? 'translate-x-0 w-60' : '-translate-x-full w-60')
             : (isExpanded ? 'w-60 translate-x-0' : 'w-16 translate-x-0')
@@ -208,22 +197,20 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
         {/* Logo/header with toggle always inside sidebar */}
         <div
           className={`relative flex items-center border-b border-gray-100 shrink-0 transition-all duration-200 ${
-            showExpanded ? 'h-20 px-3 justify-center' : 'h-16 px-3 justify-center'
+            showExpanded ? 'h-[88px] px-5 justify-start' : 'h-16 px-3 justify-center'
           }`}
         >
           {showExpanded ? (
             <>
-              <div
-                className="flex items-center justify-center w-full px-7 cursor-pointer"
-                onClick={() => router.push(items[0]?.url || '/admin/appointments')}
-                title={hospitalConfig.name}
+              <button
+                type="button"
+                className="flex min-w-0 items-center gap-2.5 pr-8 text-left"
+                onClick={() => router.push(items[0]?.url || '/admin/opd')}
+                title="Svasth HMS workspace"
               >
-                <img
-                  src={hospitalConfig.branding.logoUrl}
-                  alt={hospitalConfig.name}
-                  className="h-14 w-auto max-h-14 max-w-full object-contain select-none"
-                />
-              </div>
+                <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svasth HMS" className="h-8 w-8 shrink-0 object-contain" />
+                <span className="whitespace-nowrap text-[13px] font-extrabold tracking-[0.12em] text-[#34785b]">SVASTH HMS</span>
+              </button>
               <button
                 onClick={toggleSidebar}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200"
@@ -245,13 +232,14 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
 
         {/* Nav items */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-3 px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <MenuGroup label={showExpanded ? "MENU" : ""}>
+          <div className="space-y-2">
+            {showExpanded && <h3 className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#9aa99f]">WORKSPACE</h3>}
             <ul>
               {items.map((item, index) => (
                 <div
                   key={item.id}
                   className={animateItems ? 'fade-slide-up' : 'opacity-0'}
-                  style={{ animationDelay: `${index * 60}ms` }}
+                  style={{ animationDelay: `${index * 45}ms` }}
                 >
                   <MenuItem
                     icon={item.icon}
@@ -265,20 +253,20 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
                 </div>
               ))}
             </ul>
-          </MenuGroup>
+          </div>
         </div>
 
         {/* Footer / user section */}
-        <div className={`border-t border-gray-100 shrink-0 ${showExpanded ? 'p-4' : 'p-2 flex flex-col items-center gap-3'}`}>
+        <div className={`border-t border-gray-100 shrink-0 ${showExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
           {showExpanded ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-emerald-50/60 border border-emerald-100/70">
                 <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
                   <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-700 truncate">{userEmail}</p>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-emerald-700 border border-emerald-100'}`}>
                     {isAdmin ? 'Admin' : 'Staff'}
                   </span>
                 </div>
