@@ -90,3 +90,4 @@ Once verified, push to git or deploy to Hostinger/Vercel/Cloudflare Pages:
 - Point their subdomain (e.g. `admin.apexhospital.com`) to their hosting folder.
 
 🎉 **Done!** The hospital has their custom-branded, fully isolated HMS/EMR running live!
+

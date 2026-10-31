@@ -184,3 +184,4 @@ export function calculateDoctorConsultationFee(doctorName?: string, isFollowupWi
   if (!doc) return 400;
   return isFollowupWithinValidity ? doc.consultationFee.followupVisit : doc.consultationFee.firstVisit;
 }
+
