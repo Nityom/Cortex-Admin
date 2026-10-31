@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { addMedicine, getAllMedicines, deleteMedicine, updateMedicine, Medicine } from '@/services/medicine';
-import { PlusCircle, X, Trash2, Search, ArrowUp, ArrowDown, Package, Pill, RefreshCw, Edit, ReceiptText, UserCheck } from 'lucide-react';
+import { PlusCircle, X, Trash2, Search, ArrowUp, ArrowDown, Package, Pill, RefreshCw, Edit, ReceiptText, UserCheck, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 
 export default function AddMedicinePage() {
@@ -27,6 +27,12 @@ export default function AddMedicinePage() {
   const [isLoadingMedicines, setIsLoadingMedicines] = useState<boolean>(true);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedDoctorFilter, pageSize]);
 
   useEffect(() => {
     fetchMedicines();
@@ -162,6 +168,11 @@ export default function AddMedicinePage() {
       ? valueA.localeCompare(valueB)
       : valueB.localeCompare(valueA);
   });
+
+  const totalPages = Math.ceil(sortedMedicines.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, sortedMedicines.length);
+  const paginatedMedicines = sortedMedicines.slice(startIndex, endIndex);
 
   const renderSortIcon = (field: keyof Medicine) => {
     if (sortField !== field) return null;
@@ -429,13 +440,13 @@ export default function AddMedicinePage() {
                 </div>
               ) : (
                 <>
-                  <div className="overflow-x-auto rounded-xl border border-gray-100">
+                  <div className="max-h-[580px] overflow-y-auto overflow-x-auto rounded-xl border border-gray-200 shadow-xs">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-gray-50 sticky top-0 z-10 shadow-xs border-b border-gray-200">
                         <tr>
                           <th
                             scope="col"
-                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
+                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none bg-gray-50"
                             onClick={() => handleSort('name')}
                           >
                             <div className="flex items-center space-x-1">
@@ -445,19 +456,19 @@ export default function AddMedicinePage() {
                           </th>
                           <th
                             scope="col"
-                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50"
                           >
                             Doctor
                           </th>
                           <th
                             scope="col"
-                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50"
                           >
                             Composition
                           </th>
                           <th
                             scope="col"
-                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
+                            className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none bg-gray-50"
                             onClick={() => handleSort('company')}
                           >
                             <div className="flex items-center space-x-1">
@@ -467,14 +478,14 @@ export default function AddMedicinePage() {
                           </th>
                           <th
                             scope="col"
-                            className="px-5 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                            className="px-5 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider bg-gray-50"
                           >
                             Actions
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-100 text-sm">
-                        {sortedMedicines.map((medicine, idx) => {
+                        {paginatedMedicines.map((medicine, idx) => {
                           const docName = medicine.doctor_name || 'Both Doctors';
                           return (
                             <tr key={medicine.id || idx} className="hover:bg-emerald-50/40 transition">
@@ -543,6 +554,70 @@ export default function AddMedicinePage() {
                         })}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Pagination Footer */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-600">
+                    <div className="flex items-center gap-3">
+                      <span>
+                        Showing <strong className="text-gray-900 font-semibold">{sortedMedicines.length === 0 ? 0 : startIndex + 1}</strong> to{" "}
+                        <strong className="text-gray-900 font-semibold">{endIndex}</strong> of{" "}
+                        <strong className="text-gray-900 font-semibold">{sortedMedicines.length}</strong> medicines
+                      </span>
+                      <div className="flex items-center gap-1.5 ml-2">
+                        <span className="text-gray-500">Per page:</span>
+                        <select
+                          value={pageSize}
+                          onChange={(e) => setPageSize(Number(e.target.value))}
+                          className="px-2 py-1 bg-gray-50 border border-gray-300 rounded-md text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium"
+                        >
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none transition"
+                        title="First Page"
+                      >
+                        <ChevronsLeft size={16} />
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none transition"
+                        title="Previous Page"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+
+                      <div className="px-3 py-1 font-semibold text-gray-800 bg-gray-100 rounded-lg">
+                        Page {currentPage} of {totalPages}
+                      </div>
+
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none transition"
+                        title="Next Page"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                        className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:pointer-events-none transition"
+                        title="Last Page"
+                      >
+                        <ChevronsRight size={16} />
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
