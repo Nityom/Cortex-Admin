@@ -951,11 +951,7 @@ export default function HospitalBillingPage() {
                     <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md">
                       Linked Clinical Record
                     </span>
-                    {linkedPrescriptionId && (
-                      <span className="text-xs font-mono font-bold text-slate-700">
-                        Rx ID: {linkedPrescriptionId}
-                      </span>
-                    )}
+                   
                   </div>
                   <p className="text-sm font-semibold text-slate-800 mt-1">
                     Patient: <strong>{opdPatient.name || "Patient"}</strong> {opdPatient.uhid ? `(UHID: ${opdPatient.uhid})` : ""} • Doctor: {activeDoctor}

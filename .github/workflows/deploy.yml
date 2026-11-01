@@ -35,8 +35,8 @@ jobs:
 
       - name: 🏗️ Build Next.js Static Export
         env:
-          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL || 'https://jovial-sheep-76.convex.cloud' }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_SITE_URL || 'https://jovial-sheep-76.convex.site' }}
+          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL || 'https://majestic-setter-702.convex.cloud' }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_SITE_URL || 'https://majestic-setter-702.convex.site' }}
         run: npm run build
 
       - name: 🔧 Normalize FTP Settings
