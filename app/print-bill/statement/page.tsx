@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PrintableBill from '@/components/PrintableBill';
+import { filterNonMedicineBillItems } from '@/services/bills';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
@@ -109,8 +110,15 @@ function StatementContent() {
                 }
               } catch {}
 
-            const items = Array.isArray(bill.items)
-              ? bill.items.map((item: any) => ({
+            const isPrescriptionBill = Boolean(
+              bill.prescription_id && !['DIRECT_BILL', 'IPD_DIRECT'].includes(bill.prescription_id)
+            );
+            const filteredRaw = isPrescriptionBill && Array.isArray(bill.items)
+              ? filterNonMedicineBillItems(bill.items)
+              : bill.items;
+
+            const items = Array.isArray(filteredRaw)
+              ? filteredRaw.map((item: any) => ({
                   id: item.id,
                   description: item.description,
                   quantity: parseFloat(item.quantity) || 1,
@@ -122,11 +130,16 @@ function StatementContent() {
                 }))
               : [];
 
-            const total = bill.total_amount || 0;
+            let total = bill.total_amount || 0;
+            const discount = (bill as any).discount_amount || 0;
+            if (isPrescriptionBill && Array.isArray(bill.items) && filteredRaw.length !== bill.items.length) {
+              const nonMedSubtotal = items.reduce((sum: number, it: any) => sum + (it.total || 0), 0);
+              total = Math.max(0, nonMedSubtotal - discount);
+            }
             const amountPaid = bill.paid_amount || 0;
-            const balance = bill.balance_amount ?? Math.max(total - amountPaid, 0);
+            const balance = Math.max(0, total - amountPaid);
 
-              return {
+            return {
               billNumber: (bill as any).bill_number || bill._id,
               billDate: formatDate(bill._creationTime),
               patientName: (bill as any).patient_name || 'N/A',
@@ -134,8 +147,8 @@ function StatementContent() {
               patientAge: (bill as any).patient_age?.toString() || '',
               patientSex: (bill as any).patient_sex || '',
               items,
-              subtotal: total + ((bill as any).discount_amount || 0),
-              discount: (bill as any).discount_amount || 0,
+              subtotal: total + discount,
+              discount,
               total,
               amountPaid,
               balance,

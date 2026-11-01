@@ -424,6 +424,10 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             isEditMode={form.isEditMode}
             handlePrintablePrescription={form.handlePrintablePrescription}
             onEmailPrescription={form.handleOpenEmailModal}
+            nextReadyPatientName={form.nextReadyPatient?.name}
+            onMoveToNextPatient={form.moveToNextReadyPatient}
+            movingToNextPatient={form.movingToNextPatient}
+            isOpdVisit={Boolean(form.opdVisitId)}
           />
         );
       default:

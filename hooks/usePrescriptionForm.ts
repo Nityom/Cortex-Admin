@@ -41,6 +41,7 @@ import {
 import { PrescriptionEmailModalData } from '@/components/prescription/PrescriptionEmailModal';
 import { updateBill } from '@/services/bills';
 import { paymentTransactionService } from '@/services/payment-transactions';
+import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -222,6 +223,8 @@ export function usePrescriptionForm() {
   const [selectedDoctorName, setSelectedDoctorName] = useState<string>('Dr. Vipeen Raut');
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
   const [includeSignature, setIncludeSignature] = useState(true);
+  const [nextReadyPatient, setNextReadyPatient] = useState<any | null>(null);
+  const [movingToNextPatient, setMovingToNextPatient] = useState(false);
 
   // Consultation & Billing State
   const [isNewPatient, setIsNewPatient] = useState(true);
@@ -281,6 +284,50 @@ export function usePrescriptionForm() {
   useEffect(() => {
     if (displayBmi) setBmiVal(displayBmi);
   }, [displayBmi]);
+
+  useEffect(() => {
+    const refreshNextReadyPatient = () => {
+      if (!opdVisitId || typeof window === 'undefined') {
+        setNextReadyPatient(null);
+        return;
+      }
+      try {
+        const queue = JSON.parse(localStorage.getItem('cortex_opd_queue_v1') || '[]');
+        if (!Array.isArray(queue)) return;
+        const localDateKey = (value: string | number) => {
+          const date = new Date(value);
+          if (Number.isNaN(date.getTime())) return '';
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        };
+        const current = queue.find((item: any) => item.id === opdVisitId);
+        const targetDate = current?.registeredAt ? localDateKey(current.registeredAt) : localDateKey(Date.now());
+        const doctor = selectedDoctorName.trim().toLowerCase();
+        const next = queue
+          .filter((item: any) =>
+            item.status === 'Ready' &&
+            item.id !== opdVisitId &&
+            (item.doctor || '').trim().toLowerCase() === doctor &&
+            (!targetDate || localDateKey(item.registeredAt) === targetDate)
+          )
+          .sort((a: any, b: any) => {
+            const timeDiff = new Date(a.registeredAt || 0).getTime() - new Date(b.registeredAt || 0).getTime();
+            return timeDiff || Number(a.token || 0) - Number(b.token || 0);
+          })[0] || null;
+        setNextReadyPatient(next);
+      } catch (error) {
+        console.warn('Could not find the next ready OPD patient:', error);
+        setNextReadyPatient(null);
+      }
+    };
+
+    refreshNextReadyPatient();
+    window.addEventListener('storage', refreshNextReadyPatient);
+    window.addEventListener('cortex_queue_updated', refreshNextReadyPatient);
+    return () => {
+      window.removeEventListener('storage', refreshNextReadyPatient);
+      window.removeEventListener('cortex_queue_updated', refreshNextReadyPatient);
+    };
+  }, [opdVisitId, selectedDoctorName]);
 
   // Auto-calculate EDD (Naegele's rule: LMP + 280 days) & Gestational Age (from LMP to visit date)
   useEffect(() => {
@@ -676,16 +723,19 @@ export function usePrescriptionForm() {
   };
 
   // Save Prescription to Database & Convex
-  const savePrescriptionToDatabase = async (): Promise<any> => {
+  const savePrescriptionToDatabase = async (
+    options: { skipOperationalSideEffects?: boolean } = {}
+  ): Promise<any> => {
     try {
       setSaving(true);
 
+      const patientEmail = formData.email?.trim() || undefined;
       const patientData = {
         name: formData.patientName,
         age: parseInt(formData.age, 10) || 0,
         sex: formData.sex,
         phone_number: formData.phoneNumber,
-        email: formData.email?.trim() || undefined,
+        email: patientEmail,
       };
 
       const patient = await getOrCreatePatient(patientData);
@@ -693,14 +743,18 @@ export function usePrescriptionForm() {
         throw new Error('Could not retrieve or create patient record with reference number.');
       }
 
-      if (patient.id && formData.email?.trim() && formData.email.trim() !== (patient as any).email) {
-        try {
-          await updatePatient(patient.id, { email: formData.email.trim() });
-          (patient as any).email = formData.email.trim();
-        } catch (err) {
-          console.error('Failed to sync patient email:', err);
+      if (patient.id && patientEmail && patientEmail !== patient.email) {
+        const updatedPatient = await updatePatient(patient.id, { email: patientEmail });
+        if (updatedPatient.email !== patientEmail) {
+          throw new Error('Prescription was not saved because the patient email could not be saved. Please try again.');
         }
+        patient.email = patientEmail;
       }
+
+      const medicinesWithQuantity = medicines.map((med) => ({
+        ...med,
+        quantity: med.quantity ?? calculateMedicineQuantity(med),
+      }));
 
       setFormData((prev) => ({ ...prev, reference_number: patient.reference_number }));
       setPatientReferenceNumber(patient.reference_number);
@@ -736,7 +790,7 @@ export function usePrescriptionForm() {
         diagnosis: allDiagnoses,
         oral_exam_notes: allFindings || undefined,
         dr_notes: drNotes || undefined,
-        medicines: medicines,
+        medicines: medicinesWithQuantity,
         treatment_done: treatmentItems.map((item) => ({
           id: item.id,
           description: item.description,
@@ -792,22 +846,22 @@ export function usePrescriptionForm() {
 
       updateLocalOpdQueue(opdVisitId || undefined, patient.reference_number, formData.phoneNumber);
 
-      // Secondary tasks (Stock deduction & Billing)
-      await autoRecordMedicineStock(medicines, medicineOptions);
-      await deductPrescriptionConsumables(formData.patientName, isEditMode);
-      await deductPrescriptionTreatments(treatmentItems, formData.patientName, savedPrescription?.id || '', formData.date);
-      await syncPrescriptionBill({
-        prescriptionId: savedPrescription?.id || '',
-        patientId: patient.id,
-        referenceNumber: patient.reference_number,
-        isNewPatient,
-        applyConsultationCharge,
-        consultationCharge,
-        treatmentItems,
-        medicines,
-        medicineOptions,
-        treatmentDiscount,
-      });
+      if (!options.skipOperationalSideEffects) {
+        // Secondary tasks (Stock deduction & Billing)
+        await autoRecordMedicineStock(medicinesWithQuantity, medicineOptions);
+        await deductPrescriptionConsumables(formData.patientName, isEditMode);
+        await deductPrescriptionTreatments(treatmentItems, formData.patientName, savedPrescription?.id || '', formData.date);
+        await syncPrescriptionBill({
+          prescriptionId: savedPrescription?.id || '',
+          patientId: patient.id,
+          referenceNumber: patient.reference_number,
+          isNewPatient,
+          applyConsultationCharge,
+          consultationCharge,
+          treatmentItems,
+          treatmentDiscount,
+        });
+      }
 
       return savedPrescription;
     } catch (err: any) {
@@ -816,6 +870,56 @@ export function usePrescriptionForm() {
       return null;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const moveToNextReadyPatient = async () => {
+    if (!opdVisitId || !nextReadyPatient || movingToNextPatient) return;
+    setMovingToNextPatient(true);
+    try {
+      const savedPrescription = await savePrescriptionToDatabase({ skipOperationalSideEffects: true });
+      if (!savedPrescription) return;
+
+      const queue = JSON.parse(localStorage.getItem('cortex_opd_queue_v1') || '[]');
+      const target = Array.isArray(queue)
+        ? queue.find((item: any) => item.id === nextReadyPatient.id && item.status === 'Ready')
+        : null;
+      if (!target) {
+        setNextReadyPatient(null);
+        alert('That patient is no longer marked Ready. Refresh the OPD queue and try again.');
+        return;
+      }
+
+      const updatedQueue = queue.map((item: any) =>
+        item.id === target.id ? { ...item, status: 'In Consultation' } : item
+      );
+      localStorage.setItem('cortex_opd_queue_v1', JSON.stringify(updatedQueue));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('cortex_queue_updated'));
+
+      const params = new URLSearchParams({
+        patientName: target.name || '',
+        phoneNumber: target.phone || '',
+        age: target.age || '',
+        sex: target.sex || 'Male',
+        doctorName: target.doctor || selectedDoctorName,
+        reference_number: target.uhid || '',
+        token: target.token || '',
+        opdVisitId: target.id,
+        email: target.email || '',
+      });
+      if (target.vitals?.bp) params.set('bp', target.vitals.bp);
+      if (target.vitals?.pulse) params.set('pulse', target.vitals.pulse);
+      if (target.vitals?.spo2) params.set('spo2', target.vitals.spo2);
+      if (target.vitals?.height) params.set('height', target.vitals.height);
+      if (target.vitals?.weight) params.set('weight', target.vitals.weight);
+
+      window.location.assign(`/admin/prescription?${params.toString()}`);
+    } catch (error) {
+      console.error('Could not move to the next ready patient:', error);
+      alert('Could not move to the next patient. Please try again.');
+    } finally {
+      setMovingToNextPatient(false);
     }
   };
 
@@ -915,7 +1019,14 @@ export function usePrescriptionForm() {
 
   // Execute Final Prescription Print (called from Print Confirmation Modal)
   const executePrintPrescription = async (enabledSections?: Record<string, boolean>) => {
+    // Open the print tab synchronously from the click so the browser does not
+    // block it while the new prescription is being saved.
+    const printWindow = window.open('about:blank', '_blank');
     const finalEnabledSections = enabledSections || enabledPrintSections;
+    const medicinesWithQuantity = medicines.map((med) => ({
+      ...med,
+      quantity: med.quantity ?? calculateMedicineQuantity(med),
+    }));
     if (finalEnabledSections) {
       saveEnabledPrintSections(finalEnabledSections);
     }
@@ -953,7 +1064,7 @@ export function usePrescriptionForm() {
       clinical_findings: allFindings,
       investigation: allInvestigations,
       diagnosis: allDiagnoses,
-      medicines: medicines,
+      medicines: medicinesWithQuantity,
       advice: allAdvice,
       diet_exercise: dietExercise,
       referral_doctor: referralDocName
@@ -982,21 +1093,28 @@ export function usePrescriptionForm() {
       // Note: Doctor notes (drNotes) and treatment done (treatmentItems) are intentionally excluded from prescription print
     };
 
-    try {
-      localStorage.setItem('cortex_printable_prescription', JSON.stringify(printableSnapshot));
-    } catch {}
-
     if (!currentId && formData.patientName) {
       const saved = await savePrescriptionToDatabase();
       if (saved?.id) currentId = saved.id;
     }
+
+    try {
+      localStorage.setItem('cortex_printable_prescription', JSON.stringify({
+        ...printableSnapshot,
+        id: currentId || 'draft',
+      }));
+    } catch {}
 
     setIsPrintModalOpen(false);
 
     const hasSig = finalEnabledSections ? finalEnabledSections.signature !== false : includeSignature;
     const hasHeaderFooter = finalEnabledSections ? finalEnabledSections.header_footer !== false : true;
     const printUrl = `/print-prescription?id=${encodeURIComponent(currentId || 'draft')}&autoPrint=true&withSignature=${hasSig ? 'true' : 'false'}&headerFooter=${hasHeaderFooter ? 'true' : 'false'}`;
-    window.open(printUrl, '_blank');
+    if (printWindow) {
+      printWindow.location.href = printUrl;
+    } else {
+      window.location.href = printUrl;
+    }
   };
 
   const handlePrintBill = async () => {
@@ -1066,6 +1184,7 @@ export function usePrescriptionForm() {
         const qEmail = params.get('email');
         const qAge = params.get('age');
         const qSex = params.get('sex');
+        const qReference = params.get('reference_number') || params.get('uhid');
         const qTmplId = params.get('templateId');
         const qOpdId = params.get('opdVisitId') || params.get('visitId');
         const qDoctor = params.get('doctorName') || params.get('doctor') || params.get('doc');
@@ -1134,7 +1253,7 @@ export function usePrescriptionForm() {
           }
         } else {
           const qToken = params.get('token') || params.get('tokenNumber');
-          if (qName || qPhone || qAge || qSex || qToken || qEmail) {
+          if (qName || qPhone || qAge || qSex || qToken || qEmail || qReference) {
             setFormData((prev) => ({
               ...prev,
               patientName: qName || prev.patientName,
@@ -1143,8 +1262,10 @@ export function usePrescriptionForm() {
               age: qAge || prev.age,
               sex: qSex || prev.sex,
               token: qToken || prev.token,
+              reference_number: qReference || prev.reference_number,
             }));
           }
+          if (qReference) setPatientReferenceNumber(qReference);
           const qBp = params.get('bp');
           if (qBp) {
             const parts = qBp.split('/');
@@ -1197,6 +1318,7 @@ export function usePrescriptionForm() {
     handlePhoneNumberChange,
     isEditMode,
     prescriptionId,
+    opdVisitId,
     patientReferenceNumber,
     loading,
     saving,
@@ -1356,6 +1478,9 @@ export function usePrescriptionForm() {
     // Actions & Handlers
     handleSubmit,
     handlePrintablePrescription,
+    nextReadyPatient,
+    moveToNextReadyPatient,
+    movingToNextPatient,
 
     // Toast
     templateToastMessage,

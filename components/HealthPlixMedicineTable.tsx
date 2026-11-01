@@ -21,6 +21,7 @@ import MedicineSearchInput from './MedicineSearchInput';
 import SectionTemplatePicker from './SectionTemplatePicker';
 import { Medicine } from '@/services/medicine';
 import { MedicineEntry, DosageSchedule } from '@/services/prescription';
+import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 import {
   CLINICAL_SECTION_PRESETS,
   ClinicalSectionPreset,
@@ -242,6 +243,8 @@ function normalizePresetMedicines(rawList: any[], baseDate?: string): MedicineEn
       composition: m.composition || '',
       note: m.note || m.notes || schedules[0].notes || '',
       instructions: m.instructions || '',
+      quantity: typeof m.quantity === 'number' ? m.quantity : calculateMedicineQuantity({ schedules }),
+      quantity_manual: m.quantity_manual === true,
       start_from: sFrom,
       to_date: sTo,
       schedules,
@@ -387,6 +390,11 @@ export default function HealthPlixMedicineTable({
     };
 
     target.schedules = [...currentSchedules, newSch];
+    const calculatedQuantity = calculateMedicineQuantity(target);
+    if (calculatedQuantity !== undefined) {
+      target.quantity = calculatedQuantity;
+      target.quantity_manual = false;
+    }
     // Keep top-level in sync
     target.dosage = target.schedules.map(s => s.dosage).join(' / ');
     target.frequency = target.schedules.map(s => s.frequency).join(' / ');
@@ -406,6 +414,11 @@ export default function HealthPlixMedicineTable({
     } else {
       currentSchedules.splice(schIndex, 1);
       target.schedules = currentSchedules;
+      const calculatedQuantity = calculateMedicineQuantity(target);
+      if (calculatedQuantity !== undefined) {
+        target.quantity = calculatedQuantity;
+        target.quantity_manual = false;
+      }
       target.dosage = currentSchedules[0].dosage;
       target.frequency = currentSchedules[0].frequency;
       target.duration = currentSchedules[0].duration;
@@ -474,6 +487,13 @@ export default function HealthPlixMedicineTable({
 
     currentSchedules[schIndex] = sch;
     target.schedules = currentSchedules;
+    if (field === 'dosage' || field === 'frequency' || field === 'duration') {
+      const calculatedQuantity = calculateMedicineQuantity(target);
+      if (calculatedQuantity !== undefined) {
+        target.quantity = calculatedQuantity;
+        target.quantity_manual = false;
+      }
+    }
 
     // Sync primary fields for backwards compatibility with letterhead & billing
     if (schIndex === 0) {
@@ -520,6 +540,7 @@ export default function HealthPlixMedicineTable({
       unit: linked.unit || 'tab',
       frequency: linked.frequency || 'daily',
       duration: defaultDuration,
+      quantity: calculateMedicineQuantity({ dosage: linked.dosage || '0-0-1', frequency: linked.frequency || 'daily', duration: defaultDuration }),
       when: linked.when || 'After Food',
       where: linked.where || 'oral',
       composition: med.composition || linked.details || '',
@@ -577,6 +598,7 @@ export default function HealthPlixMedicineTable({
       unit: linked.unit || 'tab',
       frequency: linked.frequency || 'daily',
       duration: defaultDuration,
+      quantity: calculateMedicineQuantity({ dosage: linked.dosage || '0-0-1', frequency: linked.frequency || 'daily', duration: defaultDuration }),
       when: linked.when || 'After Food',
       where: linked.where || 'oral',
       composition: linked.details || '',
@@ -627,10 +649,10 @@ export default function HealthPlixMedicineTable({
     <div className="w-full bg-white rounded-xl border border-slate-300/80 shadow-xs min-h-[480px] flex flex-col justify-between">
       {/* Full-width Spreadsheet Table matching HealthPlix exact design */}
       <div className="w-full overflow-x-auto min-h-[420px] pb-40">
-        <table className="w-full text-left text-sm border-collapse border-b border-slate-200">
+        <table className="w-full table-fixed text-left text-sm border-collapse border-b border-slate-200">
           <thead>
             <tr className="bg-[#eef2f7] text-slate-800 font-bold border-b border-slate-300 text-[13px]">
-              <th className="py-3 px-3 border-r border-slate-300/70 w-[24%]">
+              <th rowSpan={2} style={{ width: '32%' }} className="py-3 px-3 border-r border-slate-300/70 align-middle">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-slate-900 font-bold text-sm">Medicine *</span>
@@ -654,58 +676,21 @@ export default function HealthPlixMedicineTable({
                   />
                 </div>
               </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[7%]">
+              <th rowSpan={2} style={{ width: '16%' }} className="py-3 px-2.5 border-r border-slate-300/70 align-middle">
                 <div className="flex items-center justify-between cursor-pointer">
                   <span>Dosage</span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </div>
               </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[5%]">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <span>Unit</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[6%]">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <span>Time</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[9%]">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <span>When</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[6%]">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <span>Where</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[9%]">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <span>Frequency</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[7%]">
-                <div className="flex items-center justify-between cursor-pointer">
-                  <span>Duration</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[9%]">
-                <span>Start From</span>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[6%]">
-                <span>Details</span>
-              </th>
-              <th className="py-3 px-2.5 border-r border-slate-300/70 w-[10%]">
-                <span>Notes</span>
-              </th>
-              <th className="py-3 px-1 w-[2%] text-center"></th>
+              <th colSpan={4} className="py-2 px-2.5 border-r border-slate-300/70 text-left">Timing / Frequency / Duration</th>
+              <th rowSpan={2} style={{ width: '10%' }} className="py-3 px-2.5 border-r border-slate-300/70 text-center align-middle">Qty</th>
+              <th rowSpan={2} style={{ width: '3%' }} className="py-3 px-1 align-middle"></th>
+            </tr>
+            <tr className="bg-[#eef2f7] text-slate-600 font-semibold border-b border-slate-300 text-[11px]">
+              <th style={{ width: '17%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Timing</th>
+              <th style={{ width: '8%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">When</th>
+              <th style={{ width: '7%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Frequency</th>
+              <th style={{ width: '7%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Duration</th>
             </tr>
           </thead>
           <tbody>
@@ -724,7 +709,7 @@ export default function HealthPlixMedicineTable({
                         className="hover:bg-slate-50/80 transition-colors group"
                       >
                         {/* 1. Medicine Name & Composition with '+' Button in cell */}
-                        <td className="border-r border-b border-slate-200 p-2.5 align-top relative">
+                        <td style={{ width: '32%' }} className="border-r border-b border-slate-200 p-2.5 align-top relative">
                           {isFirstSchedule ? (
                             <div className="flex flex-col justify-between h-full min-h-[48px]">
                               <div>
@@ -805,7 +790,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 2. Dosage */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td style={{ width: '16%' }} className="border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.dosage || ''}
@@ -824,7 +809,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 3. Unit */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.unit || ''}
@@ -843,7 +828,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 4. Time */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td style={{ width: '17%' }} className="border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.time || ''}
@@ -862,7 +847,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 5. When */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td style={{ width: '8%' }} className="border-r border-b border-slate-200 p-0 align-top">
                           <select
                             value={sch.when || ''}
                             onChange={(e) =>
@@ -880,7 +865,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 6. Where */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.where || ''}
@@ -899,7 +884,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 7. Frequency */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td style={{ width: '7%' }} className="border-r border-b border-slate-200 p-0 align-top">
                           <select
                             value={sch.frequency || ''}
                             onChange={(e) =>
@@ -917,7 +902,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 8. Duration */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td style={{ width: '7%' }} className="border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.duration || ''}
@@ -936,7 +921,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 9. Start From & To Date (Uniform DD/MM/YYYY) */}
-                        <td className="border-r border-b border-slate-200 p-2 align-top">
+                        <td className="hidden border-r border-b border-slate-200 p-2 align-top">
                           <div className="flex flex-col justify-center text-xs leading-normal py-0.5">
                             <div className="flex items-center gap-1.5">
                               <span className="text-slate-400 font-bold text-xs">From:</span>
@@ -959,7 +944,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 10. Details */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.details || ''}
@@ -972,7 +957,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 11. Notes */}
-                        <td className="border-r border-b border-slate-200 p-0 align-top">
+                        <td className="hidden border-r border-b border-slate-200 p-0 align-top">
                           <input
                             type="text"
                             value={sch.notes || ''}
@@ -990,8 +975,31 @@ export default function HealthPlixMedicineTable({
                           </datalist>
                         </td>
 
-                        {/* 12. Delete Action */}
-                        <td className="border-b border-slate-200 p-1 text-center align-middle">
+                        <td style={{ width: '10%' }} className="border-r border-b border-slate-200 p-1 text-center align-middle">
+                          {isFirstSchedule && <label className="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-500">
+                            <input
+                              type="number"
+                              min="0"
+                              value={med.quantity ?? calculateMedicineQuantity(med) ?? ''}
+                              onChange={(e) => {
+                                const updated = [...medicines];
+                                const value = e.target.value;
+                                updated[medIndex] = {
+                                  ...updated[medIndex],
+                                  quantity: value === '' ? calculateMedicineQuantity(updated[medIndex]) : Math.max(0, Number(value)),
+                                  quantity_manual: value !== '',
+                                };
+                                onChange(updated);
+                              }}
+                              className="w-14 rounded border border-slate-200 px-1.5 py-1 text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                              aria-label={`Quantity for ${med.name}`}
+                            />
+                            {!med.quantity_manual && <span className="font-normal">auto</span>}
+                          </label>}
+                        </td>
+
+                        {/* Delete Action */}
+                        <td style={{ width: '3%' }} className="border-b border-slate-200 p-1 text-center align-middle">
                           <button
                             type="button"
                             onClick={() => handleRemoveSchedule(medIndex, schIndex)}
@@ -1035,14 +1043,15 @@ export default function HealthPlixMedicineTable({
                 </div>
               </td>
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
-              <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
-              <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
-              <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
-              <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[48px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[48px] p-0"></td>
+              <td className="hidden border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-r border-b border-slate-200 min-h-[48px] p-0"></td>
               <td className="border-b border-slate-200 min-h-[48px] p-0"></td>
             </tr>
@@ -1052,14 +1061,15 @@ export default function HealthPlixMedicineTable({
               <tr key={`blank-row-${i}`} className="h-12 border-b border-slate-100 hover:bg-slate-50/30">
                 <td className="border-r border-slate-200"></td>
                 <td className="border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
                 <td className="border-r border-slate-200"></td>
                 <td className="border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
                 <td className="border-r border-slate-200"></td>
                 <td className="border-r border-slate-200"></td>
-                <td className="border-r border-slate-200"></td>
-                <td className="border-r border-slate-200"></td>
-                <td className="border-r border-slate-200"></td>
-                <td className="border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
+                <td className="hidden border-r border-slate-200"></td>
                 <td className="border-r border-slate-200"></td>
                 <td className="border-b border-slate-200"></td>
               </tr>

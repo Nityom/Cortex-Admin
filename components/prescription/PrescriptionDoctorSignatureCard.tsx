@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Save, Printer, Mail } from 'lucide-react';
+import { Save, Printer, Mail, ArrowRight, Loader2 } from 'lucide-react';
 
 export interface DoctorOption {
   id?: string;
@@ -21,6 +21,10 @@ interface PrescriptionDoctorSignatureCardProps {
   isEditMode: boolean;
   handlePrintablePrescription: () => void;
   onEmailPrescription?: () => void;
+  nextReadyPatientName?: string;
+  onMoveToNextPatient?: () => void;
+  movingToNextPatient?: boolean;
+  isOpdVisit?: boolean;
 }
 
 export default function PrescriptionDoctorSignatureCard({
@@ -34,6 +38,10 @@ export default function PrescriptionDoctorSignatureCard({
   isEditMode,
   handlePrintablePrescription,
   onEmailPrescription,
+  nextReadyPatientName,
+  onMoveToNextPatient,
+  movingToNextPatient = false,
+  isOpdVisit = false,
 }: PrescriptionDoctorSignatureCardProps) {
   return (
     <>
@@ -163,6 +171,21 @@ export default function PrescriptionDoctorSignatureCard({
             </button>
           )}
         </div>
+        {isOpdVisit && (
+          nextReadyPatientName && onMoveToNextPatient ? (
+            <button
+              type="button"
+              onClick={onMoveToNextPatient}
+              disabled={loading || saving || movingToNextPatient}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-bold text-sky-900 shadow-xs transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {movingToNextPatient ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+              {movingToNextPatient ? 'Saving and moving…' : `Move to next patient: ${nextReadyPatientName}`}
+            </button>
+          ) : (
+            <p className="text-xs font-medium text-slate-500">No other Ready patients for this doctor today.</p>
+          )
+        )}
       </div>
     </>
   );

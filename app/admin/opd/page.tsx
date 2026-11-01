@@ -33,6 +33,8 @@ import { hospitalConfig } from "@/config/hospital";
 import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById, getNextPatientReference } from "@/services/patients";
 import { Patient } from "@/types/patient";
 import PatientSearchInput from "@/components/PatientSearchInput";
+import { getPrescriptionsByPatient } from "@/services/prescription";
+import { getBillByPrescriptionId } from "@/services/bills";
 
 interface OPDQueueItem {
   id: string;
@@ -52,7 +54,7 @@ interface OPDQueueItem {
   department: string;
   priority: "Normal" | "Urgent" | "Emergency";
   visitType: "New Registration" | "Routine Follow-up" | "Post-Op Review" | "Emergency" | "Appointment";
-  status: "Waiting" | "In Consultation" | "Completed";
+  status: "Waiting" | "Ready" | "In Consultation" | "Completed";
   vitals: {
     bp?: string;
     pulse?: string;
@@ -125,8 +127,8 @@ const STORAGE_KEY = "cortex_opd_queue_v1";
 export default function OPDManagementPage() {
   const router = useRouter();
 
-  // Tab State: 'queue' | 'register' | 'appointments' | 'directory'
-  const [activeTab, setActiveTab] = useState<"queue" | "register" | "appointments" | "directory">("queue");
+  // Tab State: OPD queue, billing queue, registration, appointments, and directory
+  const [activeTab, setActiveTab] = useState<"queue" | "billingQueue" | "register" | "appointments" | "directory">("queue");
 
   // Today & Selected Queue Date (Defaults to Today)
   const todayStr = useMemo(() => getTodayString(), []);
@@ -602,7 +604,7 @@ export default function OPDManagementPage() {
   };
 
   // Status changer for queue items
-  const updateStatus = (id: string, newStatus: "Waiting" | "In Consultation" | "Completed") => {
+  const updateStatus = (id: string, newStatus: "Waiting" | "Ready" | "In Consultation" | "Completed") => {
     const updated = queue.map((item) => (item.id === id ? { ...item, status: newStatus } : item));
     saveQueue(updated);
   };
@@ -778,7 +780,7 @@ export default function OPDManagementPage() {
     }
 
     // Mark as In Consultation if currently waiting
-    if (item.status === "Waiting") {
+    if (item.status === "Waiting" || item.status === "Ready") {
       updateStatus(item.id, "In Consultation");
     }
 
@@ -786,10 +788,29 @@ export default function OPDManagementPage() {
   };
 
   // Launch Hospital Billing pre-filled from OPD (Consultation charge added in Billing)
-  const startBilling = (item: OPDQueueItem) => {
-    const isGynae = (item.doctor || "").toLowerCase().includes("shilpa") || (item.doctor || "").toLowerCase().includes("shillpa");
-    const isFollowUp = item.visitType === "Routine Follow-up" || item.visitType === "Post-Op Review";
-    const fee = isGynae ? (isFollowUp ? "100" : "200") : (isFollowUp ? "200" : "400");
+  const startBilling = async (item: OPDQueueItem) => {
+    let prescriptionId = "";
+    let consultationFee = "";
+    try {
+      const prescriptions = await getPrescriptionsByPatient(item.uhid);
+      const linkedPrescription = prescriptions
+        .filter((prescription) => prescription.opd_visit_id === item.id)
+        .sort((a, b) => new Date(b.prescription_date || b.created_at || 0).getTime() - new Date(a.prescription_date || a.created_at || 0).getTime())[0];
+      if (linkedPrescription?.id) {
+        prescriptionId = linkedPrescription.id;
+        const prescriptionBill = await getBillByPrescriptionId(linkedPrescription.id);
+        const feeItem = prescriptionBill?.items?.find((billItem: any) =>
+          billItem.item_type === "consultation" || /consultation|registration fee/i.test(billItem.description || "")
+        );
+        if (feeItem) {
+          const fee = Number(feeItem.unit_price ?? feeItem.total ?? 0);
+          if (Number.isFinite(fee) && fee > 0) consultationFee = String(fee);
+        }
+      }
+    } catch (error) {
+      console.warn("Could not load the prescription consultation fee for billing:", error);
+    }
+
     const params = new URLSearchParams({
       tab: "opd",
       patientName: item.name,
@@ -799,10 +820,11 @@ export default function OPDManagementPage() {
       doctorName: item.doctor,
       uhid: item.uhid,
       token: item.token,
-      visitType: isFollowUp ? "Follow-up Visit" : "OPD Visit 1",
+      visitType: item.visitType,
       opdVisitId: item.id,
-      consultationFee: fee,
     });
+    if (prescriptionId) params.set("prescriptionId", prescriptionId);
+    if (consultationFee) params.set("consultationFee", consultationFee);
     router.push(`/admin/billing?${params.toString()}`);
   };
 
@@ -839,13 +861,14 @@ export default function OPDManagementPage() {
     const todayItems = queue.filter((item) => getItemLocalDate(item.registeredAt) === todayStr);
     return {
       waiting: todayItems.filter((item) => item.status === "Waiting").length,
+      ready: todayItems.filter((item) => item.status === "Ready").length,
       inConsultation: todayItems.filter((item) => item.status === "In Consultation").length,
       completed: todayItems.filter((item) => item.status === "Completed").length,
     };
   }, [queue, todayStr]);
 
   // Filtered queue (Filters by selectedQueueDate, doctor, status, search)
-  // Sorted so active patients (In Consultation & Waiting) are on top, and Completed patients are at the bottom.
+  // Ready patients follow active consultations; Waiting and Completed remain below them.
   const filteredQueue = useMemo(() => {
     const list = queue.filter((item) => {
       // 1. Filter by Date (Defaults to Today)
@@ -862,7 +885,7 @@ export default function OPDManagementPage() {
         }
       }
       // 3. Status Filter
-      if (selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) return false;
+      if (activeTab !== "billingQueue" && selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) return false;
       // 4. Search Filter
       if (queueSearch.trim()) {
         const q = queueSearch.toLowerCase();
@@ -878,8 +901,9 @@ export default function OPDManagementPage() {
 
     const statusWeight: Record<string, number> = {
       "In Consultation": 0,
-      "Waiting": 1,
-      "Completed": 2,
+      "Ready": 1,
+      "Waiting": 2,
+      "Completed": 3,
     };
 
     return [...list].sort((a, b) => {
@@ -892,7 +916,11 @@ export default function OPDManagementPage() {
       const timeB = new Date(b.registeredAt || 0).getTime();
       return timeA - timeB;
     });
-  }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch]);
+  }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch, activeTab]);
+
+  const displayedQueue = activeTab === "billingQueue"
+    ? filteredQueue.filter((item) => item.status === "Completed")
+    : filteredQueue;
 
   // Quick select patient from Directory to Register
   const handleSelectFromDirectory = (pt: Patient) => {
@@ -915,18 +943,18 @@ export default function OPDManagementPage() {
       <header className="opd-page-heading">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{activeTab === "queue" ? "Today at a glance" : activeTab === "appointments" ? "Appointments" : activeTab === "register" ? "Register a patient" : "Patient directory"}</h1>
-            <p className="mt-1 text-sm text-slate-500">{activeTab === "queue" ? `${hospitalConfig.legalName} · Your clinic is running smoothly. Here’s today’s OPD snapshot.` : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{activeTab === "queue" ? "Today at a glance" : activeTab === "billingQueue" ? "Billing queue" : activeTab === "appointments" ? "Appointments" : activeTab === "register" ? "Register a patient" : "Patient directory"}</h1>
+            <p className="mt-1 text-base text-slate-500">{activeTab === "queue" ? `${hospitalConfig.legalName} · Your clinic is running smoothly. Here’s today’s OPD snapshot.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setActiveTab("register")} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
               <UserPlus className="h-4 w-4" />New patient
             </button>
-            <Link href="/admin/prescription" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800">
+            <Link href="/admin/prescription" className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800">
               <FileText className="h-4 w-4" />Prescription
             </Link>
-            <Link href="/admin/billing" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800">
+            <Link href="/admin/billing" className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-800">
               <Receipt className="h-4 w-4" />Billing
             </Link>
           </div>
@@ -936,16 +964,17 @@ export default function OPDManagementPage() {
           <div className="flex gap-1 overflow-x-auto">
             {([
               ["queue", <Clock key="queue" className="h-4 w-4" />, `OPD queue${todayQueueCount ? ` · ${todayQueueCount}` : ""}`],
+              ["billingQueue", <Receipt key="billingQueue" className="h-4 w-4" />, `Billing queue${todayQueueSummary.completed ? ` · ${todayQueueSummary.completed}` : ""}`],
               ["appointments", <Calendar key="appointments" className="h-4 w-4" />, `Appointments${todayAppointments.length ? ` · ${todayAppointments.length}` : ""}`],
               ["register", <UserPlus key="register" className="h-4 w-4" />, "Walk-in registration"],
               ["directory", <Users key="directory" className="h-4 w-4" />, "Patient directory"],
             ] as const).map(([tab, icon, label]) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`relative inline-flex shrink-0 items-center gap-2 rounded-t-lg px-3.5 py-3 text-xs font-semibold transition ${activeTab === tab ? "text-emerald-800" : "text-slate-500 hover:text-slate-800"}`}>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`relative inline-flex shrink-0 items-center gap-2 rounded-t-lg px-4 py-3 text-sm font-semibold transition ${activeTab === tab ? "text-emerald-800" : "text-slate-500 hover:text-slate-800"}`}>
                 {icon}{label}{activeTab === tab && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-emerald-700" />}
               </button>
             ))}
           </div>
-          {activeTab === "queue" && <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-[10px]">
+          {(activeTab === "queue" || activeTab === "billingQueue") && <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs">
             <span className="px-2 font-semibold uppercase tracking-wide text-slate-400">Doctor</span>
             {[["All", "All"], ["Dr. Vipeen Raut", "Dr. Vipeen Raut"], ["Dr. Shillpa Raut", "Dr. Shillpa Raut"]].map(([value, label]) => (
               <button key={value} type="button" onClick={() => { setSelectedDoctorFilter(value); if (value !== "All") handleDoctorChange(value); }} className={`rounded-md px-2 py-1.5 font-semibold transition ${selectedDoctorFilter === value ? "bg-emerald-50 text-emerald-800" : "text-slate-500 hover:bg-slate-50"}`}>{label}</button>
@@ -954,10 +983,11 @@ export default function OPDManagementPage() {
         </div>
       </header>
 
-      {activeTab === "queue" && <section aria-label="Today at a glance" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      {activeTab === "queue" && <section aria-label="Today at a glance" className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         {[
           { label: "Patients", value: todayQueueCount, note: "Registered today", icon: Users, tone: "mint" },
-          { label: "Waiting", value: todayQueueSummary.waiting, note: "Ready for consultation", icon: Clock, tone: "amber" },
+          { label: "Waiting", value: todayQueueSummary.waiting, note: "Awaiting arrival", icon: Clock, tone: "amber" },
+          { label: "Ready", value: todayQueueSummary.ready, note: "Ready for consultation", icon: CheckCircle2, tone: "blue" },
           { label: "In consultation", value: todayQueueSummary.inConsultation, note: "With a doctor now", icon: Activity, tone: "blue" },
           { label: "Completed visits", value: todayQueueSummary.completed, note: "Today’s OPD queue", icon: CheckCircle2, tone: "peach" },
         ].map((stat) => {
@@ -969,7 +999,7 @@ export default function OPDManagementPage() {
             peach: "bg-[#fff1e8] text-[#d99363]",
           }[stat.tone];
           return <article key={stat.label} className="flex min-h-[112px] items-start justify-between rounded-2xl border border-[#e4ece5] bg-white p-4 shadow-[0_4px_16px_rgb(27_74_52_/_4%)] sm:p-5">
-            <div><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#92a198]">{stat.label}</p><strong className="mt-2 block text-[30px] font-extrabold leading-none tracking-tight text-[#315b48]">{stat.value}</strong><span className="mt-2 block text-[10px] text-[#5b9876]">{stat.note}</span></div>
+            <div><p className="text-xs font-bold uppercase tracking-[0.1em] text-[#809087]">{stat.label}</p><strong className="mt-2 block text-[32px] font-extrabold leading-none tracking-tight text-[#315b48]">{stat.value}</strong><span className="mt-2 block text-xs text-[#5b9876]">{stat.note}</span></div>
             <span className={`grid h-10 w-10 place-items-center rounded-xl ${tone}`}><Icon className="h-[18px] w-[18px]"/></span>
           </article>;
         })}
@@ -998,10 +1028,10 @@ export default function OPDManagementPage() {
       )}
 
       {/* TAB 1: OPD PATIENT QUEUE */}
-      {activeTab === "queue" && (
+      {(activeTab === "queue" || activeTab === "billingQueue") && (
         <div className="space-y-4">
           {/* Quick Today's Appointments Bar */}
-          {todayAppointments.length > 0 && (
+          {activeTab === "queue" && todayAppointments.length > 0 && (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -1122,7 +1152,7 @@ export default function OPDManagementPage() {
 
 
               {/* Status Filter */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
+              {activeTab === "queue" && <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <span>Status:</span>
                 <select
                   value={selectedStatusFilter}
@@ -1131,13 +1161,14 @@ export default function OPDManagementPage() {
                 >
                   <option value="All">All Status</option>
                   <option value="Waiting">Waiting</option>
+                  <option value="Ready">Ready</option>
                   <option value="In Consultation">In Consultation</option>
                   <option value="Completed">Completed</option>
                 </select>
-              </div>
+              </div>}
 
               {/* Clear Queue (For demo / day end) */}
-              {queue.length > 0 && (
+              {activeTab === "queue" && queue.length > 0 && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1159,7 +1190,7 @@ export default function OPDManagementPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>
-                  Viewing OPD Queue for <strong>{selectedQueueDate}</strong> ({filteredQueue.length} {filteredQueue.length === 1 ? 'patient' : 'patients'}). Not showing today.
+                  Viewing {activeTab === "billingQueue" ? "Billing Queue" : "OPD Queue"} for <strong>{selectedQueueDate}</strong> ({displayedQueue.length} {displayedQueue.length === 1 ? 'patient' : 'patients'}). Not showing today.
                 </span>
               </div>
               <button
@@ -1173,16 +1204,20 @@ export default function OPDManagementPage() {
           )}
 
           {/* Queue List */}
-          {filteredQueue.length === 0 ? (
+          {displayedQueue.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900">
-                {selectedQueueDate === todayStr ? "No Patients in Queue Today" : `No Patients in Queue on ${selectedQueueDate}`}
+                {activeTab === "billingQueue"
+                  ? (selectedQueueDate === todayStr ? "No Patients in Billing Queue Today" : `No Patients in Billing Queue on ${selectedQueueDate}`)
+                  : (selectedQueueDate === todayStr ? "No Patients in Queue Today" : `No Patients in Queue on ${selectedQueueDate}`)}
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                {selectedQueueDate === todayStr
+                {activeTab === "billingQueue"
+                  ? "Completed consultations will appear here for billing."
+                  : selectedQueueDate === todayStr
                   ? "There are currently no patients waiting for OPD consultation today."
                   : `No OPD patient registrations found for ${selectedQueueDate}. Choose another date from the calendar or return to today.`}
               </p>
@@ -1208,36 +1243,35 @@ export default function OPDManagementPage() {
           ) : (
             <div className="overflow-hidden rounded-2xl border border-[#e4ece5] bg-white shadow-[0_5px_18px_rgb(27_74_52_/_4%)]">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                <div><h2 className="text-sm font-bold text-[#3f5f50]">OPD queue <span className="ml-1 font-normal text-slate-400">A live snapshot of your clinic</span></h2></div>
-                <button type="button" className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600" onClick={() => setSelectedQueueDate(todayStr)}>
+                <div><h2 className="text-lg font-bold text-[#3f5f50]">{activeTab === "billingQueue" ? "Billing queue" : "OPD queue"} <span className="ml-1 font-normal text-slate-500">{activeTab === "billingQueue" ? "Completed consultations ready for billing" : "A live snapshot of your clinic"}</span></h2></div>
+                <button type="button" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600" onClick={() => setSelectedQueueDate(todayStr)}>
                   {selectedQueueDate === todayStr ? "Today" : selectedQueueDate}<Calendar className="h-3.5 w-3.5 text-slate-400" />
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[980px] text-left">
-                  <thead><tr className="bg-[#f8faf8] text-[9px] font-semibold uppercase tracking-[0.12em] text-[#9aa89f]"><th className="px-5 py-3 font-semibold">No.</th><th className="px-4 py-3 font-semibold">Patient</th><th className="px-4 py-3 font-semibold">Details</th><th className="px-4 py-3 font-semibold">Doctor</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-5 py-3 text-right font-semibold">Actions</th></tr></thead>
+                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
                   <tbody className="divide-y divide-[#edf2ee]">
-                    {filteredQueue.map((item, index) => {
+                    {displayedQueue.map((item, index) => {
                       const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
-                      const statusStyle = item.status === "Waiting" ? "bg-amber-50 text-amber-800 border-amber-100" : "bg-emerald-50 text-emerald-800 border-emerald-100";
-                      const initials = item.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+                      const statusStyle = item.status === "Waiting" ? "bg-amber-50 text-amber-800 border-amber-100" : item.status === "Ready" ? "bg-sky-50 text-sky-800 border-sky-200" : item.status === "Completed" ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-emerald-50 text-emerald-800 border-emerald-100";
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
-                        <td className="px-5 py-4 text-xs tabular-nums text-[#9aa89f]">{String(index + 1).padStart(2, "0")}</td>
-                        <td className="px-4 py-3.5"><div className="flex min-w-[205px] items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f4e9df] text-[10px] font-bold text-[#a4775a]">{initials}</span><span className="min-w-0"><b className="block truncate text-xs font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-[10px] text-slate-400">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
-                        <td className="px-4 py-3.5"><span className="block text-[11px] text-[#71847a]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span><span className="mt-1 block text-[10px] text-slate-400">{item.vitals.bp ? `BP ${item.vitals.bp}` : "Vitals not recorded"}{item.vitals.pulse ? ` · ${item.vitals.pulse} bpm` : ""}{item.vitals.spo2 ? ` · SpO₂ ${item.vitals.spo2}%` : ""}</span></td>
-                        <td className="px-4 py-3.5"><span className="block whitespace-nowrap text-[11px] font-semibold text-[#577464]">{item.doctor}</span><span className="mt-1 block text-[10px] text-slate-400">{item.department || "General consultation"}</span></td>
-                        <td className="px-4 py-3.5"><select aria-label={`Status for ${item.name}`} value={item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[145px] rounded-full border px-2.5 py-1.5 text-[10px] font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option></select></td>
+                        <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(index + 1).padStart(2, "0")}</td>
+                        <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
+                        <td className="px-4 py-4"><span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span><span className="mt-1 block text-sm text-slate-500">{item.vitals.bp ? `BP ${item.vitals.bp}` : "Vitals not recorded"}{item.vitals.pulse ? ` · ${item.vitals.pulse} bpm` : ""}{item.vitals.spo2 ? ` · SpO₂ ${item.vitals.spo2}%` : ""}</span></td>
+                        <td className="px-4 py-4"><span className="block whitespace-nowrap text-sm font-semibold text-[#577464]">{item.doctor}</span><span className="mt-1 block text-sm text-slate-500">{item.department || "General consultation"}</span></td>
+                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="Ready">● Ready</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
-                          <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-2.5 text-[10px] font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-3.5 w-3.5"/>Bill</button>
-                          <button type="button" onClick={() => startPrescription(item)} title={item.status === "Completed" ? "View prescription" : "Create prescription"} className="inline-flex h-8 items-center gap-1 rounded-lg bg-[#176e56] px-2.5 text-[10px] font-semibold text-white transition hover:bg-[#155944]"><FileText className="h-3.5 w-3.5"/>{item.status === "Completed" ? "View Rx" : "Prescription"}</button>
+                          <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>
+                          <button type="button" onClick={() => startPrescription(item)} title={item.status === "Completed" ? "View prescription" : "Create prescription"} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#176e56] px-3 text-xs font-semibold text-white transition hover:bg-[#155944]"><FileText className="h-4 w-4"/>{item.status === "Completed" ? "View Rx" : "Prescription"}</button>
                         </div></td>
                       </tr>;
                     })}
                   </tbody>
                 </table>
               </div>
-              <div className="flex items-center justify-between border-t border-[#edf2ee] bg-[#fbfcfb] px-5 py-3 text-[10px] text-slate-400"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#62b487] shadow-[0_0_0_3px_#e7f3eb]"/>Updating in real time</span><span>{filteredQueue.length} {filteredQueue.length === 1 ? "patient" : "patients"} shown</span></div>
+              <div className="flex items-center justify-between border-t border-[#edf2ee] bg-[#fbfcfb] px-5 py-3 text-sm text-slate-500"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#62b487] shadow-[0_0_0_3px_#e7f3eb]"/>Updating in real time</span><span>{displayedQueue.length} {displayedQueue.length === 1 ? "patient" : "patients"} shown</span></div>
             </div>
           )}
         </div>

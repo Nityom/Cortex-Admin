@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getPrescriptionById } from '@/services/prescription';
 import { doctorService } from '@/services/doctors';
+import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
 
 interface DosageSchedule {
@@ -33,6 +34,7 @@ interface MedicineEntry {
   unit?: string;
   when?: string;
   where?: string;
+  time?: string;
   schedules?: DosageSchedule[];
 }
 
@@ -180,11 +182,11 @@ function PrintPrescriptionContent() {
   const [margins, setMargins] = useState<{ top: number; bottom: number; left: number; right: number }>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cortex_rx_letterhead_margins');
+        const saved = localStorage.getItem('cortex_rx_letterhead_margins_v2');
         if (saved) return JSON.parse(saved);
       } catch {}
     }
-    return { top: 38, bottom: 15, left: 7, right: 7 };
+    return { top: 50, bottom: 40, left: 30, right: 20 };
   });
 
   const updateMargin = (key: 'top' | 'bottom' | 'left' | 'right', val: number) => {
@@ -192,7 +194,7 @@ function PrintPrescriptionContent() {
       const next = { ...prev, [key]: val };
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('cortex_rx_letterhead_margins', JSON.stringify(next));
+          localStorage.setItem('cortex_rx_letterhead_margins_v2', JSON.stringify(next));
         } catch {}
       }
       return next;
@@ -616,6 +618,7 @@ function PrintPrescriptionContent() {
               <th className="col-med">Medicine</th>
               <th className="col-dosage">Dosage</th>
               <th className="col-timing">Timing - Freq. - Duration</th>
+              <th className="col-qty">Qty</th>
             </tr>
           </thead>
           <tbody>
@@ -626,31 +629,6 @@ function PrintPrescriptionContent() {
                     <div className="med-name-heading">
                       {index + 1}) &nbsp;{med.name}
                     </div>
-                    {med.composition && (
-                      <div className="med-sub-line">
-                        <span className="med-sub-lbl">Composition</span>
-                        <span className="med-sub-sep">:</span>
-                        <span className="med-sub-val">{med.composition}</span>
-                      </div>
-                    )}
-                    {(() => {
-                      const timingVal = med.timing || (typeof med.dosage === 'string' ? getTimingFromDosage(med.dosage) : '');
-                      if (!timingVal) return null;
-                      return (
-                        <div className="med-sub-line">
-                          <span className="med-sub-lbl">Timing</span>
-                          <span className="med-sub-sep">:</span>
-                          <span className="med-sub-val">{timingVal}</span>
-                        </div>
-                      );
-                    })()}
-                    {med.note && (
-                      <div className="med-sub-line">
-                        <span className="med-sub-lbl">Note</span>
-                        <span className="med-sub-sep">:</span>
-                        <span className="med-sub-val med-note-val">{med.note}</span>
-                      </div>
-                    )}
                   </td>
                   <td>
                     {med.schedules && med.schedules.length > 1 ? (
@@ -672,11 +650,8 @@ function PrintPrescriptionContent() {
                       <div className="space-y-1.5">
                         {med.schedules.map((s, si) => (
                           <div key={si} className="timing-val text-[8.5pt]">
-                            <span className="font-bold">{s.frequency || 'Daily'}</span>
-                            {s.duration ? ` • ${s.duration}` : ''}
-                            {s.when ? ` • ${s.when}` : ''}
-                            {s.where ? ` • ${s.where}` : ''}
-                            {s.notes ? ` (${s.notes})` : ''}
+                            {(s.notes || s.time || s.when) && <div>{s.notes || [s.time, s.when].filter(Boolean).join(' • ')}</div>}
+                            <span className="font-bold">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
                           </div>
                         ))}
                       </div>
@@ -698,19 +673,23 @@ function PrintPrescriptionContent() {
                           ) {
                             parts.push(`(${med.duration})`);
                           }
-                          if (parts.length > 0) {
-                            return parts.join(' • ');
-                          }
-                          return med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
+                          const timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage);
+                          const scheduleText = parts.length > 0
+                            ? parts.join(' • ')
+                            : med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
+                          return <>{timing && <div>{timing}</div>}<div>{scheduleText}</div></>;
                         })()}
                       </div>
                     )}
+                  </td>
+                  <td className="text-right font-bold">
+                    {med.quantity ?? calculateMedicineQuantity(med) ?? '—'}
                   </td>
                 </tr>
               ))
             ) : (
               <tr className="med-row">
-                <td colSpan={3} className="text-center py-4 text-gray-500 italic">
+                <td colSpan={4} className="text-center py-4 text-gray-500 italic">
                   No medicines prescribed.
                 </td>
               </tr>
@@ -725,6 +704,10 @@ function PrintPrescriptionContent() {
     if (enabledSections.clinical_notes === false) return null;
     const hasAny = !!(prescriptionData.advice || prescriptionData.diet_exercise || prescriptionData.referral_doctor || prescriptionData.investigation);
     if (!hasAny) return null;
+    const investigationDisplay = prescriptionData.investigation?.replace(
+      /\(By:\s*Next Visit\)/gi,
+      `(By: Next Visit${prescriptionData.followup_date ? ` — ${formatPrescriptionDate(prescriptionData.followup_date)}` : ''})`
+    );
     return (
       <div key="clinical_notes" className="advice-box" style={{ marginTop: '6px' }}>
         {prescriptionData.advice && (
@@ -748,7 +731,7 @@ function PrintPrescriptionContent() {
         {prescriptionData.investigation && (
           <div className="marathi-item">
             <span className="marathi-label">फेर चाचणी / Tests :</span>
-            <span>{prescriptionData.investigation}</span>
+            <span>{investigationDisplay}</span>
           </div>
         )}
       </div>
@@ -773,7 +756,7 @@ function PrintPrescriptionContent() {
   const renderSignature = () => {
     if (enabledSections.signature === false) return null;
     return (
-      <div key="signature" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+      <div key="signature" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12mm' }}>
         <div className="signature-block">
           {includeSignature && resolvedSignature && (
             <img
@@ -1154,18 +1137,23 @@ function PrintPrescriptionContent() {
         }
 
         .med-table th.col-med {
-          width: 52%;
+          width: 34%;
           text-align: left;
         }
 
         .med-table th.col-dosage {
-          width: 18%;
+          width: 16%;
           text-align: center;
         }
 
         .med-table th.col-timing {
-          width: 30%;
+          width: 40%;
           text-align: left;
+        }
+
+        .med-table th.col-qty {
+          width: 10%;
+          text-align: right;
         }
 
         .med-row td {
@@ -1285,21 +1273,21 @@ function PrintPrescriptionContent() {
         /* ── Signature ── */
         .signature-block {
           text-align: center;
-          min-width: 140px;
+          min-width: 210px;
           flex-shrink: 0;
           padding-bottom: 2px;
         }
 
         .sig-img {
-          height: 42px;
-          max-width: 120px;
+          height: 64px;
+          max-width: 220px;
           object-fit: contain;
           margin: 0 auto;
           display: block;
         }
 
         .sig-doc-name {
-          font-size: 8.5pt;
+          font-size: 14pt;
           font-weight: 700;
           color: #111111;
           margin-top: 2px;
@@ -1511,8 +1499,6 @@ function PrintPrescriptionContent() {
                   return renderClinicalNotes();
                 case 'next_visit':
                   return renderNextVisit();
-                case 'signature':
-                  return renderSignature();
                 default:
                   return null;
               }
@@ -1521,6 +1507,7 @@ function PrintPrescriptionContent() {
 
           {/* Bottom Section: Validity Note */}
           <div className="sheet-bottom-section">
+            {renderSignature()}
             <div className="prescription-validity-note">
               * Prescription is valid for 30 days only
             </div>

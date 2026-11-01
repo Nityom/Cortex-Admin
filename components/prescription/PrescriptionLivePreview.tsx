@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { MedicineEntry } from '@/services/prescription';
+import { DosageSchedule, MedicineEntry } from '@/services/prescription';
+import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 import { DoctorOption } from './PrescriptionDoctorSignatureCard';
 import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
 
@@ -172,6 +173,7 @@ export default function PrescriptionLivePreview({
   enabledSections,
   isModalPreview = false,
 }: PrescriptionLivePreviewProps) {
+  const includeHeaderFooter = enabledSections?.header_footer !== false;
   const chiefComplaintText =
     (complaintsList && complaintsList.length > 0
       ? complaintsList.map((c) => c.complaint).filter(Boolean).join(', ')
@@ -362,9 +364,10 @@ export default function PrescriptionLivePreview({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
-                <th className="py-2 px-1 text-left w-1/2">Medicine</th>
-                <th className="py-2 px-2 text-center w-1/5">Dosage</th>
-                <th className="py-2 px-2 text-left w-3/10">Timing - Freq. - Duration</th>
+                <th className="py-2 px-1 text-left w-[34%]">Medicine</th>
+                <th className="py-2 px-2 text-center w-[16%]">Dosage</th>
+                <th className="py-2 px-2 text-left w-[40%]">Timing - Freq. - Duration</th>
+                <th className="py-2 px-2 text-right w-[10%]">Qty</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
@@ -376,69 +379,45 @@ export default function PrescriptionLivePreview({
                       <div className="font-extrabold text-sm text-black tracking-wide uppercase">
                         {index + 1}) &nbsp;{med.name || 'Not specified'}
                       </div>
-                      {med.composition && (
-                        <div className="text-[11px] text-slate-600 pl-4 mt-0.5">
-                          <span className="font-semibold text-slate-500 uppercase">
-                            Composition:
-                          </span>{' '}
-                          {med.composition}
-                        </div>
-                      )}
-                      {(() => {
-                        const timingVal = med.timing || getTimingFromDosage(med.dosage);
-                        if (!timingVal) return null;
-                        return (
-                          <div className="text-[11px] text-slate-800 pl-4 mt-0.5">
-                            <span className="font-semibold text-slate-500 uppercase">
-                              Timing:
-                            </span>{' '}
-                            {timingVal}
-                          </div>
-                        );
-                      })()}
-                      {med.note && (
-                        <div className="text-[11px] text-red-700 font-bold underline pl-4 mt-0.5">
-                          Note: {med.note}
-                        </div>
-                      )}
                     </td>
 
                     {/* Dosage */}
                     <td className="py-2 px-2 text-center font-bold text-sm tracking-wider text-slate-900">
-                      {med.dosage ? med.dosage.replace(/-/g, ' — ') : '—'}
+                      {(med.schedules?.length ? med.schedules : [{ dosage: med.dosage }]).map((schedule, scheduleIndex) => (
+                        <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/-/g, ' — ') : '—'}</div>
+                      ))}
                     </td>
 
-                    {/* Timing - Freq - Duration */}
+                    {/* Timing - Frequency - Duration */}
                     <td className="py-2 px-2 text-xs font-semibold text-slate-900">
                       {(() => {
-                        const parts: string[] = [];
-                        if (med.frequency && med.frequency !== 'Daily')
-                          parts.push(med.frequency);
-                        if (med.freq_duration) parts.push(med.freq_duration);
-                        if (
-                          med.duration &&
-                          (!med.freq_duration ||
-                            (!med.freq_duration
-                              .toLowerCase()
-                              .includes(med.duration.toLowerCase()) &&
-                              !/दिवस|महिना|week|day/i.test(med.freq_duration)))
-                        ) {
-                          parts.push(`(${med.duration})`);
-                        }
-                        return (
-                          parts.join(' • ') ||
-                          med.freq_duration ||
-                          med.duration ||
-                          med.frequency ||
-                          '—'
-                        );
+                        const schedules: DosageSchedule[] = med.schedules?.length ? med.schedules : [{
+                          dosage: med.dosage,
+                          time: med.time,
+                          when: med.when,
+                          frequency: med.frequency,
+                          duration: med.duration,
+                          notes: med.note,
+                        }];
+                        return <div className="space-y-1">{schedules.map((schedule, scheduleIndex) => {
+                          const timing = schedule.notes || [schedule.time, schedule.when].filter(Boolean).join(' • ') || med.timing || getTimingFromDosage(schedule.dosage || med.dosage);
+                          const frequency = schedule.frequency;
+                          const duration = schedule.duration;
+                          return <div key={scheduleIndex}>
+                            {timing && <span>{timing}</span>}
+                            {(frequency || duration) && <span className={timing ? 'block text-slate-700' : ''}>{[frequency, duration].filter(Boolean).join(' - ')}</span>}
+                          </div>;
+                        })}</div>;
                       })()}
+                    </td>
+                    <td className="py-2 px-2 text-right font-bold text-sm text-slate-900">
+                      {med.quantity ?? calculateMedicineQuantity(med) ?? '—'}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="text-center py-6 text-slate-400 italic">
+                  <td colSpan={4} className="text-center py-6 text-slate-400 italic">
                     No medications added yet. Add medicines from the form above.
                   </td>
                 </tr>
@@ -454,6 +433,10 @@ export default function PrescriptionLivePreview({
     if (enabledSections && enabledSections.clinical_notes === false) return null;
     const hasAnyNote = !!(allAdviceText || dietExercise || referralText || formData.investigation);
     if (!hasAnyNote) return null;
+    const investigationDisplay = formData.investigation?.replace(
+      /\(By:\s*Next Visit\)/gi,
+      `(By: Next Visit${formData.followupDate ? ` — ${formatPrescriptionDate(formData.followupDate)}` : ''})`
+    );
     return (
       <div key="clinical_notes" className="py-2 text-xs border-t border-slate-200 mt-3 space-y-1.5">
         {allAdviceText && (
@@ -481,7 +464,7 @@ export default function PrescriptionLivePreview({
         {formData.investigation && (
           <div className="text-slate-900 font-bold mt-1">
             <span className="font-extrabold mr-1.5">फेर चाचणी / Tests :</span>
-            <span>{formData.investigation}</span>
+            <span>{investigationDisplay}</span>
           </div>
         )}
       </div>
@@ -502,8 +485,8 @@ export default function PrescriptionLivePreview({
   const renderSignature = () => {
     if (enabledSections && enabledSections.signature === false) return null;
     return (
-      <div key="signature" className="pt-3 border-t border-slate-200 flex justify-end">
-        <div className="text-center min-w-[150px] shrink-0 pb-1">
+      <div key="signature" className="pt-5 flex justify-end">
+        <div className="text-center min-w-[210px] shrink-0 pb-1">
           {includeSignature && (
             <div className="mb-1">
               <img
@@ -526,11 +509,11 @@ export default function PrescriptionLivePreview({
                   return `/${sig.replace(/^\//, '')}`;
                 })()}
                 alt="Doctor's Signature"
-                className="inline-block h-12 max-w-[130px] object-contain"
+                className="inline-block h-20 max-w-[220px] object-contain"
               />
             </div>
           )}
-          <div className="font-bold text-xs sm:text-sm text-slate-900">
+          <div className="font-bold text-base sm:text-lg text-slate-900">
             {selectedDoctorName || 'Dr. Vipeen Raut'}
           </div>
           {!includeSignature && (
@@ -582,7 +565,7 @@ export default function PrescriptionLivePreview({
         />
 
         {/* Top Meta Row */}
-        <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono border-b border-slate-200 pb-1.5 mb-3">
+        {includeHeaderFooter && <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono border-b border-slate-200 pb-1.5 mb-3">
           <span>
             {formData.date
               ? `${formatPrescriptionDate(formData.date)} ${new Date().toLocaleTimeString('en-US', {
@@ -592,10 +575,10 @@ export default function PrescriptionLivePreview({
               : 'Live Preview'}
           </span>
           <span className="font-bold text-slate-700">Svaasth HMS</span>
-        </div>
+        </div>}
 
         {/* Header Area */}
-        <div className="flex justify-between items-start pb-3 border-b-2 border-slate-800 gap-4">
+        {includeHeaderFooter && <div className="flex justify-between items-start pb-3 border-b-2 border-slate-800 gap-4">
           <div className="flex items-center pt-1">
             <img
               src={hospitalConfig.branding.logoUrl}
@@ -634,7 +617,7 @@ export default function PrescriptionLivePreview({
               );
             })()}
           </div>
-        </div>
+        </div>}
 
         {/* Patient Bar */}
         <div className="flex flex-wrap justify-between items-center py-2 text-xs sm:text-sm font-bold text-black border-b border-slate-300">
@@ -686,13 +669,13 @@ export default function PrescriptionLivePreview({
                 return renderClinicalNotes();
               case 'next_visit':
                 return renderNextVisit();
-              case 'signature':
-                return renderSignature();
               default:
                 return null;
             }
           })}
         </div>
+
+        {renderSignature()}
 
         {/* Validity Note */}
         <div className="text-rose-700 font-extrabold text-[11px] tracking-wide mt-3 pt-2 border-t border-slate-200">
@@ -700,7 +683,7 @@ export default function PrescriptionLivePreview({
         </div>
 
         {/* Bottom Schedule Banner */}
-        <div className="mt-4 pt-3 border-t-2 border-slate-300 text-center">
+        {includeHeaderFooter && <div className="mt-4 pt-3 border-t-2 border-slate-300 text-center">
           {hospitalConfig.schedule.clinicDetails && (
             <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
               <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
@@ -730,10 +713,10 @@ export default function PrescriptionLivePreview({
           </div>
 
           <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
-        </div>
+        </div>}
 
         {/* Centered Powered by Svaasth-HMS Line at Bottom */}
-        {hospitalConfig.branding.poweredBySvasth && (
+        {includeHeaderFooter && hospitalConfig.branding.poweredBySvasth && (
           <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
             <span>Powered by</span>
             <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3 w-auto inline-block" />

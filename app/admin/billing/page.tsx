@@ -26,7 +26,15 @@ import {
   Building,
   Check,
 } from "lucide-react";
-import { createBill, updateBill, getBillByPrescriptionId, getAll as getAllBills, Bill } from "@/services/bills";
+import {
+  createBill,
+  updateBill,
+  getBillByPrescriptionId,
+  getAll as getAllBills,
+  Bill,
+  filterNonMedicineBillItems,
+  isPrescriptionMedicineItem,
+} from "@/services/bills";
 import { paymentTransactionService } from "@/services/payment-transactions";
 import { getPatients, getPatientByPhoneNumber } from "@/services/patients";
 import { getPrescriptionsByPatient } from "@/services/prescription";
@@ -204,7 +212,9 @@ export default function HospitalBillingPage() {
       const defaultFee =
         qConsultFee && !isNaN(Number(qConsultFee)) && Number(qConsultFee) > 0
           ? Number(qConsultFee)
-          : getDoctorConsultationFee(effectiveDoc, isFollowUp);
+          : (qVisitId || qRxId)
+            ? 0
+            : getDoctorConsultationFee(effectiveDoc, isFollowUp);
 
       // Check if draft charges exist for this UHID, or globally
       let restoredCharges: ChargeItem[] | null = null;
@@ -233,32 +243,40 @@ export default function HospitalBillingPage() {
       }
 
       if (restoredCharges && restoredCharges.length > 0) {
-        // Ensure consultation fee is updated if doctor or follow-up changed
-        const updated = restoredCharges.map((c) => {
+        // Remove the old automatic registration row and exclude prescription medicines
+        const withoutMedicinesOrReg = restoredCharges.filter((c) =>
+          !(c.category === "Registration" && /registration fee/i.test(c.name)) &&
+          !isPrescriptionMedicineItem(c)
+        );
+        const updated = withoutMedicinesOrReg.map((c) => {
           if (c.name.toLowerCase().includes("consultation")) {
             return {
               ...c,
               name: isFollowUp ? `Follow-up Consultation (${effectiveDoc})` : `Consultation Fee (${effectiveDoc})`,
-              unitPrice: defaultFee,
-              total: defaultFee * c.quantity,
+              unitPrice: defaultFee > 0 ? defaultFee : c.unitPrice,
+              total: (defaultFee > 0 ? defaultFee : c.unitPrice) * c.quantity,
             };
           }
           return c;
         });
-        setOpdCharges(updated);
+        setOpdCharges(updated.length > 0 ? updated : defaultFee > 0 ? [{
+          id: "consultation",
+          name: isFollowUp ? `Follow-up Consultation (${effectiveDoc})` : `Consultation Fee (${effectiveDoc})`,
+          category: "Consultation",
+          unitPrice: defaultFee,
+          quantity: 1,
+          total: defaultFee,
+        }] : []);
       } else {
-        // Default charges: Registration Fee + Consultation Fee
-        setOpdCharges([
-          { id: "1", name: "Registration Fee", category: "Registration", unitPrice: 100, quantity: 1, total: 100 },
-          {
-            id: "2",
+        // For linked OPD visits, use only the consultation fee saved from the prescription.
+        setOpdCharges(defaultFee > 0 ? [{
+            id: "consultation",
             name: isFollowUp ? `Follow-up Consultation (${effectiveDoc})` : `Consultation Fee (${effectiveDoc})`,
             category: "Consultation",
             unitPrice: defaultFee,
             quantity: 1,
             total: defaultFee,
-          },
-        ]);
+          }] : []);
       }
 
       // Check discount draft
@@ -291,6 +309,7 @@ export default function HospitalBillingPage() {
     try {
       localStorage.setItem("cortex_active_doctor", doc);
     } catch (_) {}
+    if (linkedPrescriptionId) return;
     // Update consultation charge to match this doctor's fee
     const isFollowUp = opdPatient.visitNumber.toLowerCase().includes("follow");
     const fee = getDoctorConsultationFee(doc, isFollowUp);
@@ -338,17 +357,78 @@ export default function HospitalBillingPage() {
     visitNumber: "OPD Visit 1",
   });
 
-  const [opdCharges, setOpdCharges] = useState<ChargeItem[]>([
-    { id: "1", name: "Registration Fee", category: "Registration", unitPrice: 100, quantity: 1, total: 100 },
-    { id: "2", name: "Consultation Fee (Dr. Vipeen Raut)", category: "Consultation", unitPrice: 400, quantity: 1, total: 400 },
-  ]);
+  const [opdCharges, setOpdCharges] = useState<ChargeItem[]>([]);
 
   const [opdDiscount, setOpdDiscount] = useState<number>(0);
-  const [opdPaidAmount, setOpdPaidAmount] = useState<number>(500);
+  const [opdPaidAmount, setOpdPaidAmount] = useState<number>(0);
   const [hasManuallyEditedPaid, setHasManuallyEditedPaid] = useState<boolean>(false);
   const [opdPaymentMode, setOpdPaymentMode] = useState<"Cash" | "UPI" | "Card">("Cash");
   const [opdSubmitting, setOpdSubmitting] = useState<boolean>(false);
   const [opdSuccessBill, setOpdSuccessBill] = useState<any>(null);
+
+  useEffect(() => {
+    if (!linkedPrescriptionId) return;
+    let cancelled = false;
+    const loadPrescriptionBill = async () => {
+      try {
+        const bill = await getBillByPrescriptionId(linkedPrescriptionId);
+        if (cancelled || !bill || !Array.isArray(bill.items) || bill.items.length === 0) return;
+
+        // Exclude prescription medicines: only consultation and procedure/treatment charges carry over
+        const nonMedicineItems = filterNonMedicineBillItems(bill.items);
+
+        const charges: ChargeItem[] = nonMedicineItems.map((item: any, index: number) => {
+          const quantity = Math.max(1, Number(item.quantity) || 1);
+          const unitPrice = Number(item.unit_price) || 0;
+          const description = String(item.description || "Prescription charge");
+          const isConsultation = item.item_type === "consultation" || /consultation|registration fee/i.test(description);
+          return {
+            id: String(item.id ?? `rx-${index + 1}`),
+            name: isConsultation ? `Consultation Fee (${activeDoctor})` : description,
+            category: isConsultation ? "Consultation" : "Procedure",
+            unitPrice,
+            quantity,
+            total: Number(item.total) || unitPrice * quantity,
+          };
+        });
+
+        // Ensure consultation fee is present if no consultation item was in nonMedicineItems
+        const hasConsult = charges.some((c) => c.category === "Consultation" || c.name.toLowerCase().includes("consultation"));
+        const isFollowUp = opdPatient.visitNumber.toLowerCase().includes("follow");
+        const defaultFee = getDoctorConsultationFee(activeDoctor, isFollowUp);
+        if (!hasConsult && defaultFee > 0) {
+          charges.unshift({
+            id: "consultation",
+            name: isFollowUp ? `Follow-up Consultation (${activeDoctor})` : `Consultation Fee (${activeDoctor})`,
+            category: "Consultation",
+            unitPrice: defaultFee,
+            quantity: 1,
+            total: defaultFee,
+          });
+        }
+
+        const rawSubtotal = charges.reduce((sum, item) => sum + item.total, 0);
+        const billDiscount = Number(bill.discount_amount) || 0;
+        const cappedDiscount = Math.min(billDiscount, rawSubtotal);
+        const expectedNet = Math.max(0, rawSubtotal - cappedDiscount);
+        const origPaid = Number(bill.paid_amount) || 0;
+        const adjustedPaid = Math.min(origPaid, expectedNet);
+
+        setOpdCharges(charges);
+        setOpdDiscount(cappedDiscount);
+        setOpdPaidAmount(adjustedPaid);
+        if (adjustedPaid > 0) {
+          setHasManuallyEditedPaid(true);
+        }
+      } catch (error) {
+        console.warn("Could not load charges from the linked prescription bill:", error);
+      }
+    };
+    void loadPrescriptionBill();
+    return () => {
+      cancelled = true;
+    };
+  }, [linkedPrescriptionId, activeDoctor, opdPatient.visitNumber]);
 
   // Subtotal, Net, Balance for OPD
   const opdSubtotal = useMemo(() => {
@@ -432,7 +512,10 @@ export default function HospitalBillingPage() {
             visitNumber: visitLabel,
           });
 
-          // Set consultation fee automatically based on doctor & 10-day follow-up
+          // For a linked prescription, keep its saved consultation fee unchanged.
+          if (linkedPrescriptionId) return;
+
+          // Manual billing lookup: use the configured doctor & 10-day follow-up fee.
           const fee = getDoctorConsultationFee(activeDoctor, isFollowUp);
           setOpdCharges((prev) => {
             const hasConsult = prev.some((c) => c.name.toLowerCase().includes("consultation"));
@@ -578,14 +661,16 @@ export default function HospitalBillingPage() {
         }
       }
 
-      const billItems = opdCharges.map((item, idx) => ({
-        id: idx + 1,
-        description: item.name,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        total: item.total,
-        item_type: "procedure",
-      }));
+      const billItems = opdCharges
+        .filter((item) => !isPrescriptionMedicineItem(item))
+        .map((item, idx) => ({
+          id: idx + 1,
+          description: item.name,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total: item.total,
+          item_type: item.category === "Consultation" ? "consultation" : "procedure",
+        }));
 
       let savedBillResult: any = null;
 

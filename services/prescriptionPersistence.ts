@@ -116,8 +116,6 @@ export interface SyncPrescriptionBillParams {
   applyConsultationCharge: boolean;
   consultationCharge: number;
   treatmentItems: TreatmentItem[];
-  medicines: MedicineEntry[];
-  medicineOptions: Medicine[];
   treatmentDiscount: number | string;
 }
 
@@ -126,12 +124,9 @@ export async function syncPrescriptionBill(params: SyncPrescriptionBillParams): 
     prescriptionId,
     patientId,
     referenceNumber,
-    isNewPatient,
     applyConsultationCharge,
     consultationCharge,
     treatmentItems,
-    medicines,
-    medicineOptions,
     treatmentDiscount,
   } = params;
 
@@ -148,25 +143,8 @@ export async function syncPrescriptionBill(params: SyncPrescriptionBillParams): 
       date: item.date,
     }));
 
-    const medicineItems = medicines
-      .filter((med) => med.name && med.name.trim())
-      .map((med, idx) => {
-        const detail = medicineOptions.find((m) => m.name.toLowerCase() === med.name.toLowerCase());
-        const unitPrice = detail?.price || 0;
-        const qty = med.quantity || 1;
-        return {
-          id: treatmentItems.length + idx + 2,
-          description: `${med.name} (${med.dosage})`,
-          quantity: qty,
-          unit_price: unitPrice,
-          total: unitPrice * qty,
-          item_type: 'medicine' as const,
-        };
-      });
-
     const treatmentTotal = treatmentDoneItems.reduce((s, i) => s + i.total, 0);
-    const medicineTotal = medicineItems.reduce((s, i) => s + i.total, 0);
-    const gross = fee + treatmentTotal + medicineTotal;
+    const gross = fee + treatmentTotal;
     const disc = Math.min(Number(treatmentDiscount) || 0, gross);
     const total = Math.max(0, gross - disc);
 
@@ -175,7 +153,7 @@ export async function syncPrescriptionBill(params: SyncPrescriptionBillParams): 
         ? [
             {
               id: 1,
-              description: isNewPatient ? 'New Patient Registration Fee' : 'Consultation Fee',
+              description: 'Consultation Fee',
               quantity: 1,
               unit_price: fee,
               total: fee,
@@ -184,7 +162,6 @@ export async function syncPrescriptionBill(params: SyncPrescriptionBillParams): 
           ]
         : []),
       ...treatmentDoneItems,
-      ...medicineItems,
     ];
 
     let existingBill = null;

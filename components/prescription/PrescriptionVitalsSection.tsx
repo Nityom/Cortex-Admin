@@ -285,22 +285,16 @@ export default function PrescriptionVitalsSection({
           </div>
         </div>
 
-        {/* Antenatal & Obstetrics Vitals (LMP, EDD, Gestational Age) */}
-        <div className={`mt-3 p-3 rounded-xl border transition-all ${
-          isGynae || lmpDate
-            ? 'bg-rose-50/50 border-pink-200 shadow-xs'
-            : 'bg-slate-50/80 border-slate-200'
-        }`}>
+        {/* Antenatal & Obstetrics Vitals are only relevant to gynaecology. */}
+        {isGynae && <div className="mt-3 p-3 rounded-xl border border-pink-200 bg-rose-50/50 shadow-xs transition-all">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-extrabold ${isGynae ? 'text-pink-900' : 'text-slate-800'}`}>
+              <span className="text-xs font-extrabold text-pink-900">
                 Obstetrics &amp; Antenatal Record (LMP • EDD • Gestational Age)
               </span>
-              {isGynae && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
-                  OB-GYN Active
-                </span>
-              )}
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
+                OB-GYN Active
+              </span>
             </div>
             {eddDate && gestationalWeeks && (
               <span className="text-[11px] font-bold text-pink-700 bg-pink-100/90 px-2.5 py-0.5 rounded border border-pink-200">
@@ -377,7 +371,7 @@ export default function PrescriptionVitalsSection({
               </div>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

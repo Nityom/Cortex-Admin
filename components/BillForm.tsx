@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { ToothData } from '@/components/TeethChart';
-import { createBill, updateBill, getBillByPrescriptionId, getPatientByReferenceNumber } from '@/services/bills';
+import { createBill, updateBill, getBillByPrescriptionId, getPatientByReferenceNumber, isPrescriptionMedicineItem } from '@/services/bills';
 import { getPatientByReference } from '@/services/patients';
 import { generateBillPdfBlob, downloadBillPdf, printBillPdf, BillData as ClientBillData } from '@/lib/generate-bill-client';
 import { hospitalConfig } from '@/config/hospital';
@@ -226,7 +226,15 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
         paidAmount > 0 ? 'PARTIAL' : 'PENDING';
 
       const allBillItems = [
-        ...billItems,
+        ...billItems
+          .filter((item) => item.itemType !== 'medicine' && !isPrescriptionMedicineItem(item))
+          .map(item => ({
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            total: item.total,
+            itemType: item.itemType
+          })),
         {
           description: 'Consultation Fee',
           quantity: 1,
@@ -307,7 +315,7 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
       if (savedBill && Array.isArray(savedBill.items)) {
         setBillItems(
           savedBill.items
-            .filter((item: BillItemFromDB) => item.itemType !== 'consultation')
+            .filter((item: BillItemFromDB) => item.itemType !== 'consultation' && item.itemType !== 'medicine' && !isPrescriptionMedicineItem(item))
             .map((item: BillItemFromDB) => ({
               ...item,
               id: item.id || Math.random(),

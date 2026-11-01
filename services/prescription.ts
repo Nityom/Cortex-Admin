@@ -30,6 +30,7 @@ export interface MedicineEntry {
   duration?: string;
   frequency?: string;
   quantity?: number;
+  quantity_manual?: boolean;
   composition?: string;
   timing?: string;
   time?: string;

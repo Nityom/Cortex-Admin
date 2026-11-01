@@ -109,7 +109,38 @@ export const getBillByPrescriptionId = async (prescriptionId: string) => {
     }
 
     const data = await convex.query(api.bills.getByPrescriptionId, { prescription_id: prescriptionId });
-    return data ? { ...data, id: data._id } as any as Bill : null;
+    if (!data) return null;
+
+    // Filter out prescription medicines so only consultation & treatment charges carry over
+    let items = data.items;
+    if (typeof items === 'string') {
+      try {
+        items = JSON.parse(items);
+      } catch {
+        items = [];
+      }
+    }
+
+    if (Array.isArray(items)) {
+      const nonMedicineItems = filterNonMedicineBillItems(items);
+      if (nonMedicineItems.length !== items.length) {
+        const rawItemsTotal = nonMedicineItems.reduce((sum: number, it: any) => {
+          return sum + (Number(it.total) || (Number(it.unit_price) || 0) * (Number(it.quantity) || 1));
+        }, 0);
+        const disc = Number(data.discount_amount) || 0;
+        const adjustedTotal = Math.max(0, rawItemsTotal - disc);
+        const paid = Number(data.paid_amount) || 0;
+        return {
+          ...data,
+          id: data._id,
+          items: nonMedicineItems,
+          total_amount: adjustedTotal,
+          balance_amount: Math.max(0, adjustedTotal - paid),
+        } as any as Bill;
+      }
+    }
+
+    return { ...data, id: data._id } as any as Bill;
   } catch (e) {
     console.error('Exception in getBillByPrescriptionId:', e);
     throw e;
@@ -145,10 +176,87 @@ export const getAll = async () => {
   }
 };
 
+/**
+ * Detects whether a bill line item represents a prescription medicine
+ * (as opposed to consultations, procedures, investigations, dressings, etc.)
+ */
+export const isPrescriptionMedicineItem = (item: any): boolean => {
+  if (!item) return false;
+
+  const itemType = String(item.item_type || item.itemType || '').toLowerCase().trim();
+  const category = String(item.category || '').toLowerCase().trim();
+  const desc = String(item.description || item.name || '').toLowerCase().trim();
+
+  // If explicit type/category says medicine, exclude it
+  if (itemType === 'medicine' || category === 'medicine') {
+    return true;
+  }
+
+  // Explicit consultation or registration is NEVER a medicine
+  if (
+    itemType === 'consultation' ||
+    category === 'consultation' ||
+    category === 'registration' ||
+    /consultation|registration fee|follow-?up/i.test(desc)
+  ) {
+    return false;
+  }
+
+  // Treatment / Procedure / Investigation keywords that must NOT be excluded
+  if (
+    category === 'procedure' ||
+    category === 'investigation' ||
+    /dressing|stitching|suture|removal|plaster|cast|x-ray|xray|ecg|blood test|injection charge|root canal|extraction|cleaning|scaling|filling|debridement|physiotherapy|nebulization|bed charge|room charge/i.test(desc)
+  ) {
+    return false;
+  }
+
+  // Medicine dosage forms prefixes or keywords
+  if (
+    /^(tab|tab\.|tablet|cap|cap\.|capsule|syr|syr\.|syrup|inj|inj\.|injection|oint|ointment|gel|drop|drops|eye drops|ear drops|cream|lotion|susp|susp\.|suspension|sachet|powder|respule|respules|inhaler)\b/i.test(desc)
+  ) {
+    return true;
+  }
+
+  // Prescription dosage timing patterns e.g. "(1-0-1)", "(0-0-1)", "(1-1-1)"
+  if (/\(\s*\d\s*-\s*\d\s*-\s*\d(\s*-\s*\d)?\s*\)/.test(desc)) {
+    return true;
+  }
+
+  // Strength suffix patterns commonly on medicine names e.g. "Rapicalv 625", "Paracetamol 500mg"
+  if (/\b\d+\s*(mg|ml|gm|mcg|iu)\b/i.test(desc)) {
+    return true;
+  }
+
+  // Common medicine formulation names
+  if (
+    desc.includes('mouthwash') ||
+    desc.includes('gargle') ||
+    desc.includes('paracetamol') ||
+    desc.includes('amoxicillin') ||
+    desc.includes('antibiotic')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Filters an array of bill items to exclude prescription medicines,
+ * preserving only consultations and treatments/procedures.
+ */
+export const filterNonMedicineBillItems = <T = any>(items: T[]): T[] => {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item) => !isPrescriptionMedicineItem(item));
+};
+
 export const billService = {
   create: createBill,
   update: updateBill,
   getByPrescriptionId: getBillByPrescriptionId,
   getAll: getAll,
+  isPrescriptionMedicineItem,
+  filterNonMedicineBillItems,
 };
 

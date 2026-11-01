@@ -123,7 +123,7 @@ export default function PrescriptionProcedureSection({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-slate-800">
-                Add {isNewPatient ? 'New Patient Registration' : 'Follow-up Consultation'} Charge
+                Add Consultation Fee
               </span>
               <span
                 className={
@@ -132,13 +132,11 @@ export default function PrescriptionProcedureSection({
                     : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-300'
                 }
               >
-                {isNewPatient ? `New Patient (₹${consultationCharge || 400})` : `Follow-up / Re-visit (₹${consultationCharge || 200})`}
+                ₹{consultationCharge || 0}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              {isNewPatient
-                ? 'New Patient — consultation fee automatically calculated per doctor (Dr. Shillpa Raut ₹200, Dr. Vipeen Raut ₹400).'
-                : 'Follow-up Patient — consultation fee automatically calculated (Dr. Shillpa Raut ₹100 within 10 days, Dr. Vipeen Raut ₹200).'}
+              This amount is saved with the prescription and carried into the billing queue.
             </p>
           </div>
         </label>
