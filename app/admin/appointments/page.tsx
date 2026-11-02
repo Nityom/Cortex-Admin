@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Stethoscope, Pencil, Trash2, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Stethoscope, Pencil, Trash2, Search, X, MapPin } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-is-admin';
 
 // Helpers
@@ -63,6 +63,7 @@ export default function AppointmentsPage() {
     name: '',
     phone: '',
     age: '',
+    address: '',
     time: '11:00',
     doctor_name: 'Dr. Vipeen Raut',
     duration_minutes: 30,
@@ -107,7 +108,8 @@ export default function AppointmentsPage() {
     return allAppointments
       .filter(a =>
         (typeof a.name === 'string' && a.name.toLowerCase().includes(q)) ||
-        (typeof a.phone === 'string' && a.phone.includes(q))
+        (typeof a.phone === 'string' && a.phone.includes(q)) ||
+        (typeof (a as any).address === 'string' && (a as any).address.toLowerCase().includes(q))
       )
       .sort((a, b) => {
         const da = typeof a.date === 'string' ? a.date : '';
@@ -173,7 +175,8 @@ export default function AppointmentsPage() {
         name: appt.name,
         phone: appt.phone,
         age: appt.age !== undefined && appt.age !== null ? String(appt.age) : '',
-        time: appt.time,
+        address: (appt as any).address || '',
+        time: normalizeAppointmentTime(appt.time),
         doctor_name: appt.doctor_name || 'Dr. Vipeen Raut',
         duration_minutes: appt.duration_minutes || 30,
         dental_problem: appt.dental_problem || '',
@@ -186,6 +189,7 @@ export default function AppointmentsPage() {
         name: '',
         phone: '',
         age: '',
+        address: '',
         time: defaultTime,
         doctor_name: 'Dr. Vipeen Raut',
         duration_minutes: 30,
@@ -203,6 +207,7 @@ export default function AppointmentsPage() {
         name: formData.name,
         phone: formData.phone,
         age: formData.age.trim() ? (isNaN(Number(formData.age)) ? formData.age.trim() : Number(formData.age.trim())) : undefined,
+        address: formData.address.trim() || undefined,
         date: selectedDate,
         time: normalizeAppointmentTime(formData.time),
         doctor_name: formData.doctor_name,
@@ -531,6 +536,12 @@ export default function AppointmentsPage() {
                         <a href={`tel:${appt.phone}`} className="text-xs text-gray-500 hover:text-emerald-600 transition flex items-center gap-1 mt-0.5">
                           <Phone className="w-3 h-3" />{appt.phone}
                         </a>
+                        {(appt as any).address && (
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 truncate" title={(appt as any).address}>
+                            <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                            <span className="truncate">{(appt as any).address}</span>
+                          </p>
+                        )}
                         {appt.doctor_name && (
                           <span className={`inline-block mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                             appt.doctor_name.toLowerCase().includes('shillpa')
@@ -591,6 +602,16 @@ export default function AppointmentsPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone</label>
                   <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Address / City</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Wardha, Maharashtra"
+                  value={formData.address}
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div>

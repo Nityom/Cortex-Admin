@@ -26,6 +26,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  MapPin,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -785,7 +786,7 @@ export default function OPDManagementPage() {
         ageUnit: "years",
         sex: customVitals?.sex || "Male",
         phone: appt.phone?.trim() || "",
-        address: "",
+        address: appt.address?.trim() || "",
         doctor: docName,
         department: dept,
         priority: "Normal",
@@ -1527,6 +1528,12 @@ export default function OPDManagementPage() {
                             <span className="flex items-center gap-1 text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
                               <Stethoscope className="w-3 h-3 text-emerald-600" />
                               {appt.dental_problem}
+                            </span>
+                          )}
+                          {(appt as any).address && (
+                            <span className="flex items-center gap-1 text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                              <MapPin className="w-3 h-3 text-slate-400" />
+                              {(appt as any).address}
                             </span>
                           )}
                           {appt.notes && (
