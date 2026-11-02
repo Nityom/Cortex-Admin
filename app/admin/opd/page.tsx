@@ -130,6 +130,17 @@ export default function OPDManagementPage() {
   // Tab State: OPD queue, billing queue, registration, appointments, and directory
   const [activeTab, setActiveTab] = useState<"queue" | "billingQueue" | "register" | "appointments" | "directory">("queue");
 
+  // Check URL search parameters for initial tab (e.g. ?tab=billingQueue)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "billingQueue" || tabParam === "queue" || tabParam === "register" || tabParam === "appointments" || tabParam === "directory") {
+        setActiveTab(tabParam as any);
+      }
+    }
+  }, []);
+
   // Today & Selected Queue Date (Defaults to Today)
   const todayStr = useMemo(() => getTodayString(), []);
   const [selectedQueueDate, setSelectedQueueDate] = useState<string>(getTodayString());
@@ -166,6 +177,7 @@ export default function OPDManagementPage() {
   const updateOpdQueueStatusMutation = useMutation(api.opd_queue.updateStatus);
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
   const syncLocalOpdQueueMutation = useMutation(api.opd_queue.syncLocalItems);
+  const clearOpdQueueMutation = useMutation(api.opd_queue.clearAll);
 
   // Set of patient UHIDs with confirmed paid bills
   const paidUhidSet = useMemo(() => {
@@ -366,59 +378,41 @@ export default function OPDManagementPage() {
     };
   }, []);
 
-  // Real-time synchronization from Convex DB across all devices + two-way auto-sync
+  // Real-time synchronization from Convex DB across all devices
   useEffect(() => {
     if (liveOpdQueue && Array.isArray(liveOpdQueue)) {
-      // 1. Check if there are local items in localStorage that are not in Convex yet
+      const mapped: OPDQueueItem[] = liveOpdQueue.map((item: any) => ({
+        id: item.queue_id || item._id,
+        token: item.token || "01",
+        uhid: item.uhid || "",
+        patientId: item.patientId,
+        appointmentId: item.appointmentId,
+        name: item.name || "",
+        age: item.age || "",
+        ageUnit: item.ageUnit || "years",
+        sex: item.sex || "Male",
+        phone: item.phone || "",
+        address: item.address || "",
+        email: item.email,
+        whatsapp_number: item.whatsapp_number,
+        doctor: item.doctor || "",
+        department: item.department || "",
+        priority: item.priority || "Normal",
+        visitType: item.visitType || "New Registration",
+        status: item.status || "Waiting",
+        vitals: item.vitals || {},
+        consultationFee: item.consultationFee,
+        paymentMode: item.paymentMode,
+        paymentStatus: item.paymentStatus,
+        registeredAt: item.registeredAt || "",
+        time: item.time || "",
+      }));
+      setQueue(mapped);
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const localItems = JSON.parse(raw);
-          if (Array.isArray(localItems) && localItems.length > 0) {
-            const dbIds = new Set(liveOpdQueue.map((item: any) => item.queue_id || item._id));
-            const unsynced = localItems.filter((item: any) => item?.id && !dbIds.has(item.id));
-            if (unsynced.length > 0) {
-              syncLocalOpdQueueMutation({ items: unsynced });
-            }
-          }
-        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
       } catch {}
-
-      // 2. Map Convex items to local queue state
-      if (liveOpdQueue.length > 0) {
-        const mapped: OPDQueueItem[] = liveOpdQueue.map((item: any) => ({
-          id: item.queue_id || item._id,
-          token: item.token || "01",
-          uhid: item.uhid || "",
-          patientId: item.patientId,
-          appointmentId: item.appointmentId,
-          name: item.name || "",
-          age: item.age || "",
-          ageUnit: item.ageUnit || "years",
-          sex: item.sex || "Male",
-          phone: item.phone || "",
-          address: item.address || "",
-          email: item.email,
-          whatsapp_number: item.whatsapp_number,
-          doctor: item.doctor || "",
-          department: item.department || "",
-          priority: item.priority || "Normal",
-          visitType: item.visitType || "New Registration",
-          status: item.status || "Waiting",
-          vitals: item.vitals || {},
-          consultationFee: item.consultationFee,
-          paymentMode: item.paymentMode,
-          paymentStatus: item.paymentStatus,
-          registeredAt: item.registeredAt || "",
-          time: item.time || "",
-        }));
-        setQueue(mapped);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
-        } catch {}
-      }
     }
-  }, [liveOpdQueue, syncLocalOpdQueueMutation]);
+  }, [liveOpdQueue]);
 
   // Save Queue to Local Storage
   const saveQueue = (newQueue: OPDQueueItem[]) => {
@@ -1258,9 +1252,14 @@ export default function OPDManagementPage() {
               {activeTab === "queue" && queue.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (confirm("Reset OPD Queue? (Patient records in database are preserved)")) {
                       saveQueue([]);
+                      try {
+                        await clearOpdQueueMutation();
+                      } catch (err) {
+                        console.error("Failed to clear queue in DB:", err);
+                      }
                     }
                   }}
                   className="text-xs text-slate-400 hover:text-red-600 font-medium underline ml-auto"

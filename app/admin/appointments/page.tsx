@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -121,6 +121,51 @@ export default function AppointmentsPage() {
   const updateAppointment = useMutation(api.appointments.update);
   const removeAppointment = useMutation(api.appointments.remove);
 
+  const [lastBookedTime, setLastBookedTime] = useState<string>('');
+
+  const calculateNextSlotTime = useCallback((dateStr: string): string => {
+    // 1. If we booked an appointment in this session, step 1 minute forward
+    if (lastBookedTime) {
+      const norm = normalizeAppointmentTime(lastBookedTime);
+      const [hStr, mStr] = norm.split(':');
+      const h = parseInt(hStr, 10);
+      const m = parseInt(mStr, 10);
+      if (!isNaN(h) && !isNaN(m)) {
+        const nextMin = (h * 60 + m + 1) % 1440;
+        const nextH = Math.floor(nextMin / 60);
+        const nextM = nextMin % 60;
+        return `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
+      }
+    }
+
+    // 2. Otherwise check latest booked appointment on dateStr
+    if (allAppointments && allAppointments.length > 0) {
+      let maxMinutes = -1;
+      for (const a of allAppointments) {
+        if (a.date === dateStr && a.time) {
+          const norm = normalizeAppointmentTime(a.time);
+          const [hStr, mStr] = norm.split(':');
+          const h = parseInt(hStr, 10);
+          const m = parseInt(mStr, 10);
+          if (!isNaN(h) && !isNaN(m)) {
+            const total = h * 60 + m;
+            if (total > maxMinutes) {
+              maxMinutes = total;
+            }
+          }
+        }
+      }
+      if (maxMinutes >= 0) {
+        const nextMin = (maxMinutes + 1) % 1440;
+        const nextH = Math.floor(nextMin / 60);
+        const nextM = nextMin % 60;
+        return `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
+      }
+    }
+
+    return '11:00';
+  }, [allAppointments, lastBookedTime]);
+
   const handleOpenModal = (appt?: any) => {
     if (appt) {
       setEditingId(appt._id);
@@ -136,11 +181,12 @@ export default function AppointmentsPage() {
       });
     } else {
       setEditingId(null);
+      const defaultTime = calculateNextSlotTime(selectedDate);
       setFormData({
         name: '',
         phone: '',
         age: '',
-        time: '11:00',
+        time: defaultTime,
         doctor_name: 'Dr. Vipeen Raut',
         duration_minutes: 30,
         dental_problem: '',
@@ -169,6 +215,7 @@ export default function AppointmentsPage() {
         await updateAppointment({ id: editingId, ...appointmentPayload });
       } else {
         await createAppointment(appointmentPayload);
+        setLastBookedTime(appointmentPayload.time);
       }
       setIsModalOpen(false);
     } catch (err: any) {

@@ -75,6 +75,9 @@ export default function PrescriptionPage() {
           findingsText={form.findingsText}
           dietExercise={form.dietExercise}
           procedureAdvice={form.procedureAdvice}
+          drNotes={form.drNotes}
+          investigationText={form.investigationText}
+          testsRequested={form.testsRequested}
           referralDocName={form.referralDocName}
           referralSpeciality={form.referralSpeciality}
           referralPhone={form.referralPhone}

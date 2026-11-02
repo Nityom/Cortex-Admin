@@ -1075,6 +1075,7 @@ export function usePrescriptionForm() {
       ...testsRequested.map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
     ].filter(Boolean).join(', ');
     const allFindings = [findingsText, generalExam, systemicExam].filter(Boolean).join('\n');
+    const allDoctorNotes = [drNotes, quickNotes].filter(Boolean).join('\n');
 
     const printableSnapshot = {
       id: currentId || 'draft',
@@ -1092,7 +1093,12 @@ export function usePrescriptionForm() {
       investigation: allInvestigations,
       diagnosis: allDiagnoses,
       medicines: medicinesWithQuantity,
-      advice: allAdvice,
+      advice: formData.advice || allAdvice,
+      procedure_advice: procedureAdvice,
+      procedureAdvice: procedureAdvice,
+      dr_notes: allDoctorNotes,
+      drNotes: allDoctorNotes,
+      notes: allDoctorNotes,
       diet_exercise: dietExercise,
       referral_doctor: referralDocName
         ? `${referralDocName}${referralSpeciality ? ` (${referralSpeciality})` : ''}${referralPhone ? ` - ${referralPhone}` : ''}`
@@ -1117,12 +1123,15 @@ export function usePrescriptionForm() {
       },
       section_order: rxSectionOrder,
       enabled_sections: finalEnabledSections || {},
-      // Note: Doctor notes (drNotes) and treatment done (treatmentItems) are intentionally excluded from prescription print
     };
 
-    if (!currentId && formData.patientName) {
-      const saved = await savePrescriptionToDatabase();
-      if (saved?.id) currentId = saved.id;
+    if (formData.patientName) {
+      try {
+        const saved = await savePrescriptionToDatabase();
+        if (saved?.id) currentId = saved.id;
+      } catch (saveErr) {
+        console.warn('Could not auto-save before print, using local snapshot:', saveErr);
+      }
     }
 
     try {

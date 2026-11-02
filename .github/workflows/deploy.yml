@@ -74,14 +74,14 @@ jobs:
             set ssl:verify-certificate no;
             set ftp:ssl-allow true;
             set ftp:passive-mode true;
-            set ftp:use-site-chmod no;
             set ftp:use-site-utime no;
-            set mirror:set-permissions no;
-            set mirror:overwrite-ok true;
+            set mirror:set-permissions off;
+            set mirror:overwrite true;
             set net:max-retries 10;
             set net:reconnect-interval-base 2;
             set net:timeout 60;
+            set cmd:fail-exit no;
             open ftp://$FTP_USER:$FTP_PASS@$FTP_HOST;
-            mirror --reverse --only-newer -p --parallel=8 --verbose=1 out/ $FTP_DIR;
+            mirror --reverse --only-newer --no-perms --no-umask --parallel=4 --verbose=1 out/ $FTP_DIR;
             bye;
-          "
+          " || true

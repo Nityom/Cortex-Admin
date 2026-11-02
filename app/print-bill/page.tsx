@@ -217,7 +217,18 @@ function PrintBillContent() {
     );
   }
 
-  return <PrintableBill {...billData} signature={resolvedSignature} doctorName={resolvedDoctorName} paymentTransactions={paymentTransactions} includeSignature={includeSignature} />;
+  const pageSizeParam = (searchParams.get('pageSize') as 'A6' | 'A7' | 'A4') || undefined;
+
+  return (
+    <PrintableBill
+      {...billData}
+      signature={resolvedSignature}
+      doctorName={resolvedDoctorName}
+      paymentTransactions={paymentTransactions}
+      includeSignature={includeSignature}
+      defaultPageSize={pageSizeParam}
+    />
+  );
 }
 
 export default function PrintBillPage() {

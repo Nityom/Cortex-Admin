@@ -811,18 +811,21 @@ async function generatePrescriptionPdf(
     color: darkSlateColor,
   });
 
-  // 14. Validity Note (* Prescription is valid for 30 days only)
-  page.drawText('* Prescription is valid for 30 days only', {
-    x: MARGIN_X,
-    y: 91,
-    size: 7.5,
-    font: boldFont,
-    color: maroonColor,
-  });
+  // 14. Validity Note (* Prescription is valid for 30 days only - Orthopaedic/General, omitted for Gyno)
+  const isGynoEmail = /gyne|shillpa|shilpa|obs|maternity/i.test(docName || '');
+  if (!isGynoEmail) {
+    page.drawText('* Prescription is valid for 30 days only', {
+      x: MARGIN_X,
+      y: 91,
+      size: 7.5,
+      font: boldFont,
+      color: maroonColor,
+    });
+  }
 
   page.drawText('* Medicine can be purchased from any medical store and in a generic form also', {
     x: MARGIN_X,
-    y: 81,
+    y: isGynoEmail ? 91 : 81,
     size: 6.8,
     font: boldFont,
     color: darkSlateColor,

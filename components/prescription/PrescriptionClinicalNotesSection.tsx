@@ -39,6 +39,7 @@ interface PrescriptionClinicalNotesSectionProps {
   setSystemicExam: React.Dispatch<React.SetStateAction<string>>;
   generalExam: string;
   setGeneralExam: React.Dispatch<React.SetStateAction<string>>;
+  selectedDoctorName?: string;
 }
 
 export default function PrescriptionClinicalNotesSection({
@@ -70,6 +71,7 @@ export default function PrescriptionClinicalNotesSection({
   setSystemicExam,
   generalExam,
   setGeneralExam,
+  selectedDoctorName,
 }: PrescriptionClinicalNotesSectionProps) {
   const [newTestName, setNewTestName] = useState('');
   const [newTestByWhen, setNewTestByWhen] = useState('');
@@ -266,9 +268,11 @@ export default function PrescriptionClinicalNotesSection({
             placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids)..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
-          <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
-            <span>*</span> Prescription is valid for 30 days only
-          </p>
+          {!(/gyne|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '')) && (
+            <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
+              <span>*</span> Prescription is valid for 30 days only
+            </p>
+          )}
           <p className="mt-0.5 text-[11px] font-semibold text-slate-700 flex items-center gap-1">
             <span>*</span> Medicine can be purchased from any medical store and in a generic form also
           </p>

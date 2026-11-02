@@ -373,6 +373,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             setSystemicExam={form.setSystemicExam}
             generalExam={form.generalExam}
             setGeneralExam={form.setGeneralExam}
+            selectedDoctorName={form.selectedDoctorName}
           />
         );
       case 'drawing_board':

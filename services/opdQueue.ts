@@ -50,7 +50,7 @@ export const opdQueueService = {
         doctor: doctor || undefined,
       });
 
-      if (Array.isArray(items) && items.length > 0) {
+      if (Array.isArray(items)) {
         // Map Convex items to OPDQueueItem
         const mapped: OPDQueueItem[] = items.map((item: any) => ({
           id: item.queue_id || item._id,

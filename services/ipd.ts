@@ -15,7 +15,7 @@ export const ipdService = {
         status: status || undefined,
       });
 
-      if (Array.isArray(items) && items.length > 0) {
+      if (Array.isArray(items)) {
         const mapped = items.map((item: any) => ({
           ...item,
           id: item.admission_id || item._id,

@@ -136,6 +136,17 @@ export const remove = mutation({
   },
 });
 
+export const clearAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db.query("opd_queue").collect();
+    for (const item of items) {
+      await ctx.db.delete(item._id);
+    }
+    return items.length;
+  },
+});
+
 export const syncLocalItems = mutation({
   args: {
     items: v.array(v.any()),

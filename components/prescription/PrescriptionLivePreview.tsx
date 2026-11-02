@@ -41,6 +41,9 @@ interface PrescriptionLivePreviewProps {
   findingsText?: string;
   dietExercise?: string;
   procedureAdvice?: string;
+  drNotes?: string;
+  investigationText?: string;
+  testsRequested?: { id?: string; name: string; by_when?: string }[];
   referralDocName?: string;
   referralSpeciality?: string;
   referralPhone?: string;
@@ -152,6 +155,9 @@ export default function PrescriptionLivePreview({
   findingsText,
   dietExercise,
   procedureAdvice,
+  drNotes,
+  investigationText,
+  testsRequested,
   referralDocName,
   referralSpeciality,
   referralPhone,
@@ -173,6 +179,11 @@ export default function PrescriptionLivePreview({
   enabledSections,
   isModalPreview = false,
 }: PrescriptionLivePreviewProps) {
+  const activeDoc = getDoctorProfile(selectedDoctorName);
+  const isGyno =
+    activeDoc?.specialty === 'gynecology' ||
+    /gyne|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
+
   const includeHeaderFooter = enabledSections?.header_footer !== false;
   const chiefComplaintText =
     (complaintsList && complaintsList.length > 0
@@ -188,7 +199,6 @@ export default function PrescriptionLivePreview({
       : '')
   )?.trim();
 
-  const allAdviceText = [formData.advice, procedureAdvice].filter(Boolean).join('\n')?.trim();
   const referralText = referralDocName
     ? `${referralDocName}${referralSpeciality ? ` (${referralSpeciality})` : ''}${referralPhone ? ` - ${referralPhone}` : ''}`
     : '';
@@ -364,10 +374,9 @@ export default function PrescriptionLivePreview({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
-                <th className="py-2 px-1 text-left w-[34%]">Medicine</th>
-                <th className="py-2 px-2 text-center w-[16%]">Dosage</th>
-                <th className="py-2 px-2 text-left w-[40%]">Timing - Freq. - Duration</th>
-                <th className="py-2 px-2 text-right w-[10%]">Qty</th>
+                <th className="py-2 px-1 text-left w-[58%]">Medicine</th>
+                <th className="py-2 px-1 text-center w-[8%]">Dosage</th>
+                <th className="py-2 px-2 text-left w-[34%]">Timing - Freq. - Duration</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
@@ -382,9 +391,9 @@ export default function PrescriptionLivePreview({
                     </td>
 
                     {/* Dosage */}
-                    <td className="py-2 px-2 text-center font-bold text-sm tracking-wider text-slate-900">
+                    <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
                       {(med.schedules?.length ? med.schedules : [{ dosage: med.dosage }]).map((schedule, scheduleIndex) => (
-                        <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/-/g, ' — ') : '—'}</div>
+                        <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/-/g, ' - ') : '—'}</div>
                       ))}
                     </td>
 
@@ -410,14 +419,11 @@ export default function PrescriptionLivePreview({
                         })}</div>;
                       })()}
                     </td>
-                    <td className="py-2 px-2 text-right font-bold text-sm text-slate-900">
-                      {med.quantity ?? calculateMedicineQuantity(med) ?? '—'}
-                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-center py-6 text-slate-400 italic">
+                  <td colSpan={3} className="text-center py-6 text-slate-400 italic">
                     No medications added yet. Add medicines from the form above.
                   </td>
                 </tr>
@@ -431,27 +437,60 @@ export default function PrescriptionLivePreview({
 
   const renderClinicalNotes = () => {
     if (enabledSections && enabledSections.clinical_notes === false) return null;
-    const hasAnyNote = !!(allAdviceText || dietExercise || referralText || formData.investigation);
+    const allInvestigations = [
+      investigationText || formData.investigation,
+      ...(testsRequested || []).map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
+    ].filter(Boolean).join(', ');
+
+    const hasAnyNote = !!(formData.advice || procedureAdvice || drNotes || dietExercise || referralText || allInvestigations);
     if (!hasAnyNote) return null;
-    const investigationDisplay = formData.investigation?.replace(
+
+    const investigationDisplay = allInvestigations?.replace(
       /\(By:\s*Next Visit\)/gi,
       `(By: Next Visit${formData.followupDate ? ` — ${formatPrescriptionDate(formData.followupDate)}` : ''})`
     );
+
     return (
-      <div key="clinical_notes" className="py-2 text-xs border-t border-slate-200 mt-3 space-y-1.5">
-        {allAdviceText && (
+      <div key="clinical_notes" className="py-2 text-xs border-t border-slate-200 mt-3 space-y-2">
+        {formData.advice && (
           <div>
             <div className="font-bold text-black uppercase tracking-wider text-[11px]">
-              Advice:
+              Advice / सल्ला:
             </div>
             <div className="text-slate-800 font-medium whitespace-pre-line mt-0.5">
-              {allAdviceText}
+              {formData.advice}
             </div>
+          </div>
+        )}
+        {procedureAdvice && (
+          <div>
+            <div className="font-bold text-black uppercase tracking-wider text-[11px]">
+              Procedure Advice / कार्यपद्धती सल्ला:
+            </div>
+            <div className="text-slate-800 font-medium whitespace-pre-line mt-0.5">
+              {procedureAdvice}
+            </div>
+          </div>
+        )}
+        {drNotes && (
+          <div>
+            <div className="font-bold text-black uppercase tracking-wider text-[11px]">
+              Doctor Notes / विशेष सूचना:
+            </div>
+            <div className="text-slate-800 font-medium whitespace-pre-line mt-0.5">
+              {drNotes}
+            </div>
+          </div>
+        )}
+        {allInvestigations && (
+          <div className="text-slate-900 font-bold mt-1">
+            <span className="font-extrabold mr-1.5">चाचणी / Investigations &amp; Tests:</span>
+            <span className="font-semibold text-slate-800">{investigationDisplay}</span>
           </div>
         )}
         {dietExercise && (
           <div className="text-slate-900 font-bold mt-1">
-            <span className="font-extrabold mr-1.5">Diet &amp; Exercise:</span>
+            <span className="font-extrabold mr-1.5">आहार आणि व्यायाम / Diet &amp; Exercise:</span>
             <span className="font-normal text-slate-800">{dietExercise}</span>
           </div>
         )}
@@ -459,12 +498,6 @@ export default function PrescriptionLivePreview({
           <div className="text-slate-900 font-bold mt-1">
             <span className="font-extrabold mr-1.5">Referred To:</span>
             <span className="font-normal text-slate-800">{referralText}</span>
-          </div>
-        )}
-        {formData.investigation && (
-          <div className="text-slate-900 font-bold mt-1">
-            <span className="font-extrabold mr-1.5">फेर चाचणी / Tests :</span>
-            <span>{investigationDisplay}</span>
           </div>
         )}
       </div>
@@ -497,7 +530,7 @@ export default function PrescriptionLivePreview({
                   );
                   const sig = docObj?.signature_url;
                   if (!sig)
-                    return (selectedDoctorName || '').toLowerCase().includes('anjali')
+                    return /(shillpa|shilpa|anjali)/i.test(selectedDoctorName || '')
                       ? '/sign1.png'
                       : '/sign.png';
                   if (
@@ -509,7 +542,7 @@ export default function PrescriptionLivePreview({
                   return `/${sig.replace(/^\//, '')}`;
                 })()}
                 alt="Doctor's Signature"
-                className="inline-block h-20 max-w-[220px] object-contain"
+                className={`inline-block ${isGyno ? 'h-12 max-w-[140px]' : 'h-14 max-w-[170px]'} object-contain`}
               />
             </div>
           )}
@@ -679,9 +712,11 @@ export default function PrescriptionLivePreview({
 
         {/* Validity & Generic Medicine Note */}
         <div className="mt-3 pt-2 border-t border-slate-200">
-          <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
-            * Prescription is valid for 30 days only
-          </div>
+          {!isGyno && (
+            <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
+              * Prescription is valid for 30 days only
+            </div>
+          )}
           <div className="text-slate-800 font-bold text-[10.5px] mt-0.5">
             * Medicine can be purchased from any medical store and in a generic form also
           </div>

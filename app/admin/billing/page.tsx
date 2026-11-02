@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  ArrowLeft,
   Filter,
   DollarSign,
   AlertCircle,
@@ -835,6 +836,14 @@ export default function HospitalBillingPage() {
             </div>
 
             <Link
+              href="/admin/opd?tab=billingQueue"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Go back to Billing Queue
+            </Link>
+
+            <Link
               href="/admin/prescription"
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold shadow-sm transition"
             >
@@ -916,6 +925,14 @@ export default function HospitalBillingPage() {
                   Print Bill & Receipt
                 </a>
 
+                <Link
+                  href="/admin/opd?tab=billingQueue"
+                  className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow flex items-center gap-1.5 transition"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Go back to Billing Queue
+                </Link>
+
                 {linkedPrescriptionId && (
                   <a
                     href={`/print-prescription?prescriptionId=${linkedPrescriptionId}`}
@@ -980,13 +997,13 @@ export default function HospitalBillingPage() {
                     Edit Rx
                   </a>
                 )}
-                <a
-                  href="/admin/opd"
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-black text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                <Link
+                  href="/admin/opd?tab=billingQueue"
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
                 >
-                  <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-                  OPD Queue
-                </a>
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Go back to Billing Queue
+                </Link>
               </div>
             </div>
           )}

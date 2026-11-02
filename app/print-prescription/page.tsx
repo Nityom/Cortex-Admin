@@ -62,6 +62,9 @@ interface PrescriptionData {
   medicines?: MedicineEntry[];
   treatment_done?: any[];
   advice?: string;
+  procedure_advice?: string;
+  dr_notes?: string;
+  notes?: string;
   followup_date?: string;
   doctor_name?: string;
   opd_visit_id?: string;
@@ -178,15 +181,15 @@ function PrintPrescriptionContent() {
     return true;
   });
 
-  // Configurable letterhead paper margins in mm
+  // Configurable letterhead paper margins in mm (0.5cm = 5mm left/right)
   const [margins, setMargins] = useState<{ top: number; bottom: number; left: number; right: number }>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cortex_rx_letterhead_margins_v2');
+        const saved = localStorage.getItem('cortex_rx_letterhead_margins_v3');
         if (saved) return JSON.parse(saved);
       } catch {}
     }
-    return { top: 50, bottom: 40, left: 30, right: 20 };
+    return { top: 50, bottom: 40, left: 5, right: 5 };
   });
 
   const updateMargin = (key: 'top' | 'bottom' | 'left' | 'right', val: number) => {
@@ -194,7 +197,7 @@ function PrintPrescriptionContent() {
       const next = { ...prev, [key]: val };
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('cortex_rx_letterhead_margins_v2', JSON.stringify(next));
+          localStorage.setItem('cortex_rx_letterhead_margins_v3', JSON.stringify(next));
         } catch {}
       }
       return next;
@@ -327,6 +330,9 @@ function PrintPrescriptionContent() {
           medicines: normalizedMedicines,
           treatment_done: [], // EXCLUDED: Treatment done is strictly excluded from prescription printout
           advice: data.advice || '',
+          procedure_advice: data.procedure_advice || data.procedureAdvice || '',
+          dr_notes: data.dr_notes || data.drNotes || data.notes || '',
+          notes: data.notes || data.dr_notes || data.drNotes || '',
           diet_exercise: data.diet_exercise || data.dietExercise || '',
           referral_doctor: data.referral_doctor || data.referralDoctor || '',
           drawing_data: data.drawing_data || data.drawingDataUrl || '',
@@ -391,6 +397,17 @@ function PrintPrescriptionContent() {
     }
   }, [loading, prescriptionData]);
 
+  // Auto-close tab after print dialog closes
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      window.close();
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -420,9 +437,15 @@ function PrintPrescriptionContent() {
       ? prescriptionData.selected_teeth.map((t) => (t.disease ? `${t.disease}` : `#${t.id}`)).join(', ')
       : '');
 
-  const patientNameFormatted = prescriptionData.patient_name
-    ? prescriptionData.patient_name.toUpperCase()
-    : 'PATIENT';
+  const rawPatientName = (prescriptionData.patient_name || 'PATIENT').trim();
+  const hasSalutation = /^(mr|mrs|ms|dr|mast|master)\.?\s+/i.test(rawPatientName);
+  let salutationPrefix = '';
+  if (!hasSalutation) {
+    const s = (prescriptionData.sex || '').toLowerCase();
+    if (s.startsWith('f')) salutationPrefix = 'MRS./MS. ';
+    else if (s.startsWith('m')) salutationPrefix = 'MR. ';
+  }
+  const patientNameFormatted = `${salutationPrefix}${rawPatientName.toUpperCase()}`;
 
   let refNumber = (prescriptionData.reference_number || '').replace(/^CH/i, 'CRX');
   if (prescriptionData.patient_name?.toLowerCase() === 'testing' && (refNumber === 'CRX0001' || !refNumber)) {
@@ -431,9 +454,18 @@ function PrintPrescriptionContent() {
     refNumber = 'CRX0003';
   }
   if (!refNumber) refNumber = '00000';
-  const ageDisplay = prescriptionData.age ? `${prescriptionData.age}y` : '';
+  const rawAge = prescriptionData.age ? String(prescriptionData.age).trim() : '';
+  const ageDisplay = rawAge && rawAge !== '-' && rawAge !== '0' && rawAge !== 'null' && rawAge !== 'undefined'
+    ? `${rawAge.replace(/\s*y(ears?)?/i, '')} Yrs`
+    : '';
   const sexDisplay = prescriptionData.sex ? prescriptionData.sex : '';
   const phoneDisplay = prescriptionData.phone_number || '';
+
+  const activeDoctorProfile = getDoctorProfile(resolvedDoctorName || prescriptionData.doctor_name);
+  const isGyno =
+    activeDoctorProfile?.specialty === 'gynecology' ||
+    /gyne|shillpa|shilpa|obs|maternity/i.test(resolvedDoctorName || '') ||
+    /gyne|shillpa|shilpa|obs|maternity/i.test(prescriptionData.doctor_name || '');
 
   const vitals = prescriptionData.vitals || (prescriptionData as any).vital_signs || {};
   const bpDisplay = vitals.bp || (vitals.bp_systolic && vitals.bp_diastolic ? `${vitals.bp_systolic}/${vitals.bp_diastolic}` : '') || (vitals.bp_systolic ? `${vitals.bp_systolic}` : '') || (prescriptionData as any).bp || '';
@@ -618,7 +650,6 @@ function PrintPrescriptionContent() {
               <th className="col-med">Medicine</th>
               <th className="col-dosage">Dosage</th>
               <th className="col-timing">Timing - Freq. - Duration</th>
-              <th className="col-qty">Qty</th>
             </tr>
           </thead>
           <tbody>
@@ -635,13 +666,13 @@ function PrintPrescriptionContent() {
                       <div className="space-y-1">
                         {med.schedules.map((s, si) => (
                           <div key={si} className="dosage-val">
-                            {s.dosage ? String(s.dosage).replace(/-/g, ' — ') : '—'}
+                            {s.dosage ? String(s.dosage).replace(/-/g, ' - ') : '—'}
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="dosage-val">
-                        {med.dosage ? String(med.dosage).replace(/-/g, ' — ') : '—'}
+                        {med.dosage ? String(med.dosage).replace(/-/g, ' - ') : '—'}
                       </div>
                     )}
                   </td>
@@ -658,7 +689,7 @@ function PrintPrescriptionContent() {
                     ) : (
                       <div className="timing-val">
                         {(() => {
-                          const parts: string[] = [];
+                           const parts: string[] = [];
                           if (med.frequency && med.frequency !== 'Daily') {
                             parts.push(String(med.frequency));
                           }
@@ -682,9 +713,6 @@ function PrintPrescriptionContent() {
                       </div>
                     )}
                   </td>
-                  <td className="text-right font-bold med-qty-val">
-                    {med.quantity ?? calculateMedicineQuantity(med) ?? '—'}
-                  </td>
                 </tr>
               ))
             ) : (
@@ -702,7 +730,15 @@ function PrintPrescriptionContent() {
 
   const renderClinicalNotes = () => {
     if (enabledSections.clinical_notes === false) return null;
-    const hasAny = !!(prescriptionData.advice || prescriptionData.diet_exercise || prescriptionData.referral_doctor || prescriptionData.investigation);
+    const hasAny = !!(
+      prescriptionData.advice ||
+      prescriptionData.procedure_advice ||
+      prescriptionData.dr_notes ||
+      prescriptionData.notes ||
+      prescriptionData.diet_exercise ||
+      prescriptionData.referral_doctor ||
+      prescriptionData.investigation
+    );
     if (!hasAny) return null;
     const investigationDisplay = prescriptionData.investigation?.replace(
       /\(By:\s*Next Visit\)/gi,
@@ -711,27 +747,39 @@ function PrintPrescriptionContent() {
     return (
       <div key="clinical_notes" className="advice-box" style={{ marginTop: '6px' }}>
         {prescriptionData.advice && (
-          <div>
-            <div className="advice-heading">Advice:</div>
+          <div style={{ marginBottom: '6px' }}>
+            <div className="advice-heading">Advice / सल्ला:</div>
             <div className="advice-content-body">{prescriptionData.advice}</div>
           </div>
         )}
+        {prescriptionData.procedure_advice && (
+          <div style={{ marginBottom: '6px' }}>
+            <div className="advice-heading">Procedure Advice / कार्यपद्धती सल्ला:</div>
+            <div className="advice-content-body">{prescriptionData.procedure_advice}</div>
+          </div>
+        )}
+        {(prescriptionData.dr_notes || prescriptionData.notes) && (
+          <div style={{ marginBottom: '6px' }}>
+            <div className="advice-heading">Doctor Notes / विशेष सूचना:</div>
+            <div className="advice-content-body">{prescriptionData.dr_notes || prescriptionData.notes}</div>
+          </div>
+        )}
+        {prescriptionData.investigation && (
+          <div className="marathi-item" style={{ marginTop: '6px' }}>
+            <span className="marathi-label">चाचणी / Investigations &amp; Tests:</span>
+            <span style={{ fontWeight: 700, color: '#000000' }}>{investigationDisplay}</span>
+          </div>
+        )}
         {prescriptionData.diet_exercise && (
-          <div className="marathi-item">
-            <span className="marathi-label">Diet &amp; Exercise:</span>
+          <div className="marathi-item" style={{ marginTop: '5px' }}>
+            <span className="marathi-label">आहार आणि व्यायाम / Diet &amp; Exercise:</span>
             <span>{prescriptionData.diet_exercise}</span>
           </div>
         )}
         {prescriptionData.referral_doctor && (
-          <div className="marathi-item">
+          <div className="marathi-item" style={{ marginTop: '5px' }}>
             <span className="marathi-label">Referred To:</span>
             <span>{prescriptionData.referral_doctor}</span>
-          </div>
-        )}
-        {prescriptionData.investigation && (
-          <div className="marathi-item">
-            <span className="marathi-label">फेर चाचणी / Tests :</span>
-            <span>{investigationDisplay}</span>
           </div>
         )}
       </div>
@@ -762,7 +810,7 @@ function PrintPrescriptionContent() {
             <img
               src={getSignatureSrc(resolvedSignature)}
               alt="Doctor Signature"
-              className="sig-img"
+              className={`sig-img ${isGyno ? 'sig-gyno' : ''}`}
             />
           )}
           <div className="sig-doc-name">
@@ -779,7 +827,7 @@ function PrintPrescriptionContent() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: ${includeHeaderFooter ? '5mm 6mm 5mm 6mm' : `${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm`};
+            margin: ${includeHeaderFooter ? '5mm 5mm 5mm 5mm' : `${margins.top}mm 5mm ${margins.bottom}mm 5mm`};
           }
 
           html, body {
@@ -864,7 +912,7 @@ function PrintPrescriptionContent() {
             margin: 0 auto 40px auto;
             background: #ffffff;
             box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-            padding: ${includeHeaderFooter ? '5mm 7mm 8mm 7mm' : `${margins.top}mm ${margins.right}mm ${margins.bottom}mm ${margins.left}mm`};
+            padding: ${includeHeaderFooter ? '5mm 5mm 8mm 5mm' : `${margins.top}mm 5mm ${margins.bottom}mm 5mm`};
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -1137,23 +1185,18 @@ function PrintPrescriptionContent() {
         }
 
         .med-table th.col-med {
-          width: 34%;
+          width: 58%;
           text-align: left;
         }
 
         .med-table th.col-dosage {
-          width: 16%;
+          width: 8%;
           text-align: center;
         }
 
         .med-table th.col-timing {
-          width: 40%;
+          width: 34%;
           text-align: left;
-        }
-
-        .med-table th.col-qty {
-          width: 10%;
-          text-align: right;
         }
 
         .med-row td {
@@ -1206,11 +1249,11 @@ function PrintPrescriptionContent() {
         }
 
         .dosage-val {
-          font-size: 13pt;
+          font-size: 11pt;
           font-weight: 800;
           color: #000000;
           text-align: center;
-          letter-spacing: 1.5px;
+          letter-spacing: 0.2px;
           white-space: nowrap;
           padding-top: 1px;
         }
@@ -1296,11 +1339,16 @@ function PrintPrescriptionContent() {
         }
 
         .sig-img {
-          height: 64px;
-          max-width: 220px;
+          height: 52px;
+          max-width: 170px;
           object-fit: contain;
           margin: 0 auto;
           display: block;
+        }
+
+        .sig-img.sig-gyno {
+          height: 45px;
+          max-width: 140px;
         }
 
         .sig-doc-name {
@@ -1482,12 +1530,12 @@ function PrintPrescriptionContent() {
                     [Token #{prescriptionData.token}]
                   </span>
                 ) : null}{' '}
-                : <span>MR.{patientNameFormatted}</span>{' '}
-                <span>
-                  ({ageDisplay}
-                  {ageDisplay && sexDisplay ? ', ' : ''}
-                  {sexDisplay})
-                </span>
+                : <span>{patientNameFormatted}</span>{' '}
+                {(ageDisplay || sexDisplay) ? (
+                  <span>
+                    ({[ageDisplay, sexDisplay].filter(Boolean).join(', ')})
+                  </span>
+                ) : null}
                 {phoneDisplay ? <span> - {phoneDisplay}</span> : ''}
               </div>
               <div className="patient-date-right">
@@ -1514,6 +1562,8 @@ function PrintPrescriptionContent() {
                   return renderMedicines();
                 case 'clinical_notes':
                   return renderClinicalNotes();
+                case 'procedure':
+                  return renderClinicalNotes();
                 case 'next_visit':
                   return renderNextVisit();
                 default:
@@ -1526,7 +1576,9 @@ function PrintPrescriptionContent() {
           <div className="sheet-bottom-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: '6mm' }}>
               <div className="prescription-validity-note" style={{ flex: 1 }}>
-                <div className="validity-rule">* Prescription is valid for 30 days only</div>
+                {!isGyno && (
+                  <div className="validity-rule">* Prescription is valid for 30 days only</div>
+                )}
                 <div className="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
               </div>
               {renderSignature()}
