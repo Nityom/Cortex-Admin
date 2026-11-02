@@ -86,7 +86,7 @@ export interface HospitalConfig {
 export const hospitalTemplateConfig: HospitalConfig = {
   id: "client-hospital-id",
   name: "Sample Multi-Speciality Hospital",
-  legalName: "Sample Multi-Speciality Hospital & Research Centre",
+  legalName: "Sample Multi-Speciality Hospitals",
   tagline: "Centre for Advanced Healthcare & Surgery",
   address: {
     line1: "Main Road",

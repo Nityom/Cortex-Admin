@@ -738,6 +738,18 @@ export default function HospitalBillingPage() {
         status: opdPaymentStatus,
       });
 
+      // Directly open print window so user does not need to scroll upwards
+      if (activeBillId && typeof window !== "undefined") {
+        try {
+          const printWindow = window.open(`/print-bill?billId=${encodeURIComponent(activeBillId)}&autoPrint=true`, "_blank");
+          if (printWindow) {
+            printWindow.focus();
+          }
+        } catch (openErr) {
+          console.warn("Could not automatically open print window:", openErr);
+        }
+      }
+
       // Clear draft on successful bill save
       if (typeof window !== "undefined") {
         try {

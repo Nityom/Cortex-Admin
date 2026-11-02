@@ -132,8 +132,8 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   }
 
   // Load signature image
-  const docNameLower = (data.doctorName || '').toLowerCase();
-  const sigUrl = (docNameLower.includes('shillpa') || docNameLower.includes('anjali')) ? '/sign1.png' : '/sign.png';
+  const docName = data.doctorName || '';
+  const sigUrl = /shillpa|shilpa|anjali|gyn/i.test(docName) ? '/sign1.png' : '/sign.png';
   let signImageBytes: Uint8Array | null = null;
   try {
     const resp = await fetch(sigUrl);

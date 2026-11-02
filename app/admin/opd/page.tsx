@@ -318,7 +318,9 @@ export default function OPDManagementPage() {
               }
 
               if (uhid !== item.uhid) changed = true;
-              return { ...item, uhid };
+              const status = item.status === "Ready" ? "Waiting" : (item.status || "Waiting");
+              if (status !== item.status) changed = true;
+              return { ...item, uhid, status };
             });
 
             // 2. Repair and deduplicate tokens PER DOCTOR per day
@@ -400,7 +402,7 @@ export default function OPDManagementPage() {
         department: item.department || "",
         priority: item.priority || "Normal",
         visitType: item.visitType || "New Registration",
-        status: item.status || "Waiting",
+        status: item.status === "Ready" ? "Waiting" : (item.status || "Waiting"),
         vitals: item.vitals || {},
         consultationFee: item.consultationFee,
         paymentMode: item.paymentMode,
@@ -942,8 +944,7 @@ export default function OPDManagementPage() {
   const todayQueueSummary = useMemo(() => {
     const todayItems = queue.filter((item) => getItemLocalDate(item.registeredAt) === todayStr);
     return {
-      waiting: todayItems.filter((item) => item.status === "Waiting").length,
-      ready: todayItems.filter((item) => item.status === "Ready").length,
+      waiting: todayItems.filter((item) => item.status === "Waiting" || item.status === "Ready").length,
       inConsultation: todayItems.filter((item) => item.status === "In Consultation").length,
       completed: todayItems.filter((item) => item.status === "Completed").length,
     };
@@ -983,9 +984,9 @@ export default function OPDManagementPage() {
 
     const statusWeight: Record<string, number> = {
       "In Consultation": 0,
+      "Waiting": 1,
       "Ready": 1,
-      "Waiting": 2,
-      "Completed": 3,
+      "Completed": 2,
     };
 
     return [...list].sort((a, b) => {
@@ -1065,11 +1066,10 @@ export default function OPDManagementPage() {
         </div>
       </header>
 
-      {activeTab === "queue" && <section aria-label="Today at a glance" className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+      {activeTab === "queue" && <section aria-label="Today at a glance" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
           { label: "Patients", value: todayQueueCount, note: "Registered today", icon: Users, tone: "mint" },
-          { label: "Waiting", value: todayQueueSummary.waiting, note: "Awaiting arrival", icon: Clock, tone: "amber" },
-          { label: "Ready", value: todayQueueSummary.ready, note: "Ready for consultation", icon: CheckCircle2, tone: "blue" },
+          { label: "Waiting", value: todayQueueSummary.waiting, note: "Awaiting consultation", icon: Clock, tone: "amber" },
           { label: "In consultation", value: todayQueueSummary.inConsultation, note: "With a doctor now", icon: Activity, tone: "blue" },
           { label: "Completed visits", value: todayQueueSummary.completed, note: "Today’s OPD queue", icon: CheckCircle2, tone: "peach" },
         ].map((stat) => {
@@ -1243,7 +1243,6 @@ export default function OPDManagementPage() {
                 >
                   <option value="All">All Status</option>
                   <option value="Waiting">Waiting</option>
-                  <option value="Ready">Ready</option>
                   <option value="In Consultation">In Consultation</option>
                   <option value="Completed">Completed</option>
                 </select>
@@ -1341,13 +1340,18 @@ export default function OPDManagementPage() {
                   <tbody className="divide-y divide-[#edf2ee]">
                     {displayedQueue.map((item, index) => {
                       const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
-                      const statusStyle = item.status === "Waiting" ? "bg-amber-50 text-amber-800 border-amber-100" : item.status === "Ready" ? "bg-sky-50 text-sky-800 border-sky-200" : item.status === "Completed" ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-emerald-50 text-emerald-800 border-emerald-100";
+                      const statusStyle =
+                        item.status === "Waiting" || item.status === "Ready"
+                          ? "bg-amber-50 text-amber-800 border-amber-100"
+                          : item.status === "Completed"
+                          ? "bg-slate-100 text-slate-700 border-slate-200"
+                          : "bg-emerald-50 text-emerald-800 border-emerald-100";
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(index + 1).padStart(2, "0")}</td>
                         <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
                         <td className="px-4 py-4"><span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span><span className="mt-1 block text-sm text-slate-500">{item.vitals.bp ? `BP ${item.vitals.bp}` : "Vitals not recorded"}{item.vitals.pulse ? ` · ${item.vitals.pulse} bpm` : ""}{item.vitals.spo2 ? ` · SpO₂ ${item.vitals.spo2}%` : ""}</span></td>
                         <td className="px-4 py-4"><span className="block whitespace-nowrap text-sm font-semibold text-[#577464]">{item.doctor}</span><span className="mt-1 block text-sm text-slate-500">{item.department || "General consultation"}</span></td>
-                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="Ready">● Ready</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option></select>}</td>
+                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>

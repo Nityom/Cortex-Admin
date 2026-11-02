@@ -85,8 +85,8 @@ export interface HospitalConfig {
 export const hospitalConfig: HospitalConfig = {
   id: "cortex-hospital",
   name: "Cortex Hospital",
-  legalName: "Cortex Hospital & Research Centre",
-  tagline: "Hospital & Research Centre",
+  legalName: "Cortex Hospital",
+  tagline: "Hospital",
   address: {
     line1: "Aarti Chowk",
     line2: "Nagpur Road",

@@ -358,13 +358,13 @@ function PrintPrescriptionContent() {
               const match = doctors.find((d) => d.name.toLowerCase() === docName.toLowerCase());
               if (match?.signature_url) {
                 setResolvedSignature(match.signature_url);
-              } else if (docName.toLowerCase().includes('shillpa') || docName.toLowerCase().includes('anjali')) {
+              } else if (/shillpa|shilpa|anjali|gyn/i.test(docName)) {
                 setResolvedSignature('sign1.png');
               } else {
                 setResolvedSignature('sign.png');
               }
             } catch {
-              setResolvedSignature(paramSig || (docName.toLowerCase().includes('shillpa') || docName.toLowerCase().includes('anjali') ? 'sign1.png' : 'sign.png'));
+              setResolvedSignature(paramSig || (/shillpa|shilpa|anjali|gyn/i.test(docName) ? 'sign1.png' : 'sign.png'));
             }
           }
         }
@@ -666,13 +666,13 @@ function PrintPrescriptionContent() {
                       <div className="space-y-1">
                         {med.schedules.map((s, si) => (
                           <div key={si} className="dosage-val">
-                            {s.dosage ? String(s.dosage).replace(/-/g, ' - ') : '—'}
+                            {s.dosage ? String(s.dosage).replace(/\s*[-–—]\s*/g, '-').trim() : '—'}
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="dosage-val">
-                        {med.dosage ? String(med.dosage).replace(/-/g, ' - ') : '—'}
+                        {med.dosage ? String(med.dosage).replace(/\s*[-–—]\s*/g, '-').trim() : '—'}
                       </div>
                     )}
                   </td>

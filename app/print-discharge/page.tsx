@@ -243,8 +243,9 @@ function DischargeSheetContent() {
     return parseDischargeMeds(admission?.dischargeSummary?.dischargeMeds, admission?.medications);
   }, [admission]);
 
-  const doctorIsGynae = (admission?.consultantDoctor || '').toLowerCase().includes('shillpa');
+  const doctorIsGynae = /shillpa|shilpa|gyn/i.test(admission?.consultantDoctor || '');
   const doctorName = admission?.consultantDoctor || (doctorIsGynae ? 'Dr. Shillpa Raut' : 'Dr. Vipeen Raut');
+  const doctorSigUrl = doctorIsGynae ? '/sign1.png' : '/sign.png';
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500 font-sans">Loading Inpatient Discharge Summary...</div>;
@@ -620,7 +621,7 @@ function DischargeSheetContent() {
               <div className="signature-block">
                 {includeSignature && (
                   <img
-                    src="/sign.png"
+                    src={doctorSigUrl}
                     alt="Doctor Signature"
                     className="sig-img"
                   />
@@ -635,7 +636,7 @@ function DischargeSheetContent() {
             {/* Official Hospital Discharge Document Footer */}
             <div className="discharge-footer">
               <div className="discharge-footer-contact">
-                <strong>CORTEX HOSPITAL &amp; RESEARCH CENTRE</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
+                <strong>CORTEX HOSPITAL</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
               </div>
               <div className="discharge-footer-disclaimer">
                 This Inpatient Discharge Summary &amp; Clinical Report is a confidential medical record. Please bring this summary during follow-up visits.
@@ -947,7 +948,7 @@ function DischargeSheetContent() {
                   <div className="signature-block">
                     {includeSignature && (
                       <img
-                        src="/sign.png"
+                        src={doctorSigUrl}
                         alt="Doctor Signature"
                         className="sig-img"
                       />
@@ -963,7 +964,7 @@ function DischargeSheetContent() {
               {/* Official Hospital Discharge Document Footer */}
               <div className="discharge-footer">
                 <div className="discharge-footer-contact">
-                  <strong>CORTEX HOSPITAL &amp; RESEARCH CENTRE</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
+                  <strong>CORTEX HOSPITAL</strong> • Beside Urich Mall, Aarti Square, Nagpur Road, Wardha (M.S) - 442001 • Mobile: +91 9373280505
                 </div>
                 <div className="discharge-footer-disclaimer">
                   Confidential Patient Clinical Stay Record • Inpatient Medical Records

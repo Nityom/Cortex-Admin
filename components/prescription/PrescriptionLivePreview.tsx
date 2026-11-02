@@ -393,7 +393,7 @@ export default function PrescriptionLivePreview({
                     {/* Dosage */}
                     <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
                       {(med.schedules?.length ? med.schedules : [{ dosage: med.dosage }]).map((schedule, scheduleIndex) => (
-                        <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/-/g, ' - ') : '—'}</div>
+                        <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/\s*[-–—]\s*/g, '-').trim() : '—'}</div>
                       ))}
                     </td>
 

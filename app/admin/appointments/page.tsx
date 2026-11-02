@@ -6,6 +6,9 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Stethoscope, Pencil, Trash2, Search, X, MapPin } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-is-admin';
+import { getPatientByPhoneNumber } from '@/services/patients';
+import { OPDQueueItem } from '@/services/opdQueue';
+import { hospitalConfig } from '@/config/hospital';
 
 // Helpers
 const getTodayString = () => {
@@ -77,6 +80,81 @@ export default function AppointmentsPage() {
   // We'll just fetch all appointments for now, assuming the list isn't huge, or we can just fetch list and filter.
   // Let's use the list query and filter it on the client side.
   const allAppointments = useQuery(api.appointments.list);
+  const allPatients = useQuery(api.patients.list);
+
+  // Debounced Patient Search in Appointment Modal
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const patientDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(patientSearchQuery);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [patientSearchQuery]);
+
+  // Unified patient pool from Patients collection and Past Appointments
+  const matchingPatients = useMemo(() => {
+    const term = debouncedSearchQuery.trim().toLowerCase();
+    if (!term || term.length < 2) return [];
+
+    const map = new Map<string, { name: string; phone: string; age?: string; address?: string; uhid?: string }>();
+
+    if (allPatients && Array.isArray(allPatients)) {
+      allPatients.forEach((p: any) => {
+        const name = (p.name || '').trim();
+        const phone = (p.phone_number || p.phone || '').trim();
+        const age = p.age !== undefined && p.age !== null ? String(p.age) : '';
+        const address = (p.address || p.city || '').trim();
+        const uhid = (p.reference_number || p.uhid || '').trim();
+        const key = (phone || name.toLowerCase()).trim();
+        if (key && !map.has(key)) {
+          map.set(key, { name, phone, age, address, uhid });
+        }
+      });
+    }
+
+    if (allAppointments && Array.isArray(allAppointments)) {
+      allAppointments.forEach((a: any) => {
+        const name = (a.name || '').trim();
+        const phone = (a.phone || '').trim();
+        const age = a.age !== undefined && a.age !== null ? String(a.age) : '';
+        const address = (a.address || '').trim();
+        const key = (phone || name.toLowerCase()).trim();
+        if (key && !map.has(key)) {
+          map.set(key, { name, phone, age, address });
+        }
+      });
+    }
+
+    const cleanTermDigits = term.replace(/\D/g, '');
+    const results: Array<{ name: string; phone: string; age?: string; address?: string; uhid?: string }> = [];
+
+    for (const p of map.values()) {
+      const matchName = p.name.toLowerCase().includes(term);
+      const matchPhone = cleanTermDigits.length >= 3 && p.phone.replace(/\D/g, '').includes(cleanTermDigits);
+      const matchUhid = p.uhid && p.uhid.toLowerCase().includes(term);
+      if (matchName || matchPhone || matchUhid) {
+        results.push(p);
+        if (results.length >= 6) break;
+      }
+    }
+
+    return results;
+  }, [debouncedSearchQuery, allPatients, allAppointments]);
+
+  // Close patient dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (patientDropdownRef.current && !patientDropdownRef.current.contains(e.target as Node)) {
+        setShowPatientDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const appointmentsForDate = useMemo(() => {
     if (!allAppointments) return undefined;
     return allAppointments
@@ -122,6 +200,9 @@ export default function AppointmentsPage() {
   const createAppointment = useMutation(api.appointments.create);
   const updateAppointment = useMutation(api.appointments.update);
   const removeAppointment = useMutation(api.appointments.remove);
+  const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
+  const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
+  const liveOpdQueue = useQuery(api.opd_queue.list, {});
 
   const [lastBookedTime, setLastBookedTime] = useState<string>('');
 
@@ -263,7 +344,24 @@ export default function AppointmentsPage() {
         notes: '',
       });
     }
+    setPatientSearchQuery('');
+    setShowPatientDropdown(false);
     setIsModalOpen(true);
+  };
+
+  const handleSelectPatient = (p: { name: string; phone: string; age?: string; address?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      name: p.name,
+      phone: p.phone,
+      age: p.age || prev.age,
+      address: p.address || prev.address,
+    }));
+    setShowPatientDropdown(false);
+    setPatientSearchQuery('');
+    setTimeout(() => {
+      timeInputRef.current?.focus();
+    }, 60);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -300,9 +398,125 @@ export default function AppointmentsPage() {
 
       if (editingId) {
         await updateAppointment({ id: editingId, ...appointmentPayload });
+        try {
+          let currentQueue: OPDQueueItem[] = [];
+          const raw = localStorage.getItem('cortex_opd_queue_v1');
+          if (raw) currentQueue = JSON.parse(raw);
+          const existingQueueItem = currentQueue.find((q) => q.appointmentId === String(editingId));
+          if (existingQueueItem) {
+            const updatedItem: OPDQueueItem = {
+              ...existingQueueItem,
+              name: formData.name.trim(),
+              phone: formData.phone.trim(),
+              age: formData.age.trim() || existingQueueItem.age,
+              address: formData.address.trim() || existingQueueItem.address,
+              doctor: formData.doctor_name || existingQueueItem.doctor,
+              time: finalTime,
+            };
+            const updatedQueue = currentQueue.map((q) => (q.id === existingQueueItem.id ? updatedItem : q));
+            localStorage.setItem('cortex_opd_queue_v1', JSON.stringify(updatedQueue));
+            await upsertOpdQueueMutation(updatedItem as any);
+          }
+        } catch {}
       } else {
-        await createAppointment(appointmentPayload);
+        const newApptId = await createAppointment(appointmentPayload);
         setLastBookedTime(finalTime);
+
+        // DIRECTLY ADD IN WAITING (NO NEED TO CHECK IN IN OPD)
+        try {
+          const docName = formData.doctor_name || hospitalConfig.doctors[0]?.name || 'Dr. Vipeen Raut';
+          const dept = docName.toLowerCase().includes('shillpa')
+            ? 'Obstetrics & Gynaecology'
+            : 'Orthopaedics & Joint Replacement';
+
+          // 1. Resolve Patient UHID & patientId
+          let uhid = '';
+          let patientId: string | undefined = undefined;
+          if (formData.phone?.trim()) {
+            try {
+              const pt = await getPatientByPhoneNumber(formData.phone.trim());
+              if (pt) {
+                patientId = pt.id;
+                uhid = (pt.reference_number || '').replace(/^CH/i, 'CRX');
+              }
+            } catch {}
+          }
+          if (!uhid) {
+            uhid = `CRX${Math.floor(1000 + Math.random() * 9000)}`;
+          }
+
+          // 2. Calculate next token number for this doctor
+          let currentQueue: OPDQueueItem[] = [];
+          try {
+            const raw = localStorage.getItem('cortex_opd_queue_v1');
+            if (raw) currentQueue = JSON.parse(raw);
+          } catch {}
+          if (Array.isArray(liveOpdQueue)) {
+            currentQueue = liveOpdQueue as any;
+          }
+
+          const targetDocKey = docName.toLowerCase().replace(/l+/g, 'l');
+          const doctorItems = currentQueue.filter((q) => {
+            const qDoc = (q.doctor || '').toLowerCase().replace(/l+/g, 'l');
+            return qDoc.includes(targetDocKey) || targetDocKey.includes(qDoc);
+          });
+          const existingTokens = doctorItems
+            .map((q) => parseInt(q.token, 10))
+            .filter((n) => !isNaN(n) && n > 0);
+          const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
+          const tokenNumber = String(nextToken).padStart(2, '0');
+
+          const isGynae = docName.toLowerCase().includes('shillpa') || dept.toLowerCase().includes('gynaec');
+          const sex = isGynae ? 'Female' : 'Male';
+
+          const queueItem: OPDQueueItem = {
+            id: `opd_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            token: tokenNumber,
+            uhid,
+            patientId,
+            appointmentId: String(newApptId),
+            name: formData.name.trim(),
+            age: formData.age.trim() || '—',
+            ageUnit: 'years',
+            sex: sex as any,
+            phone: formData.phone.trim(),
+            address: formData.address.trim() || '',
+            doctor: docName,
+            department: dept,
+            priority: 'Normal',
+            visitType: 'Appointment',
+            status: 'Waiting', // DIRECTLY IN WAITING!
+            vitals: {},
+            consultationFee: 0,
+            paymentMode: 'Free / Exempt',
+            registeredAt: selectedDate
+              ? new Date(`${selectedDate}T${finalTime || '09:00'}:00`).toISOString()
+              : new Date().toISOString(),
+            time: finalTime,
+          };
+
+          // Save to local storage for instant zero-latency UI
+          try {
+            const raw = localStorage.getItem('cortex_opd_queue_v1');
+            const localList = raw ? JSON.parse(raw) : [];
+            const updatedLocal = [
+              queueItem,
+              ...localList.filter((x: any) => x.id !== queueItem.id && x.appointmentId !== String(newApptId)),
+            ];
+            localStorage.setItem('cortex_opd_queue_v1', JSON.stringify(updatedLocal));
+          } catch {}
+
+          // Upsert to Convex database so all other devices see patient in Waiting immediately
+          await upsertOpdQueueMutation(queueItem as any);
+
+          // Update appointment status to CONFIRMED
+          await updateAppointment({
+            id: newApptId,
+            status: 'CONFIRMED',
+          });
+        } catch (queueErr) {
+          console.warn('Could not auto-add appointment to OPD waiting queue:', queueErr);
+        }
       }
       setIsModalOpen(false);
     } catch (err: any) {
@@ -313,6 +527,18 @@ export default function AppointmentsPage() {
   const handleDelete = async (id: Id<"appointments">) => {
     if (confirm("Are you sure you want to delete this appointment?")) {
       await removeAppointment({ id });
+      try {
+        const raw = localStorage.getItem("cortex_opd_queue_v1");
+        if (raw) {
+          const list: OPDQueueItem[] = JSON.parse(raw);
+          const queueItem = list.find((q) => q.appointmentId === String(id));
+          if (queueItem && queueItem.status === "Waiting") {
+            const filtered = list.filter((q) => q.id !== queueItem.id);
+            localStorage.setItem("cortex_opd_queue_v1", JSON.stringify(filtered));
+            await removeOpdQueueMutation({ queue_id: queueItem.id });
+          }
+        }
+      } catch {}
     }
   };
 
@@ -671,43 +897,129 @@ export default function AppointmentsPage() {
             </div>
             
             <form onSubmit={handleSave} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-1">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
-                  <input
-                    ref={nameInputRef}
-                    required
-                    type="text"
-                    value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    onKeyDown={e => handleEnterNext(e, ageInputRef)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-                  />
+              <div className="relative">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                    <input
+                      ref={nameInputRef}
+                      required
+                      type="text"
+                      placeholder="Patient name"
+                      value={formData.name}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, name: val });
+                        setPatientSearchQuery(val);
+                        setShowPatientDropdown(true);
+                      }}
+                      onFocus={() => {
+                        if (formData.name && formData.name.length >= 2) {
+                          setPatientSearchQuery(formData.name);
+                          setShowPatientDropdown(true);
+                        }
+                      }}
+                      onKeyDown={e => handleEnterNext(e, ageInputRef)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Age (Yrs)</label>
+                    <input
+                      ref={ageInputRef}
+                      type="text"
+                      placeholder="e.g. 35"
+                      value={formData.age}
+                      onChange={e => setFormData({ ...formData, age: e.target.value })}
+                      onKeyDown={e => handleEnterNext(e, phoneInputRef)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone</label>
+                    <input
+                      ref={phoneInputRef}
+                      required
+                      type="tel"
+                      placeholder="10-digit mobile"
+                      value={formData.phone}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, phone: val });
+                        setPatientSearchQuery(val);
+                        setShowPatientDropdown(true);
+                      }}
+                      onFocus={() => {
+                        if (formData.phone && formData.phone.length >= 3) {
+                          setPatientSearchQuery(formData.phone);
+                          setShowPatientDropdown(true);
+                        }
+                      }}
+                      onKeyDown={e => handleEnterNext(e, addressInputRef)}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    />
+                  </div>
                 </div>
-                <div className="sm:col-span-1">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Age (Yrs)</label>
-                  <input
-                    ref={ageInputRef}
-                    type="text"
-                    placeholder="e.g. 35"
-                    value={formData.age}
-                    onChange={e => setFormData({...formData, age: e.target.value})}
-                    onKeyDown={e => handleEnterNext(e, phoneInputRef)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-                  />
-                </div>
-                <div className="sm:col-span-1">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone</label>
-                  <input
-                    ref={phoneInputRef}
-                    required
-                    type="tel"
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                    onKeyDown={e => handleEnterNext(e, addressInputRef)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-                  />
-                </div>
+
+                {/* Debounced previous patient suggestions dropdown */}
+                {showPatientDropdown && matchingPatients.length > 0 && (
+                  <div
+                    ref={patientDropdownRef}
+                    className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-xl shadow-2xl border border-emerald-300 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-1 duration-150"
+                  >
+                    <div className="px-3.5 py-1.5 bg-emerald-50 text-[11px] font-bold text-emerald-800 flex items-center justify-between border-b border-emerald-100">
+                      <span>Found {matchingPatients.length} previous patient{matchingPatients.length > 1 ? 's' : ''} (Click to auto-fill)</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowPatientDropdown(false)}
+                        className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto">
+                      {matchingPatients.map((p, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleSelectPatient(p)}
+                          className="w-full px-3.5 py-2.5 text-left hover:bg-emerald-50/80 transition flex items-center justify-between group cursor-pointer"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-gray-900 group-hover:text-emerald-700">{p.name}</span>
+                              {p.uhid && (
+                                <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-1.5 py-0.5 rounded">
+                                  {p.uhid}
+                                </span>
+                              )}
+                              {p.age && (
+                                <span className="text-xs text-gray-500 font-medium">
+                                  {p.age} yrs
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                              <span className="flex items-center gap-1 font-mono text-emerald-700 font-medium">
+                                <Phone className="w-3 h-3 text-emerald-600" />
+                                {p.phone}
+                              </span>
+                              {p.address && (
+                                <span className="flex items-center gap-1 text-slate-600 truncate max-w-[220px]">
+                                  <MapPin className="w-3 h-3 text-slate-400" />
+                                  {p.address}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition whitespace-nowrap pl-2">
+                            Select ↵
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Address / City</label>

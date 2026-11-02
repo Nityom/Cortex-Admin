@@ -43,6 +43,14 @@ interface PrintableBillProps {
   prescriptionId?: string;
   includeSignature?: boolean;
   defaultPageSize?: 'A6' | 'A7' | 'A4';
+  isIpdBill?: boolean;
+  ipdNumber?: string;
+  admitDate?: string;
+  dischargeDate?: string;
+  patientAddress?: string;
+  wardName?: string;
+  paymentCategory?: string;
+  depositAmount?: number;
 }
 
 const PrintableBill: React.FC<PrintableBillProps> = ({
@@ -52,6 +60,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   patientPhone,
   patientAge,
   patientSex,
+  patientAddress,
   items = [],
   subtotal,
   discount = 0,
@@ -67,24 +76,31 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   prescriptionId,
   includeSignature = true,
   defaultPageSize = 'A6',
+  isIpdBill = false,
+  ipdNumber,
+  admitDate,
+  dischargeDate,
+  wardName,
+  paymentCategory = 'General',
+  depositAmount,
 }) => {
   const [includeSigState, setIncludeSigState] = useState<boolean>(includeSignature);
-  const [pageSize, setPageSize] = useState<'A6' | 'A7' | 'A4'>(defaultPageSize);
-  const [autoClose, setAutoClose] = useState<boolean>(true);
+  const [pageSize, setPageSize] = useState<'A6' | 'A7' | 'A4'>(isIpdBill ? 'A4' : defaultPageSize);
+  const [autoClose, setAutoClose] = useState<boolean>(!isIpdBill);
 
-  // Initialize from localStorage if present
+  // Initialize from localStorage if present (for standard OPD bills only; IPD bills stay large A4)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !isIpdBill) {
       const savedSize = localStorage.getItem('cortex_bill_paper_size') as 'A6' | 'A7' | 'A4' | null;
       if (savedSize && ['A6', 'A7', 'A4'].includes(savedSize)) {
         setPageSize(savedSize);
       }
     }
-  }, []);
+  }, [isIpdBill]);
 
   const handleSelectPageSize = (size: 'A6' | 'A7' | 'A4') => {
     setPageSize(size);
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !isIpdBill) {
       localStorage.setItem('cortex_bill_paper_size', size);
     }
   };
@@ -93,10 +109,18 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
     setIncludeSigState(includeSignature);
   }, [includeSignature]);
 
-  // Listen to afterprint event to auto-close tab if enabled
+  // Auto-print on load so the print dialog directly opens without needing to click print
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.print();
+    }, 450);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Listen to afterprint event to auto-close tab if enabled (NEVER auto-close for IPD bill)
   useEffect(() => {
     const handleAfterPrint = () => {
-      if (autoClose) {
+      if (autoClose && !isIpdBill) {
         window.close();
       }
     };
@@ -104,14 +128,17 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [autoClose]);
+  }, [autoClose, isIpdBill]);
 
   const handlePrint = () => {
     window.print();
   };
 
   const getSignatureSrc = (sig?: string) => {
-    if (!sig) return '/sign.png';
+    const isDocShillpa = /shillpa|shilpa|gyn/i.test(doctorName || '');
+    if (!sig || sig === 'sign.png' || sig === '/sign.png') {
+      return isDocShillpa ? '/sign1.png' : '/sign.png';
+    }
     if (sig.startsWith('data:') || sig.startsWith('http://') || sig.startsWith('https://')) {
       return sig;
     }
@@ -169,6 +196,31 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
 
   // Dynamic CSS according to selected page size
   const getPageStyles = () => {
+    if (isIpdBill || pageSize === 'A4') {
+      return `
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 6mm 8mm 6mm 8mm;
+          }
+          .printable-page {
+            width: 100% !important;
+            max-width: 210mm !important;
+            padding: 4mm 6mm !important;
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+          }
+        }
+        @media screen {
+          .printable-page {
+            max-width: 210mm;
+            padding: 8mm 12mm;
+            font-size: 11.5px;
+          }
+        }
+      `;
+    }
+
     if (pageSize === 'A7') {
       return `
         @media print {
@@ -253,49 +305,57 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   const renderToolbar = () => (
     <div className="no-print sticky top-0 z-50 bg-slate-900/95 backdrop-blur text-white shadow-xl border-b border-slate-700/80 px-3 py-2.5 mb-4">
       <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
-        {/* Paper Size Selector */}
-        <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
-          <span className="text-[10px] font-extrabold text-slate-400 px-2 uppercase tracking-wider">Paper:</span>
-          <button
-            type="button"
-            onClick={() => handleSelectPageSize('A6')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              pageSize === 'A6'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            <span>📄</span>
-            <span>A6 (105×148mm)</span>
-            {pageSize === 'A6' && <span className="text-[10px] bg-emerald-800/60 px-1 rounded">Selected</span>}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSelectPageSize('A7')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              pageSize === 'A7'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            <span>🧾</span>
-            <span>A7 (74×105mm)</span>
-            {pageSize === 'A7' && <span className="text-[10px] bg-emerald-800/60 px-1 rounded">Selected</span>}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSelectPageSize('A4')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              pageSize === 'A4'
-                ? 'bg-emerald-600 text-white shadow'
-                : 'text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            <span>📋</span>
-            <span>A4 (Full Sheet)</span>
-            {pageSize === 'A4' && <span className="text-[10px] bg-emerald-800/60 px-1 rounded">Selected</span>}
-          </button>
-        </div>
+        {/* Paper Size Selector / Mode Indicator */}
+        {isIpdBill ? (
+          <div className="flex items-center gap-2 bg-emerald-950/70 border border-emerald-600/50 px-3 py-1.5 rounded-xl">
+            <span className="text-emerald-400 font-extrabold text-xs flex items-center gap-1.5">
+              <span>📋</span> Official IPD Hospital Bill • A4 (Single Sheet)
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <span className="text-[10px] font-extrabold text-slate-400 px-2 uppercase tracking-wider">Paper:</span>
+            <button
+              type="button"
+              onClick={() => handleSelectPageSize('A6')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                pageSize === 'A6'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <span>📄</span>
+              <span>A6 (105×148mm)</span>
+              {pageSize === 'A6' && <span className="text-[10px] bg-emerald-800/60 px-1 rounded">Selected</span>}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectPageSize('A7')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                pageSize === 'A7'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <span>🧾</span>
+              <span>A7 (74×105mm)</span>
+              {pageSize === 'A7' && <span className="text-[10px] bg-emerald-800/60 px-1 rounded">Selected</span>}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectPageSize('A4')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                pageSize === 'A4'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <span>📋</span>
+              <span>A4 (Full Sheet)</span>
+              {pageSize === 'A4' && <span className="text-[10px] bg-emerald-800/60 px-1 rounded">Selected</span>}
+            </button>
+          </div>
+        )}
 
         {/* Options */}
         <div className="flex items-center gap-3 text-xs">
@@ -309,15 +369,17 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             <span>Include Sign</span>
           </label>
 
-          <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white select-none" title="Auto-close this tab after printing is finished">
-            <input
-              type="checkbox"
-              checked={autoClose}
-              onChange={(e) => setAutoClose(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-slate-600 text-emerald-500 focus:ring-0 cursor-pointer"
-            />
-            <span className="text-emerald-400 font-medium">Auto-close tab</span>
-          </label>
+          {!isIpdBill && (
+            <label className="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white select-none" title="Auto-close this tab after printing is finished">
+              <input
+                type="checkbox"
+                checked={autoClose}
+                onChange={(e) => setAutoClose(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-slate-600 text-emerald-500 focus:ring-0 cursor-pointer"
+              />
+              <span className="text-emerald-400 font-medium">Auto-close tab</span>
+            </label>
+          )}
         </div>
 
         {/* Print & Close Buttons */}
@@ -483,7 +545,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
                 <h1 className="font-extrabold text-[12px] uppercase tracking-wide text-gray-900 leading-tight">
                   {hospitalConfig.name}
                 </h1>
-                <p className="text-[8px] font-semibold text-emerald-800">Cortex Hospital & Research Centre</p>
+                <p className="text-[8px] font-semibold text-emerald-800">Cortex Hospital</p>
               </div>
             </div>
             <p className="text-[8.5px] text-gray-700 leading-tight mt-1">
@@ -886,6 +948,193 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
     );
   };
 
+  // -------------------------------------------------------------
+  // IPD BILL LAYOUT (A4 matching Official Hospital Bill - Page 1 of 1)
+  // -------------------------------------------------------------
+  const renderIpdBill = () => {
+    const depositVal = depositAmount !== undefined ? depositAmount : amountPaid;
+    const balanceVal = balance !== undefined ? balance : Math.max(0, total - depositVal);
+    const cleanBillNo = (billNumber || '').replace(/^CRX-INV-\d+-0*/i, '').replace(/^CRX-IPD-\d+-0*/i, '').replace(/^CRX-IPD-0*/i, '') || billNumber;
+    const cleanUhid = (referenceNumber || '').replace(/^CRX[-_]?0*/i, '') || referenceNumber || '28342';
+    const cleanIpdNo = (ipdNumber || '').replace(/^IPD[-_](\d+[-_])?0*/i, '').replace(/^IPD[-_]?0*/i, '') || ipdNumber || '119';
+
+    return (
+      <div className="printable-page bg-white text-black font-sans p-6 sm:p-8 flex flex-col justify-between">
+        <div>
+          {/* Page Number Top Right */}
+          <div className="text-right text-[11px] text-gray-800 font-semibold pb-1">
+            Page 1 of 1
+          </div>
+
+          {/* Hospital Header */}
+          <div className="flex items-start gap-3.5 pb-2">
+            <img
+              src={hospitalConfig.branding.logoUrl || '/logo.png'}
+              alt="CORTEX"
+              className="h-12 w-auto object-contain logo-print shrink-0"
+            />
+            <div>
+              <h1 className="text-base sm:text-lg font-black tracking-tight uppercase text-black leading-tight">
+                {hospitalConfig.legalName || 'CORTEX HOSPITAL'}
+              </h1>
+              <p className="text-xs text-gray-800 leading-tight">
+                {hospitalConfig.address.fullFormatted || 'Nagpur Road Wardha'}
+              </p>
+              <p className="text-xs text-gray-800 leading-tight">
+                Ph No. {hospitalConfig.contacts.mobile || '9373280505'}
+              </p>
+              <p className="text-xs text-gray-800 leading-tight">
+                NMC Reg. No.: WNH-074
+              </p>
+            </div>
+          </div>
+
+          {/* Centered Document Heading */}
+          <div className="text-center my-2">
+            <h2 className="text-sm sm:text-base font-black uppercase tracking-widest text-black underline underline-offset-4 decoration-1">
+              IPD BILL
+            </h2>
+          </div>
+
+          {/* Patient Details Grid (Two Columns matching photo) */}
+          <div className="grid grid-cols-12 gap-x-4 gap-y-1 my-2 text-black text-xs border-t border-b border-black py-2 leading-relaxed">
+            {/* Left Column */}
+            <div className="col-span-7 space-y-0.5">
+              <div className="flex">
+                <span className="w-28 font-semibold text-gray-800 shrink-0">Patient Name :</span>
+                <span className="font-bold uppercase text-black">{patientName}</span>
+              </div>
+              <div className="flex">
+                <span className="w-28 font-semibold text-gray-800 shrink-0">Age:</span>
+                <span className="font-medium text-black">
+                  {patientAge ? `${patientAge} Years` : ''}{patientSex ? `/${patientSex}` : ''}
+                </span>
+              </div>
+              <div className="flex">
+                <span className="w-28 font-semibold text-gray-800 shrink-0">Admit. Date :</span>
+                <span className="font-medium text-black">{admitDate || billDate}</span>
+              </div>
+              <div className="flex">
+                <span className="w-28 font-semibold text-gray-800 shrink-0">Disch. Date :</span>
+                <span className="font-medium text-black">{dischargeDate || billDate}</span>
+              </div>
+              <div className="flex">
+                <span className="w-28 font-semibold text-gray-800 shrink-0">Address :</span>
+                <span className="font-medium text-black uppercase leading-tight">{patientAddress || 'Wardha'}</span>
+              </div>
+              <div className="flex">
+                <span className="w-28 font-semibold text-gray-800 shrink-0">Ward Name :</span>
+                <span className="font-medium text-black">{wardName || 'General Ward'}</span>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="col-span-5 space-y-0.5">
+              <div className="flex">
+                <span className="w-32 font-semibold text-gray-800 shrink-0">UHID/IPD No. :</span>
+                <span className="font-bold text-black font-mono">
+                  {cleanUhid}/{cleanIpdNo}
+                </span>
+              </div>
+              <div className="flex">
+                <span className="w-32 font-semibold text-gray-800 shrink-0">BillNo.:</span>
+                <span className="font-bold text-black font-mono">
+                  {cleanBillNo}
+                </span>
+              </div>
+              <div className="flex">
+                <span className="w-32 font-semibold text-gray-800 shrink-0">Bill Date :</span>
+                <span className="font-medium text-black">{billDate}</span>
+              </div>
+              <div className="flex">
+                <span className="w-32 font-semibold text-gray-800 shrink-0">Consultant :</span>
+                <span className="font-bold uppercase text-black">{doctorName || 'Dr. VIPEEN RAUT'}</span>
+              </div>
+              <div className="flex">
+                <span className="w-32 font-semibold text-gray-800 shrink-0">Payment Category :</span>
+                <span className="font-medium text-black">{paymentCategory || 'General'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Black Bordered Items Table */}
+          <table className="w-full border-collapse border border-black my-2.5 text-xs">
+            <thead>
+              <tr className="border-b border-black text-black font-bold bg-gray-50/70">
+                <th className="border-r border-black p-1.5 text-center w-12">Sr.No.</th>
+                <th className="border-r border-black p-1.5 text-center">Particulars</th>
+                <th className="border-r border-black p-1.5 text-center w-24">Rate</th>
+                <th className="border-r border-black p-1.5 text-center w-24">Unit/Days</th>
+                <th className="p-1.5 text-center w-28">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, idx) => (
+                <tr key={idx} className="border-b border-black">
+                  <td className="border-r border-black p-1.5 text-center font-mono">{idx + 1}</td>
+                  <td className="border-r border-black p-1.5 font-medium text-left uppercase">
+                    {item.description}
+                  </td>
+                  <td className="border-r border-black p-1.5 text-center font-mono">
+                    {Number(item.unitPrice).toFixed(2)}
+                  </td>
+                  <td className="border-r border-black p-1.5 text-center font-mono">
+                    {item.quantity}
+                  </td>
+                  <td className="p-1.5 text-right font-mono font-bold">
+                    {Number(item.total).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+              {/* Total Row matching image */}
+              <tr className="border-t-2 border-black font-bold bg-gray-50/40">
+                <td colSpan={4} className="border-r border-black p-1.5 text-right font-bold pr-4">
+                  Total Rs.
+                </td>
+                <td className="p-1.5 text-right font-mono font-bold">
+                  {Number(total).toFixed(2)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Financial Summary & Signature (Bottom of page) */}
+        <div className="flex justify-between items-end mt-4 pt-2 text-xs text-black border-t border-gray-300">
+          {/* Left Financial Summary */}
+          <div className="space-y-1 w-7/12">
+            <div className="font-bold text-black">
+              Bill Amount Rs. {Number(total).toFixed(2)}
+            </div>
+            <div className="font-bold text-black">
+              Deposit Rs. {Number(depositVal).toFixed(2)}
+            </div>
+            <div className="font-bold text-black">
+              Balance Rs. {Number(balanceVal).toFixed(2)}
+            </div>
+            <div className="font-semibold text-black leading-tight pt-1">
+              Received With Thanks Sum of Rupees {Number(depositVal > 0 ? depositVal : total).toFixed(2)} / - Only.
+            </div>
+          </div>
+
+          {/* Right Signature & Seal */}
+          <div className="w-5/12 text-center flex flex-col items-center justify-end pb-1">
+            {includeSigState && (
+              <img
+                src={getSignatureSrc(signature)}
+                alt="Signature"
+                className="h-12 sm:h-14 w-auto object-contain mb-1"
+              />
+            )}
+            <div className="font-bold text-black pt-1 border-t border-black w-40 sm:w-44 text-center">
+              (Signature & Seal)
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 py-2 sm:py-4 px-2 sm:px-4 text-gray-900">
       <style>{`
@@ -949,9 +1198,15 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
 
       {/* Bill Presentation */}
       <div className="flex justify-center">
-        {pageSize === 'A7' && renderA7Bill()}
-        {pageSize === 'A6' && renderA6Bill()}
-        {pageSize === 'A4' && renderA4Bill()}
+        {isIpdBill ? (
+          renderIpdBill()
+        ) : (
+          <>
+            {pageSize === 'A7' && renderA7Bill()}
+            {pageSize === 'A6' && renderA6Bill()}
+            {pageSize === 'A4' && renderA4Bill()}
+          </>
+        )}
       </div>
 
       {showPrintButton && (
@@ -962,7 +1217,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2.5 px-8 rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            <span>Print Bill ({pageSize})</span>
+            <span>Print Bill ({isIpdBill ? 'A4' : pageSize})</span>
           </button>
           <button
             type="button"

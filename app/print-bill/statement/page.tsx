@@ -80,15 +80,16 @@ function StatementContent() {
             if (bill.prescription_id) {
               const rx = await convex.query(api.prescriptions.getById, { id: bill.prescription_id as any });
               if (rx?.doctor_name) {
-                const isAnjali = rx.doctor_name.toLowerCase().includes('anjali');
+                const isGyn = /shillpa|shilpa|anjali|gyn/i.test(rx.doctor_name);
                 return {
-                  signature: isAnjali ? 'sign1.png' : 'sign.png',
+                  signature: isGyn ? 'sign1.png' : 'sign.png',
                   doctorName: rx.doctor_name,
                 };
               }
             }
           } catch {}
-          return { signature: signatureParam, doctorName: doctorNameParam };
+          const isDocGyn = /shillpa|shilpa|anjali|gyn/i.test(doctorNameParam);
+          return { signature: isDocGyn ? 'sign1.png' : 'sign.png', doctorName: doctorNameParam };
         };
 
         const billDataList: BillData[] = await Promise.all(

@@ -147,7 +147,7 @@ function buildHtmlTemplate(
 <body style="margin: 0; padding: 20px 10px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; -webkit-font-smoothing: antialiased;">
   
   <div style="display:none;font-size:1px;color:#f8fafc;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    Digital Prescription issued for ${data.patientName} (${patientRefClean}) from Cortex Hospital &amp; Research Centre. Official prescription PDF attached.
+    Digital Prescription issued for ${data.patientName} (${patientRefClean}) from Cortex Hospital. Official prescription PDF attached.
   </div>
 
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
@@ -161,7 +161,7 @@ function buildHtmlTemplate(
           </td>
           <td style="text-align: right; vertical-align: middle;">
             <div style="font-size: 14px; font-weight: 800; color: #0f172a; letter-spacing: -0.2px;">CORTEX HOSPITAL</div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 1px;">Hospital &amp; Research Centre</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 1px;">Hospital</div>
             <div style="font-size: 10.5px; color: #64748b; margin-top: 1px;">Aarti Chowk, Nagpur Rd, Wardha</div>
             <div style="font-size: 11px; color: #7B1828; font-weight: 700; margin-top: 2px;">Ph: 07152-255795 • 9373280505</div>
           </td>
@@ -176,7 +176,7 @@ function buildHtmlTemplate(
     <div style="padding: 24px; font-size: 15px; line-height: 1.7; color: #334155;">
       <p style="margin: 0 0 16px 0;">Dear <strong>${data.patientName}</strong>,</p>
 
-      <p style="margin: 0 0 16px 0;">Thank you for visiting Cortex Hospital &amp; Research Centre.</p>
+      <p style="margin: 0 0 16px 0;">Thank you for visiting Cortex Hospital.</p>
 
       <p style="margin: 0 0 16px 0;">Please find attached your digital prescription issued by <strong>${docName}</strong> following your recent consultation.</p>
 
@@ -188,7 +188,7 @@ function buildHtmlTemplate(
 
       <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
         <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px;">Warm regards,</p>
-        <p style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 15px;">Cortex Hospital &amp; Research Centre</p>
+        <p style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 15px;">Cortex Hospital</p>
         <p style="margin: 0 0 4px 0; font-weight: 700; color: #7B1828; font-size: 14px;">${docName}</p>
         <p style="margin: 0; font-weight: 600; color: #0d9488; font-size: 13px;">📞 07152-255795 | 9373280505</p>
       </div>
@@ -230,7 +230,7 @@ function buildHtmlTemplate(
 
     <!-- Clean Footer -->
     <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; text-align: center; color: #94a3b8; font-size: 11px; line-height: 1.6;">
-      <div>Cortex Hospital &amp; Research Centre • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
+      <div>Cortex Hospital • Aarti Chowk, Nagpur Road, Wardha - 442001</div>
       <div>OPD Timings: Mon-Fri: 10:00 AM - 1:00 PM, 6:00 PM - 8:00 PM | Sunday Closed</div>
       <div style="margin-top: 6px; font-size: 11px; color: #64748b; font-weight: 600;">
         Powered by <strong style="color: #0d9488; font-weight: 800;">Svaasth-HMS</strong>
@@ -914,14 +914,14 @@ export const sendPrescriptionEmail = action({
     const html = buildHtmlTemplate(args, doctorEmail, doctorTitle, isGynae);
     const text = `Dear ${args.patientName},
 
-Thank you for visiting Cortex Hospital & Research Centre.
+Thank you for visiting Cortex Hospital.
 Please find attached your digital prescription issued by ${docName} following your recent consultation.
 The attached PDF contains your prescribed medications, dosage instructions, medical advice and follow-up details.
 Please keep this prescription for your records and refer to it when required.
 For any queries or assistance, feel free to contact us.
 
 Warm regards,
-Cortex Hospital & Research Centre
+Cortex Hospital
 ${docName}
 📞 07152-255795 | 9373280505
 

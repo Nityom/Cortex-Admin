@@ -121,10 +121,10 @@ function PrintBillContent() {
         setBillData({
           billNumber: (bill as any).bill_number || bill._id,
           billDate: formatDate(bill._creationTime),
-          patientName: (bill as any).patient_name || 'N/A',
-          patientPhone: (bill as any).phone_number || '',
-          patientAge: (bill as any).patient_age?.toString() || '',
-          patientSex: (bill as any).patient_sex || '',
+          patientName: (bill as any).patient_name || searchParams.get('patientName') || 'N/A',
+          patientPhone: (bill as any).phone_number || searchParams.get('patientPhone') || '',
+          patientAge: (bill as any).patient_age?.toString() || searchParams.get('patientAge') || '',
+          patientSex: (bill as any).patient_sex || searchParams.get('patientSex') || '',
           items,
           subtotal: total + discount,
           discount,
@@ -152,7 +152,7 @@ function PrintBillContent() {
                 const match = (allDocs || []).find((d: any) => d.name.toLowerCase() === rxDocName.toLowerCase());
                 if (match?.signature_url) {
                   sigUrl = match.signature_url;
-                } else if (rxDocName.toLowerCase().includes('anjali')) {
+                } else if (/shillpa|shilpa|anjali|gyn/i.test(rxDocName)) {
                   sigUrl = 'sign1.png';
                 }
               }
@@ -166,8 +166,14 @@ function PrintBillContent() {
             const match = (allDocs || []).find((d: any) => d.name.toLowerCase() === docName.toLowerCase());
             if (match?.signature_url) {
               sigUrl = match.signature_url;
+            } else if (/shillpa|shilpa|anjali|gyn/i.test(docName)) {
+              sigUrl = 'sign1.png';
             }
-          } catch {}
+          } catch {
+            if (/shillpa|shilpa|anjali|gyn/i.test(docName)) {
+              sigUrl = 'sign1.png';
+            }
+          }
         }
 
         setResolvedDoctorName(docName);
@@ -218,6 +224,14 @@ function PrintBillContent() {
   }
 
   const pageSizeParam = (searchParams.get('pageSize') as 'A6' | 'A7' | 'A4') || undefined;
+  const isIpdParam = searchParams.get('type') === 'ipd' || searchParams.get('isIpd') === 'true' || billData.prescriptionId === 'IPD_DIRECT';
+  const ipdNumberParam = searchParams.get('ipdNumber') || '';
+  const admitDateParam = searchParams.get('admitDate') || '';
+  const dischargeDateParam = searchParams.get('dischDate') || searchParams.get('dischargeDate') || '';
+  const addressParam = searchParams.get('address') || '';
+  const wardNameParam = searchParams.get('wardName') || '';
+  const paymentCategoryParam = searchParams.get('paymentCategory') || 'General';
+  const depositParam = searchParams.get('deposit') ? parseFloat(searchParams.get('deposit')!) : undefined;
 
   return (
     <PrintableBill
@@ -226,7 +240,15 @@ function PrintBillContent() {
       doctorName={resolvedDoctorName}
       paymentTransactions={paymentTransactions}
       includeSignature={includeSignature}
-      defaultPageSize={pageSizeParam}
+      defaultPageSize={isIpdParam ? 'A4' : (pageSizeParam || 'A6')}
+      isIpdBill={isIpdParam}
+      ipdNumber={ipdNumberParam}
+      admitDate={admitDateParam}
+      dischargeDate={dischargeDateParam}
+      patientAddress={addressParam}
+      wardName={wardNameParam}
+      paymentCategory={paymentCategoryParam}
+      depositAmount={depositParam !== undefined ? depositParam : billData.amountPaid}
     />
   );
 }
