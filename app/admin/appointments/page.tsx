@@ -125,48 +125,113 @@ export default function AppointmentsPage() {
 
   const [lastBookedTime, setLastBookedTime] = useState<string>('');
 
-  const calculateNextSlotTime = useCallback((dateStr: string): string => {
-    // 1. If we booked an appointment in this session, step 1 minute forward
-    if (lastBookedTime) {
+  // Refs for keyboard Enter navigation between fields
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
+  const ageInputRef = React.useRef<HTMLInputElement>(null);
+  const phoneInputRef = React.useRef<HTMLInputElement>(null);
+  const addressInputRef = React.useRef<HTMLInputElement>(null);
+  const timeInputRef = React.useRef<HTMLInputElement>(null);
+  const doctorSelectRef = React.useRef<HTMLSelectElement>(null);
+  const problemInputRef = React.useRef<HTMLInputElement>(null);
+  const notesTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const submitButtonRef = React.useRef<HTMLButtonElement>(null);
+
+  // Auto-focus Full Name when appointment modal opens
+  React.useEffect(() => {
+    if (isModalOpen) {
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [isModalOpen]);
+
+  // Enter key handler to quickly jump to the next input field
+  const handleEnterNext = (
+    e: React.KeyboardEvent,
+    nextRef: React.RefObject<HTMLElement | null>
+  ) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nextRef.current?.focus();
+    }
+  };
+
+  /**
+   * Calculates appointment time starting from current computer system time,
+   * automatically exceeding/advancing minute-by-minute if a slot is already taken.
+   */
+  const getNextAvailableTime = useCallback((dateStr: string, doctorName: string = 'Dr. Vipeen Raut', preferredTime?: string): string => {
+    const now = new Date();
+    // Default base time is the current computer system time
+    let baseMinutes = now.getHours() * 60 + now.getMinutes();
+
+    if (preferredTime) {
+      const norm = normalizeAppointmentTime(preferredTime);
+      const [hStr, mStr] = norm.split(':');
+      const h = parseInt(hStr, 10);
+      const m = parseInt(mStr, 10);
+      if (!isNaN(h) && !isNaN(m)) {
+        baseMinutes = h * 60 + m;
+      }
+    } else if (lastBookedTime) {
       const norm = normalizeAppointmentTime(lastBookedTime);
       const [hStr, mStr] = norm.split(':');
       const h = parseInt(hStr, 10);
       const m = parseInt(mStr, 10);
       if (!isNaN(h) && !isNaN(m)) {
-        const nextMin = (h * 60 + m + 1) % 1440;
-        const nextH = Math.floor(nextMin / 60);
-        const nextM = nextMin % 60;
-        return `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
+        // If an appointment was booked in this session, start at least 1 min after
+        const nextMin = h * 60 + m + 1;
+        baseMinutes = Math.max(baseMinutes, nextMin);
       }
     }
 
-    // 2. Otherwise check latest booked appointment on dateStr
+    // Collect all booked minute slots on this date for this doctor (excluding cancelled)
+    const bookedSlots = new Set<number>();
     if (allAppointments && allAppointments.length > 0) {
-      let maxMinutes = -1;
       for (const a of allAppointments) {
-        if (a.date === dateStr && a.time) {
-          const norm = normalizeAppointmentTime(a.time);
-          const [hStr, mStr] = norm.split(':');
-          const h = parseInt(hStr, 10);
-          const m = parseInt(mStr, 10);
-          if (!isNaN(h) && !isNaN(m)) {
-            const total = h * 60 + m;
-            if (total > maxMinutes) {
-              maxMinutes = total;
+        if (a.date === dateStr && a.time && a.status !== 'CANCELLED') {
+          const aDoc = (a.doctor_name || '').toLowerCase().trim();
+          const targetDoc = doctorName.toLowerCase().trim();
+          if (aDoc === targetDoc || !a.doctor_name) {
+            const norm = normalizeAppointmentTime(a.time);
+            const [hStr, mStr] = norm.split(':');
+            const h = parseInt(hStr, 10);
+            const m = parseInt(mStr, 10);
+            if (!isNaN(h) && !isNaN(m)) {
+              bookedSlots.add(h * 60 + m);
             }
           }
         }
       }
-      if (maxMinutes >= 0) {
-        const nextMin = (maxMinutes + 1) % 1440;
-        const nextH = Math.floor(nextMin / 60);
-        const nextM = nextMin % 60;
-        return `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
-      }
     }
 
-    return '11:00';
+    // Auto-exceed / advance while candidate time is already present
+    let candidate = baseMinutes;
+    let iterations = 0;
+    while (bookedSlots.has(candidate) && iterations < 1440) {
+      candidate = (candidate + 1) % 1440;
+      iterations++;
+    }
+
+    const h = Math.floor(candidate / 60);
+    const m = candidate % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }, [allAppointments, lastBookedTime]);
+
+  // Check if current time slot has an existing entry for this doctor on this date
+  const isTimeSlotBooked = useMemo(() => {
+    if (!formData.time || !allAppointments) return false;
+    const norm = normalizeAppointmentTime(formData.time);
+    const targetDoc = (formData.doctor_name || '').toLowerCase().trim();
+    return allAppointments.some(a => {
+      if (editingId && a._id === editingId) return false;
+      if (!a.time || a.date !== selectedDate || a.status === 'CANCELLED') return false;
+      const aDoc = (a.doctor_name || '').toLowerCase().trim();
+      return (aDoc === targetDoc || !a.doctor_name) && normalizeAppointmentTime(a.time) === norm;
+    });
+  }, [formData.time, formData.doctor_name, selectedDate, allAppointments, editingId]);
 
   const handleOpenModal = (appt?: any) => {
     if (appt) {
@@ -184,14 +249,15 @@ export default function AppointmentsPage() {
       });
     } else {
       setEditingId(null);
-      const defaultTime = calculateNextSlotTime(selectedDate);
+      const defaultDoctor = selectedDoctorFilter !== 'ALL' ? selectedDoctorFilter : 'Dr. Vipeen Raut';
+      const defaultTime = getNextAvailableTime(selectedDate, defaultDoctor);
       setFormData({
         name: '',
         phone: '',
         age: '',
         address: '',
         time: defaultTime,
-        doctor_name: 'Dr. Vipeen Raut',
+        doctor_name: defaultDoctor,
         duration_minutes: 30,
         dental_problem: '',
         notes: '',
@@ -203,13 +269,29 @@ export default function AppointmentsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let finalTime = normalizeAppointmentTime(formData.time);
+
+      // If time slot is taken, automatically exceed to the next available slot
+      if (allAppointments && allAppointments.length > 0) {
+        const isTaken = allAppointments.some(a => {
+          if (editingId && a._id === editingId) return false;
+          if (!a.time || a.date !== selectedDate || a.status === 'CANCELLED') return false;
+          const aDoc = (a.doctor_name || '').toLowerCase().trim();
+          const targetDoc = (formData.doctor_name || '').toLowerCase().trim();
+          return (aDoc === targetDoc || !a.doctor_name) && normalizeAppointmentTime(a.time) === finalTime;
+        });
+        if (isTaken) {
+          finalTime = getNextAvailableTime(selectedDate, formData.doctor_name, finalTime);
+        }
+      }
+
       const appointmentPayload = {
         name: formData.name,
         phone: formData.phone,
         age: formData.age.trim() ? (isNaN(Number(formData.age)) ? formData.age.trim() : Number(formData.age.trim())) : undefined,
         address: formData.address.trim() || undefined,
         date: selectedDate,
-        time: normalizeAppointmentTime(formData.time),
+        time: finalTime,
         doctor_name: formData.doctor_name,
         duration_minutes: formData.duration_minutes,
         dental_problem: formData.dental_problem || undefined,
@@ -220,7 +302,7 @@ export default function AppointmentsPage() {
         await updateAppointment({ id: editingId, ...appointmentPayload });
       } else {
         await createAppointment(appointmentPayload);
-        setLastBookedTime(appointmentPayload.time);
+        setLastBookedTime(finalTime);
       }
       setIsModalOpen(false);
     } catch (err: any) {
@@ -592,37 +674,105 @@ export default function AppointmentsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-1">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
+                  <input
+                    ref={nameInputRef}
+                    required
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onKeyDown={e => handleEnterNext(e, ageInputRef)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  />
                 </div>
                 <div className="sm:col-span-1">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Age (Yrs)</label>
-                  <input type="text" placeholder="e.g. 35" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
+                  <input
+                    ref={ageInputRef}
+                    type="text"
+                    placeholder="e.g. 35"
+                    value={formData.age}
+                    onChange={e => setFormData({...formData, age: e.target.value})}
+                    onKeyDown={e => handleEnterNext(e, phoneInputRef)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  />
                 </div>
                 <div className="sm:col-span-1">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone</label>
-                  <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
+                  <input
+                    ref={phoneInputRef}
+                    required
+                    type="tel"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    onKeyDown={e => handleEnterNext(e, addressInputRef)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Address / City</label>
                 <input
+                  ref={addressInputRef}
                   type="text"
                   placeholder="e.g. Wardha, Maharashtra"
                   value={formData.address}
                   onChange={e => setFormData({...formData, address: e.target.value})}
+                  onKeyDown={e => handleEnterNext(e, timeInputRef)}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Time</label>
-                  <input required type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-semibold text-gray-700">Time</label>
+                    {isTimeSlotBooked && (
+                      <span className="text-[11px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        Slot Taken
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    ref={timeInputRef}
+                    required
+                    type="time"
+                    value={formData.time}
+                    onChange={e => setFormData({...formData, time: e.target.value})}
+                    onKeyDown={e => handleEnterNext(e, doctorSelectRef)}
+                    className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white transition ${
+                      isTimeSlotBooked ? 'border-amber-400 focus:ring-amber-500' : 'border-gray-200 focus:ring-emerald-500'
+                    }`}
+                  />
+                  {isTimeSlotBooked && (
+                    <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700">
+                      <span>Already booked for this doctor</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextTime = getNextAvailableTime(selectedDate, formData.doctor_name, formData.time);
+                          setFormData(prev => ({ ...prev, time: nextTime }));
+                        }}
+                        className="font-bold underline hover:text-amber-900 cursor-pointer"
+                      >
+                        Use next: {getNextAvailableTime(selectedDate, formData.doctor_name, formData.time)}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Doctor</label>
-                  <select 
-                    value={formData.doctor_name} 
-                    onChange={e => setFormData({...formData, doctor_name: e.target.value})} 
+                  <select
+                    ref={doctorSelectRef}
+                    value={formData.doctor_name}
+                    onChange={e => {
+                      const doc = e.target.value;
+                      const nextTime = getNextAvailableTime(selectedDate, doc, formData.time);
+                      setFormData(prev => ({
+                        ...prev,
+                        doctor_name: doc,
+                        time: nextTime,
+                      }));
+                    }}
+                    onKeyDown={e => handleEnterNext(e, problemInputRef)}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                   >
                     <option value="Dr. Vipeen Raut">Dr. Vipeen Raut (Orthopaedic)</option>
@@ -632,22 +782,53 @@ export default function AppointmentsPage() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Condition / Problem</label>
-                <input 
-                  type="text" 
-                  value={formData.dental_problem} 
-                  onChange={e => setFormData({...formData, dental_problem: e.target.value})} 
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" 
-                  placeholder="e.g. Knee Pain, Back Pain, Pregnancy Care, Joint Replacement" 
+                <input
+                  ref={problemInputRef}
+                  type="text"
+                  value={formData.dental_problem}
+                  onChange={e => setFormData({...formData, dental_problem: e.target.value})}
+                  onKeyDown={e => handleEnterNext(e, notesTextareaRef)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                  placeholder="e.g. Knee Pain, Back Pain, Pregnancy Care, Joint Replacement"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Notes</label>
-                <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition resize-none" rows={3}></textarea>
+                <textarea
+                  ref={notesTextareaRef}
+                  value={formData.notes}
+                  onChange={e => setFormData({...formData, notes: e.target.value})}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (e.ctrlKey || e.metaKey) {
+                        return; // Let form submit on Ctrl+Enter
+                      }
+                      if (!e.shiftKey) {
+                        e.preventDefault();
+                        submitButtonRef.current?.focus();
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition resize-none"
+                  rows={3}
+                ></textarea>
               </div>
-              
+
               <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition">Cancel</button>
-                <button type="submit" className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 shadow-sm transition">Save Appointment</button>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  ref={submitButtonRef}
+                  type="submit"
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 shadow-sm transition cursor-pointer"
+                >
+                  Save Appointment
+                </button>
               </div>
             </form>
           </div>
