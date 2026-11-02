@@ -43,6 +43,7 @@ import { updateBill } from '@/services/bills';
 import { paymentTransactionService } from '@/services/payment-transactions';
 import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 import { getDoctorProfile } from '@/config/hospital';
+import { opdQueueService } from '@/services/opdQueue';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -921,6 +922,7 @@ export function usePrescriptionForm() {
       localStorage.setItem('cortex_opd_queue_v1', JSON.stringify(updatedQueue));
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('cortex_queue_updated'));
+      opdQueueService.updateStatus(target.id, 'In Consultation').catch(() => {});
 
       const params = new URLSearchParams({
         patientName: target.name || '',

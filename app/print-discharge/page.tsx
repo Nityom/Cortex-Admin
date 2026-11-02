@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
+import { ipdService } from '@/services/ipd';
 
 interface IPDAdmission {
   id: string;
@@ -192,22 +193,37 @@ function DischargeSheetContent() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: IPDAdmission[] = JSON.parse(saved);
+    let isMounted = true;
+    const loadAdmission = async () => {
+      try {
         if (admissionId) {
-          const found = parsed.find(a => a.id === admissionId || a.ipdNumber === admissionId);
-          if (found) setAdmission(found);
-        } else if (parsed.length > 0) {
-          setAdmission(parsed[0]);
+          const fromDb = await ipdService.getById(admissionId);
+          if (fromDb && isMounted) {
+            setAdmission(fromDb);
+            setLoading(false);
+            return;
+          }
         }
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved && isMounted) {
+          const parsed: IPDAdmission[] = JSON.parse(saved);
+          if (admissionId) {
+            const found = parsed.find(a => a.id === admissionId || a.ipdNumber === admissionId);
+            if (found) setAdmission(found);
+          } else if (parsed.length > 0) {
+            setAdmission(parsed[0]);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load admission for discharge print:", e);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    } catch (e) {
-      console.error("Failed to load admission for discharge print:", e);
-    } finally {
-      setLoading(false);
-    }
+    };
+    loadAdmission();
+    return () => {
+      isMounted = false;
+    };
   }, [admissionId]);
 
   const stayDays = useMemo(() => {

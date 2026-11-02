@@ -573,5 +573,98 @@ export default defineSchema({
   })
     .index("by_name", ["name"])
     .index("by_last_used", ["last_used_at"]),
+
+  opd_queue: defineTable({
+    queue_id: v.string(),
+    token: v.string(),
+    uhid: v.string(),
+    patientId: v.optional(v.string()),
+    appointmentId: v.optional(v.string()),
+    name: v.string(),
+    age: v.string(),
+    ageUnit: v.optional(v.string()),
+    sex: v.string(),
+    phone: v.string(),
+    address: v.optional(v.string()),
+    email: v.optional(v.string()),
+    whatsapp_number: v.optional(v.string()),
+    doctor: v.string(),
+    department: v.string(),
+    priority: v.string(),
+    visitType: v.string(),
+    status: v.string(),
+    vitals: v.optional(v.any()),
+    consultationFee: v.optional(v.number()),
+    paymentMode: v.optional(v.string()),
+    paymentStatus: v.optional(v.string()),
+    registeredAt: v.string(),
+    time: v.string(),
+    created_at: v.optional(v.number()),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_queue_id", ["queue_id"])
+    .index("by_status", ["status"])
+    .index("by_doctor", ["doctor"])
+    .index("by_registered_at", ["registeredAt"]),
+
+  ipd_admissions: defineTable({
+    admission_id: v.string(),
+    ipdNumber: v.string(),
+    uhid: v.string(),
+    patientId: v.optional(v.string()),
+    name: v.string(),
+    age: v.string(),
+    sex: v.string(),
+    phone: v.string(),
+    address: v.string(),
+    email: v.optional(v.string()),
+    whatsapp_number: v.optional(v.string()),
+    medicalHistory: v.optional(v.string()),
+    allergies: v.optional(v.string()),
+    provisionalDiagnosis: v.string(),
+    reasonForAdmission: v.string(),
+    admissionDate: v.string(),
+    admissionTime: v.string(),
+    department: v.string(),
+    consultantDoctor: v.string(),
+    referredBy: v.optional(v.string()),
+    paymentCategory: v.string(),
+    ward: v.string(),
+    bedNumber: v.string(),
+    dailyRate: v.number(),
+    nursingRatePerDay: v.number(),
+    doctorRatePerVisit: v.number(),
+    billableDaysOverride: v.optional(v.number()),
+    bedChargesOverride: v.optional(v.number()),
+    nursingChargesOverride: v.optional(v.number()),
+    doctorVisitsCountOverride: v.optional(v.number()),
+    doctorChargesOverride: v.optional(v.number()),
+    status: v.string(),
+    dischargeDate: v.optional(v.string()),
+    dischargeTime: v.optional(v.string()),
+    dischargeSummary: v.optional(v.any()),
+    vitals: v.optional(v.any()),
+    doctorNotes: v.optional(v.any()),
+    medications: v.optional(v.any()),
+    investigations: v.optional(v.any()),
+    procedures: v.optional(v.any()),
+    nursingNotes: v.optional(v.any()),
+    customCharges: v.optional(v.any()),
+    advances: v.optional(v.any()),
+    finalSettlement: v.optional(v.any()),
+    created_at: v.optional(v.number()),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_admission_id", ["admission_id"])
+    .index("by_status", ["status"])
+    .index("by_uhid", ["uhid"])
+    .index("by_ipd_number", ["ipdNumber"])
+    .index("by_admission_date", ["admissionDate"]),
+
+  ipd_bed_config: defineTable({
+    config_key: v.string(),
+    wards: v.any(),
+    updated_at: v.optional(v.number()),
+  }).index("by_config_key", ["config_key"]),
 });
 

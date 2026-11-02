@@ -193,6 +193,8 @@ export async function syncPrescriptionBill(params: SyncPrescriptionBillParams): 
   }
 }
 
+import { opdQueueService } from './opdQueue';
+
 export function updateLocalOpdQueue(
   opdVisitId?: string,
   referenceNumber?: string,
@@ -204,6 +206,7 @@ export function updateLocalOpdQueue(
     if (!raw) return;
     const q = JSON.parse(raw);
     let matched = false;
+    let matchedId = '';
     const updated = q.map((item: any) => {
       const isMatch =
         (opdVisitId && item.id === opdVisitId) ||
@@ -211,6 +214,7 @@ export function updateLocalOpdQueue(
         (phoneNumber && item.phone === phoneNumber);
       if (isMatch) {
         matched = true;
+        matchedId = item.id;
         return { ...item, status: 'Completed' };
       }
       return item;
@@ -219,6 +223,11 @@ export function updateLocalOpdQueue(
       localStorage.setItem('cortex_opd_queue_v1', JSON.stringify(updated));
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('cortex_queue_updated'));
+      if (matchedId) {
+        opdQueueService.updateStatus(matchedId, 'Completed').catch((e) => {
+          console.warn('Could not sync completed status to Convex opd_queue:', e);
+        });
+      }
     }
   } catch (err) {
     console.warn('Could not update local OPD queue status to Completed:', err);

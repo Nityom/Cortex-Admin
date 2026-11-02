@@ -46,6 +46,9 @@ import {
 import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById } from "@/services/patients";
 import { Patient } from "@/types/patient";
 import { hospitalConfig, getDoctorProfile } from "@/config/hospital";
+import { useQuery, useMutation } from "convex/react";
+// @ts-ignore
+import { api } from "@/convex/_generated/api";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES & DEFINITIONS
@@ -226,6 +229,15 @@ const STORAGE_KEY = "cortex_ipd_admissions_v1";
 
 export default function IPDManagementPage() {
   const router = useRouter();
+
+  // Convex Real-Time Synchronization Hooks
+  const liveAdmissions = useQuery(api.ipd.list, {});
+  const liveBedConfig = useQuery(api.ipd.getBedConfig, {});
+  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const saveIpdMutation = useMutation(api.ipd.save);
+  const updateIpdStatusMutation = useMutation(api.ipd.updateStatus);
+  const saveBedConfigMutation = useMutation(api.ipd.saveBedConfig);
+  const syncLocalAdmissionsMutation = useMutation(api.ipd.syncLocalAdmissions);
 
   // Tab State: 'dashboard' | 'admit' | 'history'
   const [activeTab, setActiveTab] = useState<"dashboard" | "admit" | "history">("dashboard");
@@ -479,17 +491,75 @@ export default function IPDManagementPage() {
     }
   }, []);
 
-  // Save Admissions to Storage
-  const saveAdmissions = (newItems: IPDAdmission[]) => {
+  // Real-time synchronization from Convex DB for IPD Admissions
+  useEffect(() => {
+    if (liveAdmissions && Array.isArray(liveAdmissions)) {
+      if (liveAdmissions.length > 0) {
+        const mapped: IPDAdmission[] = liveAdmissions.map((item: any) => ({
+          ...item,
+          id: item.admission_id || item._id,
+        }));
+        setAdmissions(mapped);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
+        } catch {}
+      } else {
+        // If Convex DB is empty, sync from localStorage if available
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const localAdmissions = JSON.parse(raw);
+            if (Array.isArray(localAdmissions) && localAdmissions.length > 0) {
+              syncLocalAdmissionsMutation({ admissions: localAdmissions });
+            }
+          }
+        } catch {}
+      }
+    }
+  }, [liveAdmissions, syncLocalAdmissionsMutation]);
+
+  // Real-time synchronization for Bed Config
+  useEffect(() => {
+    if (liveBedConfig && Array.isArray(liveBedConfig) && liveBedConfig.length > 0) {
+      setWardBedConfig(liveBedConfig);
+      try {
+        localStorage.setItem(BED_CONFIG_STORAGE_KEY, JSON.stringify(liveBedConfig));
+      } catch {}
+    }
+  }, [liveBedConfig]);
+
+  // Real-time synchronization for OPD Patients modal in IPD
+  useEffect(() => {
+    if (liveOpdQueue && Array.isArray(liveOpdQueue) && liveOpdQueue.length > 0) {
+      const mappedOpd = liveOpdQueue.map((item: any) => ({
+        ...item,
+        id: item.queue_id || item._id,
+      }));
+      setOpdPatients(mappedOpd);
+    }
+  }, [liveOpdQueue]);
+
+  // Save Admissions to Storage and Convex DB
+  const saveAdmissions = (newItems: IPDAdmission[], changedItem?: IPDAdmission) => {
     setAdmissions(newItems);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
     } catch (e) {
       console.error("Failed to save IPD admissions:", e);
     }
+    if (changedItem) {
+      saveIpdMutation({ admission: changedItem }).catch((err) => {
+        console.warn("Could not sync changed admission to Convex:", err);
+      });
+    } else {
+      // Sync all items in background
+      for (const item of newItems) {
+        saveIpdMutation({ admission: item }).catch(() => {});
+      }
+    }
   };
 
-  // Save Ward Bed Config
+  // Save Ward Bed Config to Storage and Convex DB
   const saveWardBedConfig = (newConfig: WardBedConfigItem[]) => {
     setWardBedConfig(newConfig);
     try {
@@ -497,13 +567,19 @@ export default function IPDManagementPage() {
     } catch (e) {
       console.error("Failed to save bed config:", e);
     }
+    saveBedConfigMutation({ wards: newConfig }).catch((err) => {
+      console.warn("Could not sync bed config to Convex:", err);
+    });
   };
 
-  // Helper to update active admission & list simultaneously
+  // Helper to update active admission & list simultaneously and sync to Convex
   const updateActiveAdmission = (updatedAdm: IPDAdmission) => {
     setActiveAdmission(updatedAdm);
     const updated = admissions.map((a) => (a.id === updatedAdm.id ? updatedAdm : a));
     saveAdmissions(updated);
+    saveIpdMutation({ admission: updatedAdm }).catch((err) => {
+      console.warn("Could not sync updated admission to Convex:", err);
+    });
   };
 
   // Occupied Bed Map

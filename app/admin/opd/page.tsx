@@ -161,6 +161,12 @@ export default function OPDManagementPage() {
   const allBills = useQuery(api.bills.list, {});
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
+  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
+  const updateOpdQueueStatusMutation = useMutation(api.opd_queue.updateStatus);
+  const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
+  const syncLocalOpdQueueMutation = useMutation(api.opd_queue.syncLocalItems);
+
   // Set of patient UHIDs with confirmed paid bills
   const paidUhidSet = useMemo(() => {
     const set = new Set<string>();
@@ -359,6 +365,55 @@ export default function OPDManagementPage() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
+
+  // Real-time synchronization from Convex DB across all devices
+  useEffect(() => {
+    if (liveOpdQueue && Array.isArray(liveOpdQueue)) {
+      if (liveOpdQueue.length > 0) {
+        const mapped: OPDQueueItem[] = liveOpdQueue.map((item: any) => ({
+          id: item.queue_id || item._id,
+          token: item.token || "01",
+          uhid: item.uhid || "",
+          patientId: item.patientId,
+          appointmentId: item.appointmentId,
+          name: item.name || "",
+          age: item.age || "",
+          ageUnit: item.ageUnit || "years",
+          sex: item.sex || "Male",
+          phone: item.phone || "",
+          address: item.address || "",
+          email: item.email,
+          whatsapp_number: item.whatsapp_number,
+          doctor: item.doctor || "",
+          department: item.department || "",
+          priority: item.priority || "Normal",
+          visitType: item.visitType || "New Registration",
+          status: item.status || "Waiting",
+          vitals: item.vitals || {},
+          consultationFee: item.consultationFee,
+          paymentMode: item.paymentMode,
+          paymentStatus: item.paymentStatus,
+          registeredAt: item.registeredAt || "",
+          time: item.time || "",
+        }));
+        setQueue(mapped);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
+        } catch {}
+      } else {
+        // If Convex DB is empty, sync from local storage if available
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const localItems = JSON.parse(raw);
+            if (Array.isArray(localItems) && localItems.length > 0) {
+              syncLocalOpdQueueMutation({ items: localItems });
+            }
+          }
+        } catch {}
+      }
+    }
+  }, [liveOpdQueue, syncLocalOpdQueueMutation]);
 
   // Save Queue to Local Storage
   const saveQueue = (newQueue: OPDQueueItem[]) => {
@@ -567,6 +622,12 @@ export default function OPDManagementPage() {
       const updatedQueue = [newItem, ...queue];
       saveQueue(updatedQueue);
 
+      try {
+        await upsertOpdQueueMutation(newItem);
+      } catch (err) {
+        console.warn("Could not sync new registration to Convex:", err);
+      }
+
       // Notification banner and switch directly to queue without popup/slip prompt
       setSuccessNotification(`Patient ${newItem.name} registered with Token #${tokenNumber}! Added to OPD Queue.`);
       // Switch to queue and ensure viewing today
@@ -604,13 +665,19 @@ export default function OPDManagementPage() {
   };
 
   // Status changer for queue items
-  const updateStatus = (id: string, newStatus: "Waiting" | "Ready" | "In Consultation" | "Completed") => {
+  const updateStatus = async (id: string, newStatus: "Waiting" | "Ready" | "In Consultation" | "Completed") => {
     const updated = queue.map((item) => (item.id === id ? { ...item, status: newStatus } : item));
     saveQueue(updated);
+    try {
+      await updateOpdQueueStatusMutation({ queue_id: id, status: newStatus });
+    } catch (err) {
+      console.warn("Could not sync status update to Convex:", err);
+    }
   };
 
   // Payment status toggle for queue items
-  const togglePaymentStatus = (id: string) => {
+  const togglePaymentStatus = async (id: string) => {
+    let targetItem: OPDQueueItem | undefined;
     setQueue((prevQueue) => {
       const updated = prevQueue.map((item) => {
         if (item.id === id) {
@@ -618,13 +685,22 @@ export default function OPDManagementPage() {
             item.paymentStatus === "PAID" ||
             (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
           const nextStatus = isCurrentlyPaid ? "PENDING" : "PAID";
-          return { ...item, paymentStatus: nextStatus as any };
+          const updatedItem = { ...item, paymentStatus: nextStatus as any };
+          targetItem = updatedItem;
+          return updatedItem;
         }
         return item;
       });
       saveQueue(updated);
       return updated;
     });
+    if (targetItem) {
+      try {
+        await upsertOpdQueueMutation(targetItem);
+      } catch (err) {
+        console.warn("Could not sync payment status update to Convex:", err);
+      }
+    }
   };
 
   // Open Check-In Modal with prefilled patient data
@@ -732,6 +808,12 @@ export default function OPDManagementPage() {
 
       const updatedQueue = [newItem, ...queue];
       saveQueue(updatedQueue);
+
+      try {
+        await upsertOpdQueueMutation(newItem);
+      } catch (err) {
+        console.warn("Could not sync check-in to Convex:", err);
+      }
 
       try {
         await updateAppointmentMutation({

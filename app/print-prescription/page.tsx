@@ -682,7 +682,7 @@ function PrintPrescriptionContent() {
                       </div>
                     )}
                   </td>
-                  <td className="text-right font-bold">
+                  <td className="text-right font-bold med-qty-val">
                     {med.quantity ?? calculateMedicineQuantity(med) ?? '—'}
                   </td>
                 </tr>
@@ -1000,8 +1000,8 @@ function PrintPrescriptionContent() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 5px 0 3px 0;
-          font-size: 9pt;
+          padding: 6px 0 5px 0;
+          font-size: 11pt;
           font-weight: 700;
           color: #000000;
         }
@@ -1021,9 +1021,9 @@ function PrintPrescriptionContent() {
           display: flex;
           align-items: center;
           flex-wrap: wrap;
-          gap: 14px;
-          padding: 2.5px 0 3px 0;
-          font-size: 8.5pt;
+          gap: 16px;
+          padding: 4px 0 4px 0;
+          font-size: 10pt;
           color: #111111;
           border-top: 1px dashed #cbd5e1;
         }
@@ -1032,7 +1032,7 @@ function PrintPrescriptionContent() {
           font-weight: 800;
           color: #000000;
           text-transform: uppercase;
-          font-size: 8pt;
+          font-size: 9.5pt;
           letter-spacing: 0.5px;
         }
 
@@ -1044,9 +1044,9 @@ function PrintPrescriptionContent() {
 
         /* ── Clinical Strip (Complaints, History, Findings) ── */
         .clinical-strip-section {
-          padding: 3px 0 3px 0;
-          font-size: 8.5pt;
-          line-height: 1.35;
+          padding: 4px 0 4px 0;
+          font-size: 10pt;
+          line-height: 1.4;
           border-top: 1px dashed #cbd5e1;
           border-bottom: 1px solid #d1d5db;
         }
@@ -1055,13 +1055,13 @@ function PrintPrescriptionContent() {
           display: flex;
           align-items: baseline;
           gap: 6px;
-          margin-bottom: 1.5px;
+          margin-bottom: 2px;
         }
 
         .clinical-strip-lbl {
           font-weight: 800;
           color: #000000;
-          font-size: 8pt;
+          font-size: 9pt;
           text-transform: uppercase;
           letter-spacing: 0.3px;
           flex-shrink: 0;
@@ -1091,9 +1091,9 @@ function PrintPrescriptionContent() {
 
         /* ── Diagnosis Row ── */
         .diagnosis-row {
-          padding: 2px 0 5px 0;
-          font-size: 9pt;
-          line-height: 1.3;
+          padding: 4px 0 6px 0;
+          font-size: 11pt;
+          line-height: 1.35;
           border-bottom: 1px solid #d1d5db;
         }
 
@@ -1103,24 +1103,24 @@ function PrintPrescriptionContent() {
         }
 
         .diagnosis-text {
-          font-weight: 700;
+          font-weight: 800;
           color: #111111;
           text-transform: uppercase;
         }
 
         /* ── Rx Section ── */
         .rx-wrapper {
-          margin-top: 4px;
+          margin-top: 6px;
         }
 
         .rx-symbol {
           font-family: Georgia, "Times New Roman", serif;
-          font-size: 17pt;
+          font-size: 20pt;
           font-weight: bold;
           font-style: italic;
           color: #1f2937;
           line-height: 1;
-          margin-bottom: 2px;
+          margin-bottom: 3px;
         }
 
         .med-table {
@@ -1129,11 +1129,11 @@ function PrintPrescriptionContent() {
         }
 
         .med-table th {
-          font-size: 8.5pt;
-          font-weight: 700;
-          color: #374151;
-          padding: 3px 5px;
-          border-bottom: 1.5px solid #9ca3af;
+          font-size: 10pt;
+          font-weight: 800;
+          color: #1f2937;
+          padding: 5px 6px;
+          border-bottom: 2px solid #6b7280;
         }
 
         .med-table th.col-med {
@@ -1157,13 +1157,13 @@ function PrintPrescriptionContent() {
         }
 
         .med-row td {
-          padding: 3.5px 5px;
+          padding: 6px 6px;
           vertical-align: top;
           border-bottom: 1px solid #e5e7eb;
         }
 
         .med-name-heading {
-          font-size: 9.5pt;
+          font-size: 12pt;
           font-weight: 800;
           color: #000000;
           letter-spacing: 0.2px;
@@ -1172,18 +1172,19 @@ function PrintPrescriptionContent() {
 
         .med-sub-line {
           display: flex;
-          font-size: 7.5pt;
-          margin-top: 1px;
+          font-size: 9pt;
+          margin-top: 2px;
           padding-left: 12px;
-          line-height: 1.3;
+          line-height: 1.35;
         }
 
         .med-sub-lbl {
-          width: 70px;
-          color: #555555;
-          font-weight: 600;
+          width: 75px;
+          color: #4b5563;
+          font-weight: 700;
           text-transform: uppercase;
           flex-shrink: 0;
+          font-size: 8.5pt;
         }
 
         .med-sub-sep {
@@ -1205,20 +1206,27 @@ function PrintPrescriptionContent() {
         }
 
         .dosage-val {
-          font-size: 10pt;
-          font-weight: 700;
+          font-size: 13pt;
+          font-weight: 800;
           color: #000000;
           text-align: center;
-          letter-spacing: 1px;
+          letter-spacing: 1.5px;
           white-space: nowrap;
           padding-top: 1px;
         }
 
         .timing-val {
-          font-size: 8.5pt;
+          font-size: 10.5pt;
           font-weight: 600;
           color: #111111;
-          line-height: 1.3;
+          line-height: 1.35;
+        }
+
+        .med-qty-val {
+          font-size: 12pt;
+          font-weight: 800;
+          color: #000000;
+          text-align: right;
         }
 
         /* ── Advice & Tests Section ── */
@@ -1235,33 +1243,33 @@ function PrintPrescriptionContent() {
         }
 
         .advice-heading {
-          font-size: 9.5pt;
+          font-size: 11pt;
           font-weight: 800;
           color: #000000;
-          margin-bottom: 2px;
+          margin-bottom: 3px;
         }
 
         .advice-content-body {
-          font-size: 8.5pt;
+          font-size: 10.5pt;
           font-weight: 600;
-          line-height: 1.35;
+          line-height: 1.4;
           color: #1f2937;
           white-space: pre-line;
-          margin-bottom: 4px;
+          margin-bottom: 5px;
         }
 
         .marathi-item {
-          font-size: 9pt;
+          font-size: 10.5pt;
           font-weight: 700;
-          margin-top: 3px;
+          margin-top: 5px;
           color: #000000;
         }
 
         .prescription-validity-note {
-          font-size: 8pt;
+          font-size: 9.5pt;
           font-weight: 800;
           color: #b91c1c;
-          margin-top: 5px;
+          margin-top: 6px;
           letter-spacing: 0.2px;
         }
 
