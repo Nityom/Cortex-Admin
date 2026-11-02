@@ -58,6 +58,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     phone: v.string(),
+    age: v.optional(v.union(v.string(), v.number())),
     date: v.string(),
     time: v.string(),
     doctor_name: v.optional(v.string()),
@@ -126,6 +127,7 @@ export const update = mutation({
     id: v.id("appointments"),
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
+    age: v.optional(v.union(v.string(), v.number())),
     date: v.optional(v.string()),
     time: v.optional(v.string()),
     doctor_name: v.optional(v.string()),

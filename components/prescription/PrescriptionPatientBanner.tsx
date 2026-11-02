@@ -20,8 +20,11 @@ interface PrescriptionPatientBannerProps {
   selectedDoctorName: string;
   handleDoctorSelect: (name: string) => void;
   availableDoctors: { id?: string; _id?: string; name: string }[];
-  activeTab: '1st Visit' | 'View Past' | 'Record' | string;
-  setActiveTab: React.Dispatch<React.SetStateAction<'1st Visit' | 'View Past' | 'Record'>> | ((tab: any) => void);
+  activeTab: '1st Visit' | 'Repeat Patient' | 'View Past' | 'Record' | string;
+  setActiveTab: React.Dispatch<React.SetStateAction<'1st Visit' | 'Repeat Patient' | 'View Past' | 'Record'>> | ((tab: any) => void);
+  isNewPatient?: boolean;
+  setRepeatPatient?: (isRepeat: boolean) => void;
+  consultationCharge?: number;
   onOpenLoadTemplate: () => void;
   onOpenSaveTemplate: () => void;
   onOpenEmailModal?: () => void;
@@ -36,6 +39,9 @@ export default function PrescriptionPatientBanner({
   availableDoctors,
   activeTab,
   setActiveTab,
+  isNewPatient = true,
+  setRepeatPatient,
+  consultationCharge,
   onOpenLoadTemplate,
   onOpenSaveTemplate,
   onOpenEmailModal,
@@ -124,6 +130,17 @@ export default function PrescriptionPatientBanner({
             <span className="text-sm font-semibold text-slate-600">
               ({formData.age || '—'} Y, {formData.sex || 'Male'})
             </span>
+            {setRepeatPatient && (
+              <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border cursor-pointer transition select-none bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100">
+                <input
+                  type="checkbox"
+                  checked={!isNewPatient}
+                  onChange={(e) => setRepeatPatient(e.target.checked)}
+                  className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
+                />
+                <span>Repeat Patient (Follow-up)</span>
+              </label>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -272,21 +289,46 @@ export default function PrescriptionPatientBanner({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setActiveTab('1st Visit')}
-            className={`px-3 py-1 rounded font-semibold transition cursor-pointer ${activeTab === '1st Visit'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+            onClick={() => {
+              setActiveTab('1st Visit');
+              if (setRepeatPatient) setRepeatPatient(false);
+            }}
+            className={`px-3 py-1 rounded font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+              isNewPatient && activeTab !== 'View Past'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
                 : 'text-slate-600 hover:text-slate-900'
-              }`}
+            }`}
           >
-            1st Visit
+            <span>1st Visit</span>
+            <span className="text-[10px] text-slate-500 font-normal">
+              (₹{isGynae ? 200 : 400})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('Repeat Patient');
+              if (setRepeatPatient) setRepeatPatient(true);
+            }}
+            className={`px-3 py-1 rounded font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+              !isNewPatient && activeTab !== 'View Past'
+                ? 'bg-amber-600 text-white shadow-xs font-bold'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>Repeat Patient</span>
+            <span className={`text-[10px] ${!isNewPatient && activeTab !== 'View Past' ? 'text-amber-100' : 'text-slate-500'}`}>
+              (₹{isGynae ? 100 : 200})
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('View Past')}
-            className={`px-3 py-1 rounded font-semibold transition cursor-pointer ${activeTab === 'View Past'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200'
+            className={`px-3 py-1 rounded font-semibold transition cursor-pointer ${
+              activeTab === 'View Past'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
                 : 'text-slate-600 hover:text-slate-900'
-              }`}
+            }`}
           >
             View Past
           </button>

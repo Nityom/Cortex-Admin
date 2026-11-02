@@ -41,6 +41,9 @@ export default function PrescriptionPage() {
             availableDoctors={form.availableDoctors}
             activeTab={form.activeTab}
             setActiveTab={form.handleTabChange}
+            isNewPatient={form.isNewPatient}
+            setRepeatPatient={form.setRepeatPatient}
+            consultationCharge={form.consultationCharge}
             onOpenLoadTemplate={() => {
               form.refreshTemplates();
               form.setIsLoadTemplateModalOpen(true);

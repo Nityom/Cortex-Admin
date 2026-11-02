@@ -184,6 +184,7 @@ export default defineSchema({
   appointments: defineTable({
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
+    age: v.optional(v.union(v.string(), v.number())),
     date: v.optional(v.string()), // YYYY-MM-DD
     time: v.optional(v.string()), // HH:mm
     // legacy field – kept temporarily for migration

@@ -42,6 +42,7 @@ import { PrescriptionEmailModalData } from '@/components/prescription/Prescripti
 import { updateBill } from '@/services/bills';
 import { paymentTransactionService } from '@/services/payment-transactions';
 import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
+import { getDoctorProfile } from '@/config/hospital';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -199,8 +200,8 @@ export function usePrescriptionForm() {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailSuccessPrompt, setEmailSuccessPrompt] = useState(false);
 
-  // Active top navigation tab ('1st Visit' vs 'View Past')
-  const [activeTab, setActiveTab] = useState<'1st Visit' | 'View Past'>('1st Visit');
+  // Active top navigation tab ('1st Visit' vs 'Repeat Patient' vs 'View Past')
+  const [activeTab, setActiveTab] = useState<'1st Visit' | 'Repeat Patient' | 'View Past'>('1st Visit');
 
   const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -417,8 +418,11 @@ export function usePrescriptionForm() {
   // Switch Doctor Handler
   const handleDoctorSelect = (docName: string) => {
     setSelectedDoctorName(docName);
-    const isGynae = docName.toLowerCase().includes('shilpa') || docName.toLowerCase().includes('shillpa');
-    setConsultationCharge(isNewPatient ? (isGynae ? 200 : 400) : (isGynae ? 100 : 200));
+    const docProfile = getDoctorProfile(docName);
+    const fee = isNewPatient
+      ? (docProfile?.consultationFee?.firstVisit ?? 400)
+      : (docProfile?.consultationFee?.followupVisit ?? 200);
+    setConsultationCharge(fee);
     try {
       localStorage.setItem('cortex_active_doctor', docName);
     } catch {}
@@ -489,15 +493,36 @@ export function usePrescriptionForm() {
     });
   }, []);
 
-  // Handle Tab Click (1st Visit vs View Past)
-  const handleTabChange = (tab: '1st Visit' | 'View Past') => {
+  // Set Repeat Patient Mode Helper
+  const setRepeatPatient = useCallback(
+    (isRepeat: boolean) => {
+      const docProfile = getDoctorProfile(selectedDoctorName);
+      if (isRepeat) {
+        setIsNewPatient(false);
+        setActiveTab('Repeat Patient');
+        const fee = docProfile?.consultationFee?.followupVisit ?? 200;
+        setConsultationCharge(fee);
+        showTemplateToast(`Repeat Patient Mode: Follow-up fee set to ₹${fee}`);
+      } else {
+        setIsNewPatient(true);
+        setActiveTab('1st Visit');
+        const fee = docProfile?.consultationFee?.firstVisit ?? 400;
+        setConsultationCharge(fee);
+        showTemplateToast(`1st Visit Mode: Consultation fee set to ₹${fee}`);
+      }
+    },
+    [selectedDoctorName]
+  );
+
+  // Handle Tab Click (1st Visit vs Repeat Patient vs View Past)
+  const handleTabChange = (tab: '1st Visit' | 'Repeat Patient' | 'View Past') => {
     setActiveTab(tab);
     if (tab === 'View Past') {
       setIsPastVisitsModalOpen(true);
+    } else if (tab === 'Repeat Patient') {
+      setRepeatPatient(true);
     } else {
-      setIsNewPatient(true);
-      setConsultationCharge(400);
-      showTemplateToast('1st Visit Mode: Consultation fee set to ₹400');
+      setRepeatPatient(false);
     }
   };
 
@@ -1336,6 +1361,7 @@ export function usePrescriptionForm() {
     // Consultation & Billing
     isNewPatient,
     setIsNewPatient,
+    setRepeatPatient,
     consultationCharge,
     setConsultationCharge,
     applyConsultationCharge,

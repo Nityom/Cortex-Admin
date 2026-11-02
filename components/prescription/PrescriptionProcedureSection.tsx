@@ -28,6 +28,7 @@ interface PrescriptionProcedureSectionProps {
   consultationCharge: number;
   setConsultationCharge: (val: number) => void;
   isNewPatient: boolean;
+  setRepeatPatient?: (isRepeat: boolean) => void;
   saveProcedureToCatalog: (name: string, price: number) => void;
   defaultDate?: string;
 }
@@ -41,6 +42,7 @@ export default function PrescriptionProcedureSection({
   consultationCharge,
   setConsultationCharge,
   isNewPatient,
+  setRepeatPatient,
   saveProcedureToCatalog,
   defaultDate = new Date().toISOString().slice(0, 10),
 }: PrescriptionProcedureSectionProps) {
@@ -121,7 +123,7 @@ export default function PrescriptionProcedureSection({
             className="mt-0.5 w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
           />
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-bold text-slate-800">
                 Add Consultation Fee
               </span>
@@ -129,11 +131,43 @@ export default function PrescriptionProcedureSection({
                 className={
                   isNewPatient
                     ? 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-300'
-                    : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-800 border-amber-300'
                 }
               >
-                ₹{consultationCharge || 0}
+                ₹{consultationCharge || 0} ({isNewPatient ? '1st Visit' : 'Repeat Patient'})
               </span>
+              {setRepeatPatient && (
+                <div className="inline-flex rounded-md shadow-2xs border border-slate-200 p-0.5 bg-slate-100">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRepeatPatient(false);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                      isNewPatient
+                        ? 'bg-white text-emerald-800 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    1st Visit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRepeatPatient(true);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                      !isNewPatient
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Repeat Patient
+                  </button>
+                </div>
+              )}
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
               This amount is saved with the prescription and carried into the billing queue.

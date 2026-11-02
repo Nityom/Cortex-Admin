@@ -314,6 +314,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             consultationCharge={form.consultationCharge}
             setConsultationCharge={form.setConsultationCharge}
             isNewPatient={form.isNewPatient}
+            setRepeatPatient={form.setRepeatPatient}
             saveProcedureToCatalog={form.saveProcedureToCatalog}
             defaultDate={form.formData.date}
           />

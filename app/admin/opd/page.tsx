@@ -706,7 +706,7 @@ export default function OPDManagementPage() {
         patientId,
         appointmentId: appt._id,
         name: appt.name?.trim() || "Appointment Patient",
-        age: customVitals?.age?.trim() || "—",
+        age: customVitals?.age?.trim() || (appt.age !== undefined && appt.age !== null ? String(appt.age) : "—"),
         ageUnit: "years",
         sex: customVitals?.sex || "Male",
         phone: appt.phone?.trim() || "",

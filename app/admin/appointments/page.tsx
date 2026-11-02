@@ -62,6 +62,7 @@ export default function AppointmentsPage() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    age: '',
     time: '11:00',
     doctor_name: 'Dr. Vipeen Raut',
     duration_minutes: 30,
@@ -126,6 +127,7 @@ export default function AppointmentsPage() {
       setFormData({
         name: appt.name,
         phone: appt.phone,
+        age: appt.age !== undefined && appt.age !== null ? String(appt.age) : '',
         time: appt.time,
         doctor_name: appt.doctor_name || 'Dr. Vipeen Raut',
         duration_minutes: appt.duration_minutes || 30,
@@ -137,6 +139,7 @@ export default function AppointmentsPage() {
       setFormData({
         name: '',
         phone: '',
+        age: '',
         time: '11:00',
         doctor_name: 'Dr. Vipeen Raut',
         duration_minutes: 30,
@@ -153,6 +156,7 @@ export default function AppointmentsPage() {
       const appointmentPayload = {
         name: formData.name,
         phone: formData.phone,
+        age: formData.age.trim() ? (isNaN(Number(formData.age)) ? formData.age.trim() : Number(formData.age.trim())) : undefined,
         date: selectedDate,
         time: normalizeAppointmentTime(formData.time),
         doctor_name: formData.doctor_name,
@@ -386,7 +390,10 @@ export default function AppointmentsPage() {
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-900 text-sm truncate">{appt.name}</p>
+                        <p className="font-semibold text-gray-900 text-sm truncate">
+                          {appt.name}
+                          {appt.age ? <span className="text-xs text-gray-500 font-normal ml-1">({appt.age} Y)</span> : ''}
+                        </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-gray-500 flex items-center gap-1">
                             <CalendarIcon className="w-3 h-3" />
@@ -470,7 +477,10 @@ export default function AppointmentsPage() {
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{appt.name}</p>
+                        <p className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                          {appt.name}
+                          {appt.age ? <span className="text-xs text-gray-500 font-normal ml-1">({appt.age} Y)</span> : ''}
+                        </p>
                         <a href={`tel:${appt.phone}`} className="text-xs text-gray-500 hover:text-emerald-600 transition flex items-center gap-1 mt-0.5">
                           <Phone className="w-3 h-3" />{appt.phone}
                         </a>
@@ -521,12 +531,16 @@ export default function AppointmentsPage() {
             </div>
             
             <form onSubmit={handleSave} className="space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
                   <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
                 </div>
-                <div>
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Age (Yrs)</label>
+                  <input type="text" placeholder="e.g. 35" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
+                </div>
+                <div className="sm:col-span-1">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone</label>
                   <input required type="tel" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition" />
                 </div>
