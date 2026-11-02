@@ -16,6 +16,7 @@ import {
   X,
   Sparkles,
   Layers,
+  Clock,
 } from 'lucide-react';
 import MedicineSearchInput from './MedicineSearchInput';
 import SectionTemplatePicker from './SectionTemplatePicker';
@@ -277,6 +278,25 @@ export default function HealthPlixMedicineTable({
   const [medSaveStatus, setMedSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const medStatusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Common duration controls for all medicines
+  const [customCommonDays, setCustomCommonDays] = useState<string>('');
+  const [showDurationMenu, setShowDurationMenu] = useState<boolean>(false);
+  const durationMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (durationMenuRef.current && !durationMenuRef.current.contains(event.target as Node)) {
+        setShowDurationMenu(false);
+      }
+    };
+    if (showDurationMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDurationMenu]);
+
   const triggerMedAutoSaved = useCallback(() => {
     setMedSaveStatus('saved');
     if (medStatusTimerRef.current) clearTimeout(medStatusTimerRef.current);
@@ -364,6 +384,58 @@ export default function HealthPlixMedicineTable({
         notes: med.note || '',
       },
     ];
+  };
+
+  // Apply common duration to all prescribed medicines in one click
+  const handleApplyCommonDuration = (durationInput: string | number) => {
+    if (!durationInput) return;
+    const raw = String(durationInput).trim();
+    if (!raw) return;
+
+    let durStr = raw;
+    if (/^\d+$/.test(raw)) {
+      durStr = `${raw} days`;
+    }
+
+    if (medicines.length === 0) {
+      showMedToast('Please add medicines first');
+      return;
+    }
+
+    const updated = medicines.map((med) => {
+      const currentSchedules = normalizeMedicineSchedules(med);
+      const updatedSchedules = currentSchedules.map((sch) => {
+        const sFrom = sch.start_from || prescriptionDate;
+        const sTo = calculateEndDate(sFrom, durStr);
+        return {
+          ...sch,
+          duration: durStr,
+          to_date: sTo,
+        };
+      });
+
+      const sFrom = med.start_from || prescriptionDate;
+      const sTo = calculateEndDate(sFrom, durStr);
+
+      const updatedMed: MedicineEntry = {
+        ...med,
+        duration: durStr,
+        freq_duration: durStr,
+        to_date: sTo,
+        schedules: updatedSchedules,
+        quantity_manual: false,
+      };
+
+      const calculatedQuantity = calculateMedicineQuantity(updatedMed);
+      if (calculatedQuantity !== undefined) {
+        updatedMed.quantity = calculatedQuantity;
+      }
+
+      return updatedMed;
+    });
+
+    onChange(updated);
+    showMedToast(`Applied ${durStr} duration to all ${medicines.length} medicines`);
   };
 
   // Add a new sub-schedule for a medicine (+ button clicked)
@@ -647,6 +719,66 @@ export default function HealthPlixMedicineTable({
 
   return (
     <div className="w-full bg-white rounded-xl border border-slate-300/80 shadow-xs min-h-[480px] flex flex-col justify-between">
+      {/* Quick Common Duration Bar for Doctor */}
+      {medicines.length > 0 && (
+        <div className="bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-slate-50 border-b border-emerald-200/80 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-xs">
+              <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Common Duration:</span>
+            </div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {['3 days', '5 days', '7 days', '10 days', '15 days', '21 days', '1 month'].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => handleApplyCommonDuration(d)}
+                  className="px-2.5 py-1 bg-white hover:bg-emerald-600 hover:text-white text-emerald-900 border border-emerald-300 hover:border-emerald-600 rounded-md text-xs font-semibold transition cursor-pointer shadow-2xs"
+                  title={`Apply ${d} to all prescribed medicines`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center border border-emerald-300 rounded-md overflow-hidden bg-white focus-within:border-emerald-600 focus-within:ring-1 focus-within:ring-emerald-500 shadow-2xs">
+              <input
+                type="number"
+                min="1"
+                max="365"
+                placeholder="Days"
+                value={customCommonDays}
+                onChange={(e) => setCustomCommonDays(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && customCommonDays) {
+                    e.preventDefault();
+                    handleApplyCommonDuration(customCommonDays);
+                    setCustomCommonDays('');
+                  }
+                }}
+                className="w-16 px-2 py-1 text-xs text-slate-800 outline-none font-bold text-center"
+              />
+              <span className="text-[11px] font-medium text-slate-500 pr-2 select-none">days</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (customCommonDays) {
+                  handleApplyCommonDuration(customCommonDays);
+                  setCustomCommonDays('');
+                }
+              }}
+              disabled={!customCommonDays}
+              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-md transition cursor-pointer shadow-2xs flex items-center gap-1"
+              title="Apply custom days to all medicines"
+            >
+              <span>Apply to All</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Full-width Spreadsheet Table matching HealthPlix exact design */}
       <div className="w-full overflow-x-auto min-h-[420px] pb-40">
         <table className="w-full table-fixed text-left text-sm border-collapse border-b border-slate-200">
@@ -683,14 +815,102 @@ export default function HealthPlixMedicineTable({
                 </div>
               </th>
               <th colSpan={4} className="py-2 px-2.5 border-r border-slate-300/70 text-left">Timing / Frequency / Duration</th>
-              <th rowSpan={2} style={{ width: '10%' }} className="py-3 px-2.5 border-r border-slate-300/70 text-center align-middle">Qty</th>
+              <th rowSpan={2} style={{ width: '9%' }} className="py-3 px-2.5 border-r border-slate-300/70 text-center align-middle">Qty</th>
               <th rowSpan={2} style={{ width: '3%' }} className="py-3 px-1 align-middle"></th>
             </tr>
             <tr className="bg-[#eef2f7] text-slate-600 font-semibold border-b border-slate-300 text-[11px]">
-              <th style={{ width: '17%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Timing</th>
+              <th style={{ width: '16%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Timing</th>
               <th style={{ width: '8%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">When</th>
-              <th style={{ width: '7%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Frequency</th>
-              <th style={{ width: '7%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Duration</th>
+              <th style={{ width: '8%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left">Frequency</th>
+              <th style={{ width: '8%' }} className="px-2 py-1.5 border-r border-slate-300/70 text-left relative">
+                <div className="flex items-center justify-between gap-1">
+                  <span>Duration</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowDurationMenu((prev) => !prev)}
+                    className={`px-1.5 py-0.5 text-[10px] rounded font-bold transition flex items-center gap-0.5 cursor-pointer shadow-2xs ${
+                      showDurationMenu
+                        ? 'bg-emerald-700 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                    title="Apply common duration/days to all medicines"
+                  >
+                    <span>All</span>
+                    <ChevronDown className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+                {showDurationMenu && (
+                  <div
+                    ref={durationMenuRef}
+                    className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg shadow-2xl border border-slate-300 p-3 z-50 animate-in fade-in zoom-in-95 text-slate-800"
+                  >
+                    <div className="text-[11px] font-bold text-slate-800 mb-2 flex items-center justify-between border-b border-slate-100 pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                        Common Duration (All Meds)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowDurationMenu(false)}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+                      {['3 days', '5 days', '7 days', '10 days', '15 days', '1 month'].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => {
+                            handleApplyCommonDuration(d);
+                            setShowDurationMenu(false);
+                          }}
+                          className="px-1.5 py-1 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 text-center transition cursor-pointer"
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
+                      <div className="flex items-center border border-slate-300 rounded overflow-hidden flex-1 focus-within:border-emerald-500">
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          placeholder="e.g. 5"
+                          value={customCommonDays}
+                          onChange={(e) => setCustomCommonDays(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && customCommonDays) {
+                              e.preventDefault();
+                              handleApplyCommonDuration(customCommonDays);
+                              setCustomCommonDays('');
+                              setShowDurationMenu(false);
+                            }
+                          }}
+                          className="w-full px-2 py-1 text-xs font-semibold text-slate-800 outline-none text-center"
+                        />
+                        <span className="text-[10px] text-slate-400 pr-1.5 select-none">days</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (customCommonDays) {
+                            handleApplyCommonDuration(customCommonDays);
+                            setCustomCommonDays('');
+                            setShowDurationMenu(false);
+                          }
+                        }}
+                        disabled={!customCommonDays}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded text-xs font-bold transition cursor-pointer shadow-2xs whitespace-nowrap"
+                      >
+                        Apply All
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -884,7 +1104,7 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 7. Frequency */}
-                        <td style={{ width: '7%' }} className="border-r border-b border-slate-200 p-0 align-top">
+                        <td style={{ width: '8%' }} className="border-r border-b border-slate-200 p-0 align-top">
                           <select
                             value={sch.frequency || ''}
                             onChange={(e) =>
@@ -902,17 +1122,29 @@ export default function HealthPlixMedicineTable({
                         </td>
 
                         {/* 8. Duration */}
-                        <td style={{ width: '7%' }} className="border-r border-b border-slate-200 p-0 align-top">
-                          <input
-                            type="text"
-                            value={sch.duration || ''}
-                            onChange={(e) =>
-                              handleUpdateSchedule(medIndex, schIndex, 'duration', e.target.value)
-                            }
-                            placeholder=""
-                            list={`duration-list-${medIndex}-${schIndex}`}
-                            className="w-full h-full min-h-[48px] px-2 py-2.5 bg-transparent text-slate-800 text-sm font-semibold focus:bg-emerald-50/50 focus:outline-none transition"
-                          />
+                        <td style={{ width: '8%' }} className="border-r border-b border-slate-200 p-0 align-top relative group/durcell">
+                          <div className="relative flex items-center h-full min-h-[48px]">
+                            <input
+                              type="text"
+                              value={sch.duration || ''}
+                              onChange={(e) =>
+                                handleUpdateSchedule(medIndex, schIndex, 'duration', e.target.value)
+                              }
+                              placeholder=""
+                              list={`duration-list-${medIndex}-${schIndex}`}
+                              className="w-full h-full min-h-[48px] px-2 py-2.5 pr-7 bg-transparent text-slate-800 text-sm font-semibold focus:bg-emerald-50/50 focus:outline-none transition"
+                            />
+                            {medicines.length > 1 && sch.duration && (
+                              <button
+                                type="button"
+                                onClick={() => handleApplyCommonDuration(sch.duration || '')}
+                                className="absolute right-1 opacity-0 group-hover/durcell:opacity-100 hover:opacity-100 transition-opacity px-1 py-0.5 text-[9px] bg-emerald-100 hover:bg-emerald-600 hover:text-white text-emerald-800 border border-emerald-300 rounded font-bold cursor-pointer shadow-2xs"
+                                title={`Apply "${sch.duration}" to all prescribed medicines`}
+                              >
+                                All
+                              </button>
+                            )}
+                          </div>
                           <datalist id={`duration-list-${medIndex}-${schIndex}`}>
                             {DURATION_OPTIONS.map((opt) => (
                               <option key={opt} value={opt} />
@@ -975,7 +1207,7 @@ export default function HealthPlixMedicineTable({
                           </datalist>
                         </td>
 
-                        <td style={{ width: '10%' }} className="border-r border-b border-slate-200 p-1 text-center align-middle">
+                        <td style={{ width: '9%' }} className="border-r border-b border-slate-200 p-1 text-center align-middle">
                           {isFirstSchedule && <label className="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-500">
                             <input
                               type="number"
