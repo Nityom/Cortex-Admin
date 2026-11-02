@@ -756,7 +756,7 @@ function PrintPrescriptionContent() {
   const renderSignature = () => {
     if (enabledSections.signature === false) return null;
     return (
-      <div key="signature" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12mm' }}>
+      <div key="signature" style={{ display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
         <div className="signature-block">
           {includeSignature && resolvedSignature && (
             <img
@@ -1266,11 +1266,20 @@ function PrintPrescriptionContent() {
         }
 
         .prescription-validity-note {
-          font-size: 9.5pt;
+          font-size: 9pt;
+          line-height: 1.4;
+          letter-spacing: 0.1px;
+        }
+
+        .validity-rule {
           font-weight: 800;
           color: #b91c1c;
-          margin-top: 6px;
-          letter-spacing: 0.2px;
+        }
+
+        .generic-rule {
+          font-weight: 700;
+          color: #1e293b;
+          margin-top: 1.5px;
         }
 
         .marathi-label {
@@ -1513,11 +1522,14 @@ function PrintPrescriptionContent() {
             })}
           </div>
 
-          {/* Bottom Section: Validity Note */}
+          {/* Bottom Section: Validity Note & Doctor Signature */}
           <div className="sheet-bottom-section">
-            {renderSignature()}
-            <div className="prescription-validity-note">
-              * Prescription is valid for 30 days only
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: '6mm' }}>
+              <div className="prescription-validity-note" style={{ flex: 1 }}>
+                <div className="validity-rule">* Prescription is valid for 30 days only</div>
+                <div className="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
+              </div>
+              {renderSignature()}
             </div>
           </div>
 

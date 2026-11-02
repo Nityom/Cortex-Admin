@@ -814,10 +814,18 @@ async function generatePrescriptionPdf(
   // 14. Validity Note (* Prescription is valid for 30 days only)
   page.drawText('* Prescription is valid for 30 days only', {
     x: MARGIN_X,
-    y: 86,
+    y: 91,
     size: 7.5,
     font: boldFont,
     color: maroonColor,
+  });
+
+  page.drawText('* Medicine can be purchased from any medical store and in a generic form also', {
+    x: MARGIN_X,
+    y: 81,
+    size: 6.8,
+    font: boldFont,
+    color: darkSlateColor,
   });
 
   // 15. Letterhead Bottom Schedule & Info Banner (Exact Match to PrescriptionLivePreview)

@@ -765,10 +765,18 @@ async function generatePrescriptionPdf(
 
   page.drawText("* Prescription is valid for 30 days only", {
     x: MARGIN_X,
-    y: 86,
+    y: 91,
     size: 7.5,
     font: boldFont,
     color: maroonColor,
+  });
+
+  page.drawText("* Medicine can be purchased from any medical store and in a generic form also", {
+    x: MARGIN_X,
+    y: 81,
+    size: 6.8,
+    font: boldFont,
+    color: darkSlateColor,
   });
 
   page.drawLine({

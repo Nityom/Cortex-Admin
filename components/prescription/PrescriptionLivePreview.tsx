@@ -677,9 +677,14 @@ export default function PrescriptionLivePreview({
 
         {renderSignature()}
 
-        {/* Validity Note */}
-        <div className="text-rose-700 font-extrabold text-[11px] tracking-wide mt-3 pt-2 border-t border-slate-200">
-          * Prescription is valid for 30 days only
+        {/* Validity & Generic Medicine Note */}
+        <div className="mt-3 pt-2 border-t border-slate-200">
+          <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
+            * Prescription is valid for 30 days only
+          </div>
+          <div className="text-slate-800 font-bold text-[10.5px] mt-0.5">
+            * Medicine can be purchased from any medical store and in a generic form also
+          </div>
         </div>
 
         {/* Bottom Schedule Banner */}

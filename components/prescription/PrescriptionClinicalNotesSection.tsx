@@ -269,6 +269,9 @@ export default function PrescriptionClinicalNotesSection({
           <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1">
             <span>*</span> Prescription is valid for 30 days only
           </p>
+          <p className="mt-0.5 text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+            <span>*</span> Medicine can be purchased from any medical store and in a generic form also
+          </p>
         </div>
       </div>
 

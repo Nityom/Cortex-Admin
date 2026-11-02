@@ -302,13 +302,20 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   if (data.advice) drawSection('ADVICE / INSTRUCTIONS', data.advice);
   if (data.followupDate) drawSection('NEXT APPOINTMENT', formatDate(data.followupDate));
 
-  // 30 days validity notice
+  // 30 days validity notice & generic medical store notice
   page.drawText('* Prescription is valid for 30 days only', {
     x: MARGIN_L,
-    y: Math.max(y - 6, 80),
-    size: 8,
+    y: Math.max(y - 6, 88),
+    size: 7.5,
     font: boldFont,
     color: rgb(0.7, 0.1, 0.1),
+  });
+  page.drawText('* Medicine can be purchased from any medical store and in a generic form also', {
+    x: MARGIN_L,
+    y: Math.max(y - 17, 77),
+    size: 7,
+    font: boldFont,
+    color: rgb(0.2, 0.2, 0.2),
   });
 
   // Signature block
