@@ -491,9 +491,25 @@ export default function IPDManagementPage() {
     }
   }, []);
 
-  // Real-time synchronization from Convex DB for IPD Admissions
+  // Real-time synchronization from Convex DB for IPD Admissions + two-way auto-sync
   useEffect(() => {
     if (liveAdmissions && Array.isArray(liveAdmissions)) {
+      // 1. Check if there are local admissions in localStorage that are not in Convex yet
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const localAdmissions = JSON.parse(raw);
+          if (Array.isArray(localAdmissions) && localAdmissions.length > 0) {
+            const dbIds = new Set(liveAdmissions.map((item: any) => item.admission_id || item._id));
+            const unsynced = localAdmissions.filter((item: any) => item?.id && !dbIds.has(item.id));
+            if (unsynced.length > 0) {
+              syncLocalAdmissionsMutation({ admissions: unsynced });
+            }
+          }
+        }
+      } catch {}
+
+      // 2. Map Convex items to local admissions state
       if (liveAdmissions.length > 0) {
         const mapped: IPDAdmission[] = liveAdmissions.map((item: any) => ({
           ...item,
@@ -502,17 +518,6 @@ export default function IPDManagementPage() {
         setAdmissions(mapped);
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
-        } catch {}
-      } else {
-        // If Convex DB is empty, sync from localStorage if available
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const localAdmissions = JSON.parse(raw);
-            if (Array.isArray(localAdmissions) && localAdmissions.length > 0) {
-              syncLocalAdmissionsMutation({ admissions: localAdmissions });
-            }
-          }
         } catch {}
       }
     }

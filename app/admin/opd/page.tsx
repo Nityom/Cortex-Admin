@@ -366,9 +366,25 @@ export default function OPDManagementPage() {
     };
   }, []);
 
-  // Real-time synchronization from Convex DB across all devices
+  // Real-time synchronization from Convex DB across all devices + two-way auto-sync
   useEffect(() => {
     if (liveOpdQueue && Array.isArray(liveOpdQueue)) {
+      // 1. Check if there are local items in localStorage that are not in Convex yet
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const localItems = JSON.parse(raw);
+          if (Array.isArray(localItems) && localItems.length > 0) {
+            const dbIds = new Set(liveOpdQueue.map((item: any) => item.queue_id || item._id));
+            const unsynced = localItems.filter((item: any) => item?.id && !dbIds.has(item.id));
+            if (unsynced.length > 0) {
+              syncLocalOpdQueueMutation({ items: unsynced });
+            }
+          }
+        }
+      } catch {}
+
+      // 2. Map Convex items to local queue state
       if (liveOpdQueue.length > 0) {
         const mapped: OPDQueueItem[] = liveOpdQueue.map((item: any) => ({
           id: item.queue_id || item._id,
@@ -399,17 +415,6 @@ export default function OPDManagementPage() {
         setQueue(mapped);
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
-        } catch {}
-      } else {
-        // If Convex DB is empty, sync from local storage if available
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const localItems = JSON.parse(raw);
-            if (Array.isArray(localItems) && localItems.length > 0) {
-              syncLocalOpdQueueMutation({ items: localItems });
-            }
-          }
         } catch {}
       }
     }
