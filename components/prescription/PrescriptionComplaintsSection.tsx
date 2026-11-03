@@ -18,6 +18,8 @@ interface PrescriptionComplaintsSectionProps {
   setComplaintsList: React.Dispatch<React.SetStateAction<ComplaintRow[]>>;
   date?: string;
   onUpdateCcSummary?: (summary: string) => void;
+  isGynae?: boolean;
+  ccSummary?: string;
 }
 
 export default function PrescriptionComplaintsSection({
@@ -25,6 +27,8 @@ export default function PrescriptionComplaintsSection({
   setComplaintsList,
   date = new Date().toISOString().slice(0, 10),
   onUpdateCcSummary,
+  isGynae = false,
+  ccSummary,
 }: PrescriptionComplaintsSectionProps) {
   const [newComplaintText, setNewComplaintText] = useState('');
   const [newComplaintFreq, setNewComplaintFreq] = useState('');
@@ -82,21 +86,38 @@ export default function PrescriptionComplaintsSection({
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
-            <button
-              type="button"
-              title="Add Complaint Row"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              onClick={handleAddComplaint}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+            {!isGynae && (
+              <button
+                type="button"
+                title="Add Complaint Row"
+                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                onClick={handleAddComplaint}
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
             <SectionTemplatePicker
               sectionKey="complaints"
               sectionTitle="Complaints"
-              currentValue={complaintsList}
+              currentValue={isGynae ? (ccSummary || complaintsList[0]?.complaint || '') : complaintsList}
               align="left"
               onApplyPreset={(val) => {
-                if (Array.isArray(val)) {
+                if (isGynae) {
+                  const text = typeof val === 'string' ? val : Array.isArray(val) ? val.map((x: any) => x.complaint || x).join(', ') : String(val);
+                  const currentVal = ccSummary !== undefined ? ccSummary : (complaintsList[0]?.complaint || '');
+                  const updatedText = currentVal ? `${currentVal}, ${text}` : text;
+                  if (onUpdateCcSummary) onUpdateCcSummary(updatedText);
+                  setComplaintsList([
+                    {
+                      id: 'c_gynae_1',
+                      complaint: updatedText,
+                      frequency: '',
+                      severity: '',
+                      duration: '',
+                      date: date || new Date().toISOString().slice(0, 10),
+                    },
+                  ]);
+                } else if (Array.isArray(val)) {
                   const mapped: ComplaintRow[] = [
                     ...complaintsList,
                     ...val.map((x: any, i: number) => ({
@@ -127,104 +148,133 @@ export default function PrescriptionComplaintsSection({
         </div>
       </div>
 
-      <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
-        <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
-          <div className="col-span-1">#</div>
-          <div className="col-span-4">Complaints</div>
-          <div className="col-span-2">Frequency</div>
-          <div className="col-span-2">Severity</div>
-          <div className="col-span-2">Duration</div>
-          <div className="col-span-1 text-right">Action</div>
+      {isGynae ? (
+        <div>
+          <textarea
+            value={ccSummary !== undefined ? ccSummary : (complaintsList.map((c) => c.complaint).join(', '))}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (onUpdateCcSummary) onUpdateCcSummary(val);
+              if (val.trim()) {
+                setComplaintsList([
+                  {
+                    id: 'c_gynae_1',
+                    complaint: val,
+                    frequency: '',
+                    severity: '',
+                    duration: '',
+                    date: date || new Date().toISOString().slice(0, 10),
+                  },
+                ]);
+              } else {
+                setComplaintsList([]);
+              }
+            }}
+            rows={3}
+            placeholder="Enter chief complaints (e.g. Pain in abdomen, fever, nausea)..."
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+          />
         </div>
+      ) : (
+        <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+          <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
+            <div className="col-span-1">#</div>
+            <div className="col-span-4">Complaints</div>
+            <div className="col-span-2">Frequency</div>
+            <div className="col-span-2">Severity</div>
+            <div className="col-span-2">Duration</div>
+            <div className="col-span-1 text-right">Action</div>
+          </div>
 
-        {/* Existing Complaints */}
-        {complaintsList.map((c, idx) => (
-          <div
-            key={c.id}
-            className="grid grid-cols-12 items-center py-2 px-3 border-b border-slate-100 hover:bg-slate-50/50"
-          >
-            <div className="col-span-1 text-slate-400">{idx + 1}</div>
-            <div className="col-span-4 font-semibold text-slate-800">{c.complaint}</div>
-            <div className="col-span-2 text-slate-600">{c.frequency || '—'}</div>
-            <div className="col-span-2 text-slate-600">{c.severity || '—'}</div>
-            <div className="col-span-2 text-slate-600">{c.duration || '—'}</div>
+          {/* Existing Complaints */}
+          {complaintsList.map((c, idx) => (
+            <div
+              key={c.id}
+              className="grid grid-cols-12 items-center py-2 px-3 border-b border-slate-100 hover:bg-slate-50/50"
+            >
+              <div className="col-span-1 text-slate-400">{idx + 1}</div>
+              <div className="col-span-4 font-semibold text-slate-800">{c.complaint}</div>
+              <div className="col-span-2 text-slate-600">{c.frequency || '—'}</div>
+              <div className="col-span-2 text-slate-600">{c.severity || '—'}</div>
+              <div className="col-span-2 text-slate-600">{c.duration || '—'}</div>
+              <div className="col-span-1 text-right">
+                <button
+                  type="button"
+                  onClick={() => handleRemove(c.id)}
+                  className="text-rose-500 hover:text-rose-700 cursor-pointer font-bold"
+                  title="Remove complaint"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Inline Add Complaint Row */}
+          <div className="grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/30 gap-2">
+            <div className="col-span-1 text-slate-400 font-mono">{complaintsList.length + 1}</div>
+            <div className="col-span-4">
+              <input
+                type="text"
+                value={newComplaintText}
+                onChange={(e) => setNewComplaintText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddComplaint();
+                  }
+                }}
+                placeholder="Add Complaints (e.g. Joint pain in right knee, fever, back pain)..."
+                className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <div className="col-span-2">
+              <select
+                value={newComplaintFreq}
+                onChange={(e) => setNewComplaintFreq(e.target.value)}
+                className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white outline-none cursor-pointer"
+              >
+                <option value="">Frequency...</option>
+                <option value="Continuous">Continuous</option>
+                <option value="Intermittent">Intermittent</option>
+                <option value="Occasionally">Occasionally</option>
+                <option value="Night time">Night time</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <select
+                value={newComplaintSeverity}
+                onChange={(e) => setNewComplaintSeverity(e.target.value)}
+                className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white outline-none cursor-pointer"
+              >
+                <option value="">Severity...</option>
+                <option value="Mild">Mild</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Severe">Severe</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <input
+                type="text"
+                value={newComplaintDuration}
+                onChange={(e) => setNewComplaintDuration(e.target.value)}
+                placeholder="e.g. 3 days"
+                className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white outline-none"
+              />
+            </div>
             <div className="col-span-1 text-right">
               <button
                 type="button"
-                onClick={() => handleRemove(c.id)}
-                className="text-rose-500 hover:text-rose-700 cursor-pointer font-bold"
-                title="Remove complaint"
+                onClick={handleAddComplaint}
+                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
+                title="Add complaint"
               >
-                ✕
+                +
               </button>
             </div>
           </div>
-        ))}
-
-        {/* Inline Add Complaint Row */}
-        <div className="grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/30 gap-2">
-          <div className="col-span-1 text-slate-400 font-mono">{complaintsList.length + 1}</div>
-          <div className="col-span-4">
-            <input
-              type="text"
-              value={newComplaintText}
-              onChange={(e) => setNewComplaintText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddComplaint();
-                }
-              }}
-              placeholder="Add Complaints (e.g. Joint pain in right knee, fever, back pain)..."
-              className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
-            />
-          </div>
-          <div className="col-span-2">
-            <select
-              value={newComplaintFreq}
-              onChange={(e) => setNewComplaintFreq(e.target.value)}
-              className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white outline-none cursor-pointer"
-            >
-              <option value="">Frequency...</option>
-              <option value="Continuous">Continuous</option>
-              <option value="Intermittent">Intermittent</option>
-              <option value="Occasionally">Occasionally</option>
-              <option value="Night time">Night time</option>
-            </select>
-          </div>
-          <div className="col-span-2">
-            <select
-              value={newComplaintSeverity}
-              onChange={(e) => setNewComplaintSeverity(e.target.value)}
-              className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white outline-none cursor-pointer"
-            >
-              <option value="">Severity...</option>
-              <option value="Mild">Mild</option>
-              <option value="Moderate">Moderate</option>
-              <option value="Severe">Severe</option>
-            </select>
-          </div>
-          <div className="col-span-2">
-            <input
-              type="text"
-              value={newComplaintDuration}
-              onChange={(e) => setNewComplaintDuration(e.target.value)}
-              placeholder="e.g. 3 days"
-              className="w-full p-1.5 border border-slate-200 rounded text-slate-700 bg-white outline-none"
-            />
-          </div>
-          <div className="col-span-1 text-right">
-            <button
-              type="button"
-              onClick={handleAddComplaint}
-              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
-              title="Add complaint"
-            >
-              +
-            </button>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

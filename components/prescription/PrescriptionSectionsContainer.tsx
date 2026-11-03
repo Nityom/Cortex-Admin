@@ -270,6 +270,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           />
         );
       case 'history':
+        // For Dr. Shillpa Raut, medical history is commented out / hidden as requested
+        if (isGynae) return null;
         return (
           <PrescriptionHistorySection
             value={form.formData.mh}
@@ -283,6 +285,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             setComplaintsList={form.setComplaintsList}
             date={form.formData.date}
             onUpdateCcSummary={(summary) => form.setFormData((prev: any) => ({ ...prev, cc: summary }))}
+            isGynae={isGynae}
+            ccSummary={form.formData.cc}
           />
         );
       case 'findings':
@@ -301,6 +305,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             onUpdateDiagnosisSummary={(summary) => form.setFormData((prev: any) => ({ ...prev, de: summary }))}
             date={form.formData.date}
             prescriptionId={form.prescriptionId || undefined}
+            isGynae={isGynae}
           />
         );
       case 'procedure':
@@ -445,7 +450,9 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           <GripVertical className="w-4 h-4 text-emerald-600 shrink-0" />
           <span className="text-slate-800 font-bold">Prescription Section Layout</span>
           <span className="text-[11px] text-slate-500 font-normal hidden lg:inline">
-            (1. Vitals • 2. Complaints • 3. Diagnosis • 4. History • 5. Exam Findings • 6. Drawing • 7. Medicines • 8. Advice & Tests • 9. Next Visit • 10. Signature)
+            {isGynae
+              ? '(1. Vitals • 2. Complaints • 3. Diagnosis • 4. Exam Findings • 5. Drawing • 6. Medicines • 7. Advice • 8. Next Visit • 9. Signature)'
+              : '(1. Vitals • 2. Complaints • 3. Diagnosis • 4. History • 5. Exam Findings • 6. Drawing • 7. Medicines • 8. Advice & Tests • 9. Next Visit • 10. Signature)'}
           </span>
         </div>
         <button
@@ -461,7 +468,9 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
 
       {/* Main Clinical Stacked Layout */}
       <div className="space-y-4">
-        {rxSectionOrder.map((sectionKey, idx) => {
+        {rxSectionOrder
+          .filter((sectionKey) => !(isGynae && sectionKey === 'history'))
+          .map((sectionKey, idx) => {
           const isBeingDragged = draggedSection === sectionKey;
           const isOver = dragOverSection === sectionKey && !isBeingDragged;
 

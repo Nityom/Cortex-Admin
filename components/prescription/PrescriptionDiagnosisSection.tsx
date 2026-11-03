@@ -98,6 +98,7 @@ interface PrescriptionDiagnosisSectionProps {
   onUpdateDiagnosisSummary: (summary: string) => void;
   date?: string;
   prescriptionId?: string;
+  isGynae?: boolean;
 }
 
 export default function PrescriptionDiagnosisSection({
@@ -107,6 +108,7 @@ export default function PrescriptionDiagnosisSection({
   onUpdateDiagnosisSummary,
   date = new Date().toISOString().slice(0, 10),
   prescriptionId,
+  isGynae = false,
 }: PrescriptionDiagnosisSectionProps) {
   // Inline Add Row state
   const [newDiagnosis, setNewDiagnosis] = useState('');
@@ -349,7 +351,7 @@ export default function PrescriptionDiagnosisSection({
   };
 
   const handleClearAll = () => {
-    if (diagnosesList.length > 0) {
+    if (!isGynae && diagnosesList.length > 0) {
       if (!confirm('Are you sure you want to clear all diagnoses from the list?')) {
         return;
       }
@@ -382,20 +384,42 @@ export default function PrescriptionDiagnosisSection({
           )}
 
           <div className="flex items-center gap-1 text-slate-400">
-            <button
-              type="button"
-              title="Focus inline Add Diagnosis"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              onClick={() => inlineInputRef.current?.focus()}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+            {!isGynae && (
+              <button
+                type="button"
+                title="Focus inline Add Diagnosis"
+                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                onClick={() => inlineInputRef.current?.focus()}
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
             <SectionTemplatePicker
               sectionKey="diagnosis"
               sectionTitle="Diagnosis"
-              currentValue={diagnosisSummary}
+              currentValue={isGynae ? diagnosisSummary : diagnosesList}
               align="left"
               onApplyPreset={(val) => {
+                if (isGynae) {
+                  const text =
+                    typeof val === 'string'
+                      ? val
+                      : Array.isArray(val)
+                      ? val.map((x: any) => (typeof x === 'string' ? x : x.diagnosis || x.name || JSON.stringify(x))).join(', ')
+                      : JSON.stringify(val);
+                  const updatedText = diagnosisSummary ? `${diagnosisSummary}, ${text}` : text;
+                  onUpdateDiagnosisSummary(updatedText);
+                  const singleRow: DiagnosisRow = {
+                    id: 'diag_gynae_1',
+                    diagnosis: updatedText,
+                    snomed_code: '',
+                    duration: '',
+                    date: date || new Date().toISOString().slice(0, 10),
+                  };
+                  setDiagnosesList([singleRow]);
+                  scheduleAutoSave([singleRow]);
+                  return;
+                }
                 const str =
                   typeof val === 'string'
                     ? val
@@ -429,7 +453,7 @@ export default function PrescriptionDiagnosisSection({
           </div>
         </div>
 
-        {diagnosesList.length > 0 && (
+        {!isGynae && diagnosesList.length > 0 && (
           <button
             type="button"
             onClick={handleClearAll}
@@ -441,8 +465,36 @@ export default function PrescriptionDiagnosisSection({
         )}
       </div>
 
-      {/* HealthPlix Diagnosis Table - Fully Editable with Auto-save */}
-      <div className="border border-slate-200 rounded-lg overflow-visible text-xs">
+      {isGynae ? (
+        <div>
+          <textarea
+            value={diagnosisSummary !== undefined ? diagnosisSummary : (diagnosesList.map((d) => d.diagnosis).join(', '))}
+            onChange={(e) => {
+              const val = e.target.value;
+              onUpdateDiagnosisSummary(val);
+              if (val.trim()) {
+                const singleRow: DiagnosisRow = {
+                  id: 'diag_gynae_1',
+                  diagnosis: val,
+                  snomed_code: '',
+                  duration: '',
+                  date: date || new Date().toISOString().slice(0, 10),
+                };
+                setDiagnosesList([singleRow]);
+                scheduleAutoSave([singleRow]);
+              } else {
+                setDiagnosesList([]);
+                scheduleAutoSave([]);
+              }
+            }}
+            rows={3}
+            placeholder="Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility)..."
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+          />
+        </div>
+      ) : (
+        /* HealthPlix Diagnosis Table - Fully Editable with Auto-save */
+        <div className="border border-slate-200 rounded-lg overflow-visible text-xs">
         <div className="grid grid-cols-12 bg-slate-50 text-slate-700 font-semibold py-2 px-3 border-b border-slate-200 text-[11px] uppercase tracking-wider rounded-t-lg">
           <div className="col-span-1">#</div>
           <div className="col-span-5">Diagnosis (Click to edit)</div>
@@ -637,6 +689,7 @@ export default function PrescriptionDiagnosisSection({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

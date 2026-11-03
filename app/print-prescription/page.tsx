@@ -181,15 +181,23 @@ function PrintPrescriptionContent() {
     return true;
   });
 
-  // Configurable letterhead paper margins in mm (0.5cm = 5mm left/right)
+  // Configurable letterhead paper margins in mm (2cm = 20mm left margin)
   const [margins, setMargins] = useState<{ top: number; bottom: number; left: number; right: number }>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('cortex_rx_letterhead_margins_v3');
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            top: parsed.top ?? 50,
+            bottom: parsed.bottom ?? 40,
+            left: Math.max(parsed.left ?? 20, 20),
+            right: parsed.right ?? 5,
+          };
+        }
       } catch {}
     }
-    return { top: 50, bottom: 40, left: 5, right: 5 };
+    return { top: 50, bottom: 40, left: 20, right: 5 };
   });
 
   const updateMargin = (key: 'top' | 'bottom' | 'left' | 'right', val: number) => {
@@ -682,7 +690,7 @@ function PrintPrescriptionContent() {
                         {med.schedules.map((s, si) => (
                           <div key={si} className="timing-val text-[8.5pt]">
                             {(s.notes || s.time || s.when) && <div>{s.notes || [s.time, s.when].filter(Boolean).join(' • ')}</div>}
-                            <span className="font-bold">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
+                            <span className="font-medium">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
                           </div>
                         ))}
                       </div>
@@ -827,7 +835,7 @@ function PrintPrescriptionContent() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: ${includeHeaderFooter ? '5mm 5mm 5mm 5mm' : `${margins.top}mm 5mm ${margins.bottom}mm 5mm`};
+            margin: ${includeHeaderFooter ? `5mm ${margins.right || 5}mm 5mm ${margins.left || 20}mm` : `${margins.top}mm ${margins.right || 5}mm ${margins.bottom}mm ${margins.left || 20}mm`};
           }
 
           html, body {
@@ -912,7 +920,7 @@ function PrintPrescriptionContent() {
             margin: 0 auto 40px auto;
             background: #ffffff;
             box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-            padding: ${includeHeaderFooter ? '5mm 5mm 8mm 5mm' : `${margins.top}mm 5mm ${margins.bottom}mm 5mm`};
+            padding: ${includeHeaderFooter ? `5mm ${margins.right || 5}mm 8mm ${margins.left || 20}mm` : `${margins.top}mm ${margins.right || 5}mm ${margins.bottom}mm ${margins.left || 20}mm`};
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -1009,7 +1017,7 @@ function PrintPrescriptionContent() {
 
         .doctor-title-name {
           font-size: 16pt;
-          font-weight: 800;
+          font-weight: 700;
           color: #7B1828; /* Cortex maroon */
           margin: 0;
           line-height: 1.15;
@@ -1018,7 +1026,7 @@ function PrintPrescriptionContent() {
 
         .doctor-qualifications {
           font-size: 9.5pt;
-          font-weight: 700;
+          font-weight: 500;
           color: #111111;
           margin-top: 1px;
         }
@@ -1031,14 +1039,14 @@ function PrintPrescriptionContent() {
 
         .doctor-diplomate {
           font-size: 9pt;
-          font-weight: 600;
+          font-weight: 500;
           color: #1f2937;
           margin-top: 1px;
         }
 
         .doctor-specialty {
           font-size: 9pt;
-          font-weight: 600;
+          font-weight: 500;
           color: #1f2937;
           margin-top: 1px;
         }
@@ -1050,7 +1058,7 @@ function PrintPrescriptionContent() {
           align-items: center;
           padding: 6px 0 5px 0;
           font-size: 11pt;
-          font-weight: 700;
+          font-weight: 500;
           color: #000000;
         }
 
@@ -1061,7 +1069,7 @@ function PrintPrescriptionContent() {
 
         .patient-date-right {
           white-space: nowrap;
-          font-weight: 700;
+          font-weight: 500;
         }
 
         /* ── Vitals Row (BP, SpO2, Height, Weight) ── */
@@ -1076,8 +1084,12 @@ function PrintPrescriptionContent() {
           border-top: 1px dashed #cbd5e1;
         }
 
+        .vitals-row strong {
+          font-weight: 600;
+        }
+
         .vitals-label {
-          font-weight: 800;
+          font-weight: 600;
           color: #000000;
           text-transform: uppercase;
           font-size: 9.5pt;
@@ -1107,7 +1119,7 @@ function PrintPrescriptionContent() {
         }
 
         .clinical-strip-lbl {
-          font-weight: 800;
+          font-weight: 600;
           color: #000000;
           font-size: 9pt;
           text-transform: uppercase;
@@ -1116,7 +1128,7 @@ function PrintPrescriptionContent() {
         }
 
         .clinical-strip-val {
-          font-weight: 600;
+          font-weight: normal;
           color: #111111;
         }
 
@@ -1146,12 +1158,12 @@ function PrintPrescriptionContent() {
         }
 
         .diagnosis-label {
-          font-weight: 800;
+          font-weight: 600;
           color: #000000;
         }
 
         .diagnosis-text {
-          font-weight: 800;
+          font-weight: normal;
           color: #111111;
           text-transform: uppercase;
         }
@@ -1164,7 +1176,7 @@ function PrintPrescriptionContent() {
         .rx-symbol {
           font-family: Georgia, "Times New Roman", serif;
           font-size: 20pt;
-          font-weight: bold;
+          font-weight: normal;
           font-style: italic;
           color: #1f2937;
           line-height: 1;
@@ -1178,7 +1190,7 @@ function PrintPrescriptionContent() {
 
         .med-table th {
           font-size: 10pt;
-          font-weight: 800;
+          font-weight: 600;
           color: #1f2937;
           padding: 5px 6px;
           border-bottom: 2px solid #6b7280;
@@ -1206,10 +1218,10 @@ function PrintPrescriptionContent() {
         }
 
         .med-name-heading {
-          font-size: 12pt;
-          font-weight: 800;
+          font-size: 11.5pt;
+          font-weight: 600;
           color: #000000;
-          letter-spacing: 0.2px;
+          letter-spacing: 0.1px;
           text-transform: uppercase;
         }
 
@@ -1224,7 +1236,7 @@ function PrintPrescriptionContent() {
         .med-sub-lbl {
           width: 75px;
           color: #4b5563;
-          font-weight: 700;
+          font-weight: 600;
           text-transform: uppercase;
           flex-shrink: 0;
           font-size: 8.5pt;
@@ -1238,19 +1250,19 @@ function PrintPrescriptionContent() {
 
         .med-sub-val {
           color: #111111;
-          font-weight: 600;
+          font-weight: normal;
         }
 
         .med-note-val {
           color: #000000;
-          font-weight: 700;
+          font-weight: normal;
           text-decoration: underline;
           text-decoration-color: #dc2626;
         }
 
         .dosage-val {
-          font-size: 11pt;
-          font-weight: 800;
+          font-size: 10.5pt;
+          font-weight: normal;
           color: #000000;
           text-align: center;
           letter-spacing: 0.2px;
@@ -1260,14 +1272,14 @@ function PrintPrescriptionContent() {
 
         .timing-val {
           font-size: 10.5pt;
-          font-weight: 600;
+          font-weight: normal;
           color: #111111;
           line-height: 1.35;
         }
 
         .med-qty-val {
-          font-size: 12pt;
-          font-weight: 800;
+          font-size: 11pt;
+          font-weight: 600;
           color: #000000;
           text-align: right;
         }
@@ -1286,15 +1298,15 @@ function PrintPrescriptionContent() {
         }
 
         .advice-heading {
-          font-size: 11pt;
-          font-weight: 800;
+          font-size: 10.5pt;
+          font-weight: 600;
           color: #000000;
           margin-bottom: 3px;
         }
 
         .advice-content-body {
-          font-size: 10.5pt;
-          font-weight: 600;
+          font-size: 10pt;
+          font-weight: normal;
           line-height: 1.4;
           color: #1f2937;
           white-space: pre-line;
@@ -1302,8 +1314,8 @@ function PrintPrescriptionContent() {
         }
 
         .marathi-item {
-          font-size: 10.5pt;
-          font-weight: 700;
+          font-size: 10pt;
+          font-weight: normal;
           margin-top: 5px;
           color: #000000;
         }
@@ -1315,18 +1327,18 @@ function PrintPrescriptionContent() {
         }
 
         .validity-rule {
-          font-weight: 800;
+          font-weight: 600;
           color: #b91c1c;
         }
 
         .generic-rule {
-          font-weight: 700;
+          font-weight: normal;
           color: #1e293b;
           margin-top: 1.5px;
         }
 
         .marathi-label {
-          font-weight: 800;
+          font-weight: 600;
           margin-right: 5px;
         }
 
@@ -1352,8 +1364,8 @@ function PrintPrescriptionContent() {
         }
 
         .sig-doc-name {
-          font-size: 14pt;
-          font-weight: 700;
+          font-size: 13pt;
+          font-weight: 600;
           color: #111111;
           margin-top: 2px;
         }
@@ -1378,7 +1390,7 @@ function PrintPrescriptionContent() {
           background-color: #7B1828;
           color: #ffffff;
           font-size: 8pt;
-          font-weight: 700;
+          font-weight: 600;
           padding: 1.5px 8px;
           border-radius: 9999px;
           letter-spacing: 0.2px;
@@ -1386,13 +1398,13 @@ function PrintPrescriptionContent() {
 
         .clinic-time {
           font-size: 8.5pt;
-          font-weight: 700;
+          font-weight: normal;
           color: #111111;
         }
 
         .footer-clinic-title {
-          font-size: 10pt;
-          font-weight: 800;
+          font-size: 9.5pt;
+          font-weight: 600;
           color: #000000;
           margin-bottom: 1px;
         }

@@ -353,6 +353,15 @@ export default function OPDManagementPage() {
             }
           }
         }
+        const savedDocFilter = localStorage.getItem("cortex_opd_doctor_filter");
+        if (savedDocFilter) {
+          setSelectedDoctorFilter(savedDocFilter);
+        } else {
+          const savedDoc = localStorage.getItem("cortex_active_doctor");
+          if (savedDoc) {
+            setSelectedDoctorFilter(savedDoc);
+          }
+        }
         const savedDoc = localStorage.getItem("cortex_active_doctor");
         if (savedDoc) {
           handleDoctorChange(savedDoc);
@@ -982,22 +991,15 @@ export default function OPDManagementPage() {
       return true;
     });
 
-    const statusWeight: Record<string, number> = {
-      "In Consultation": 0,
-      "Waiting": 1,
-      "Ready": 1,
-      "Completed": 2,
-    };
-
     return [...list].sort((a, b) => {
-      const wA = statusWeight[a.status] ?? 1;
-      const wB = statusWeight[b.status] ?? 1;
-      if (wA !== wB) return wA - wB;
-
-      // Secondary sort: earlier registrations / tokens first
+      // Descending order: new records / latest registrations first on top
       const timeA = new Date(a.registeredAt || 0).getTime();
       const timeB = new Date(b.registeredAt || 0).getTime();
-      return timeA - timeB;
+      if (timeA !== timeB) return timeB - timeA;
+
+      const tokenA = parseInt(a.token, 10) || 0;
+      const tokenB = parseInt(b.token, 10) || 0;
+      return tokenB - tokenA;
     });
   }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch, activeTab]);
 
@@ -1060,7 +1062,23 @@ export default function OPDManagementPage() {
           {(activeTab === "queue" || activeTab === "billingQueue") && <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs">
             <span className="px-2 font-semibold uppercase tracking-wide text-slate-400">Doctor</span>
             {[["All", "All"], ["Dr. Vipeen Raut", "Dr. Vipeen Raut"], ["Dr. Shillpa Raut", "Dr. Shillpa Raut"]].map(([value, label]) => (
-              <button key={value} type="button" onClick={() => { setSelectedDoctorFilter(value); if (value !== "All") handleDoctorChange(value); }} className={`rounded-md px-2 py-1.5 font-semibold transition ${selectedDoctorFilter === value ? "bg-emerald-50 text-emerald-800" : "text-slate-500 hover:bg-slate-50"}`}>{label}</button>
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setSelectedDoctorFilter(value);
+                  try {
+                    localStorage.setItem("cortex_opd_doctor_filter", value);
+                    if (value !== "All") {
+                      localStorage.setItem("cortex_active_doctor", value);
+                      handleDoctorChange(value);
+                    }
+                  } catch (_) {}
+                }}
+                className={`rounded-md px-2 py-1.5 font-semibold transition ${selectedDoctorFilter === value ? "bg-emerald-50 text-emerald-800" : "text-slate-500 hover:bg-slate-50"}`}
+              >
+                {label}
+              </button>
             ))}
           </div>}
         </div>

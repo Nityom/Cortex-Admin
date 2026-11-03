@@ -90,6 +90,57 @@ export default function PrescriptionClinicalNotesSection({
     setNewTestByWhen('');
   };
 
+  const isGynae = /gyne|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
+
+  // For Dr. Shillpa Raut: keep only Advice (comment out/hide Dr Notes, Procedure Advice, Tests Requested, Referred To, Diet & Exercise, Investigation, Past Medication, Systemic Exam, General Exam)
+  if (isGynae) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs w-full">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              Advice
+            </label>
+            <div className="flex items-center gap-1 text-slate-400">
+              <button
+                type="button"
+                title="Edit Advice"
+                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+              <SectionTemplatePicker
+                sectionKey="advice"
+                sectionTitle="Advice"
+                currentValue={advice}
+                align="left"
+                onApplyPreset={(val) => onUpdateAdvice(advice ? advice + '\n' + val : val)}
+              />
+              <button
+                type="button"
+                title="Reset / Clear Advice"
+                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                onClick={() => onUpdateAdvice('')}
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          <textarea
+            value={advice}
+            onChange={(e) => onUpdateAdvice(e.target.value)}
+            rows={4}
+            placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids, rest)..."
+            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+          />
+          <p className="mt-2 text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+            <span>*</span> Medicine can be purchased from any medical store and in a generic form also
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* 1. Dr Notes & Quick Notes */}
