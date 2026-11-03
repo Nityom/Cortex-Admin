@@ -305,6 +305,11 @@ function PrintPrescriptionContent() {
                 timing: m?.timing ? String(m.timing) : undefined,
                 freq_duration: m?.freq_duration ? String(m.freq_duration) : undefined,
                 note: m?.note ? String(m.note) : undefined,
+                unit: m?.unit ? String(m.unit) : undefined,
+                when: m?.when ? String(m.when) : undefined,
+                where: m?.where ? String(m.where) : undefined,
+                time: m?.time ? String(m.time) : undefined,
+                schedules: Array.isArray(m?.schedules) ? m.schedules : undefined,
               };
             })
           : [];
@@ -675,74 +680,88 @@ function PrintPrescriptionContent() {
               <th className="col-med">Medicine</th>
               <th className="col-dosage">Dosage</th>
               <th className="col-timing">Timing - Freq. - Duration</th>
+              {isGyno && <th className="col-qty">Qty</th>}
             </tr>
           </thead>
           <tbody>
             {Array.isArray(prescriptionData.medicines) && prescriptionData.medicines.length > 0 ? (
-              prescriptionData.medicines.map((med, index) => (
-                <tr key={index} className="med-row">
-                  <td>
-                    <div className="med-name-heading">
-                      {index + 1}) &nbsp;{med.name}
-                    </div>
-                  </td>
-                  <td>
-                    {med.schedules && med.schedules.length > 1 ? (
-                      <div className="space-y-1">
-                        {med.schedules.map((s, si) => (
-                          <div key={si} className="dosage-val">
-                            {s.dosage ? String(s.dosage).replace(/\s*[-–—]\s*/g, '-').trim() : '—'}
-                          </div>
-                        ))}
+              prescriptionData.medicines.map((med, index) => {
+                const qtyVal = typeof med.quantity === 'number' && med.quantity > 0
+                  ? med.quantity
+                  : calculateMedicineQuantity(med);
+
+                return (
+                  <tr key={index} className="med-row">
+                    <td>
+                      <div className="med-name-heading">
+                        {index + 1}) &nbsp;{med.name}
                       </div>
-                    ) : (
-                      <div className="dosage-val">
-                        {med.dosage ? String(med.dosage).replace(/\s*[-–—]\s*/g, '-').trim() : '—'}
-                      </div>
+                    </td>
+                    <td>
+                      {med.schedules && med.schedules.length > 1 ? (
+                        <div className="space-y-1">
+                          {med.schedules.map((s, si) => (
+                            <div key={si} className="dosage-val">
+                              {s.dosage ? String(s.dosage).replace(/\s*[-–—]\s*/g, '-').trim() : '—'}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="dosage-val">
+                          {med.dosage ? String(med.dosage).replace(/\s*[-–—]\s*/g, '-').trim() : '—'}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {med.schedules && med.schedules.length > 1 ? (
+                        <div className="space-y-1.5">
+                          {med.schedules.map((s, si) => (
+                            <div key={si} className="timing-val text-[8.5pt]">
+                              {(s.notes || s.time || s.when) && <div>{s.notes || [s.time, s.when].filter(Boolean).join(' • ')}</div>}
+                              <span className="font-medium">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="timing-val">
+                          {(() => {
+                             const parts: string[] = [];
+                            if (med.frequency && med.frequency !== 'Daily') {
+                              parts.push(String(med.frequency));
+                            }
+                            if (med.freq_duration) {
+                              parts.push(String(med.freq_duration));
+                            }
+                            if (
+                              med.duration &&
+                              (!med.freq_duration ||
+                                (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
+                                  !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
+                            ) {
+                              parts.push(`(${med.duration})`);
+                            }
+                            const timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage);
+                            const scheduleText = parts.length > 0
+                              ? parts.join(' • ')
+                              : med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
+                            return <>{timing && <div>{timing}</div>}<div>{scheduleText}</div></>;
+                          })()}
+                        </div>
+                      )}
+                    </td>
+                    {isGyno && (
+                      <td className="med-qty-val">
+                        {qtyVal !== undefined && qtyVal !== null && !isNaN(Number(qtyVal))
+                          ? qtyVal
+                          : '—'}
+                      </td>
                     )}
-                  </td>
-                  <td>
-                    {med.schedules && med.schedules.length > 1 ? (
-                      <div className="space-y-1.5">
-                        {med.schedules.map((s, si) => (
-                          <div key={si} className="timing-val text-[8.5pt]">
-                            {(s.notes || s.time || s.when) && <div>{s.notes || [s.time, s.when].filter(Boolean).join(' • ')}</div>}
-                            <span className="font-medium">{[s.frequency, s.duration].filter(Boolean).join(' • ') || '—'}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="timing-val">
-                        {(() => {
-                           const parts: string[] = [];
-                          if (med.frequency && med.frequency !== 'Daily') {
-                            parts.push(String(med.frequency));
-                          }
-                          if (med.freq_duration) {
-                            parts.push(String(med.freq_duration));
-                          }
-                          if (
-                            med.duration &&
-                            (!med.freq_duration ||
-                              (!String(med.freq_duration).toLowerCase().includes(String(med.duration).toLowerCase()) &&
-                                !/दिवस|महिना|week|day/i.test(String(med.freq_duration))))
-                          ) {
-                            parts.push(`(${med.duration})`);
-                          }
-                          const timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage);
-                          const scheduleText = parts.length > 0
-                            ? parts.join(' • ')
-                            : med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));
-                          return <>{timing && <div>{timing}</div>}<div>{scheduleText}</div></>;
-                        })()}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))
+                  </tr>
+                );
+              })
             ) : (
               <tr className="med-row">
-                <td colSpan={4} className="text-center py-4 text-gray-500 italic">
+                <td colSpan={isGyno ? 4 : 3} className="text-center py-4 text-gray-500 italic">
                   No medicines prescribed.
                 </td>
               </tr>
@@ -908,7 +927,7 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: ${includeHeaderFooter ? 'auto' : '10px'} !important;
+            margin-top: auto !important;
             page-break-inside: avoid !important;
             padding-top: 4px !important;
           }
@@ -955,7 +974,7 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: ${includeHeaderFooter ? 'auto' : '16px'};
+            margin-top: auto;
             padding-top: 6px;
           }
         }
@@ -1214,18 +1233,24 @@ function PrintPrescriptionContent() {
         }
 
         .med-table th.col-med {
-          width: 58%;
+          width: ${isGyno ? '38%' : '58%'};
           text-align: left;
         }
 
         .med-table th.col-dosage {
-          width: 8%;
+          width: ${isGyno ? '14%' : '8%'};
           text-align: center;
         }
 
         .med-table th.col-timing {
-          width: 34%;
+          width: ${isGyno ? '38%' : '34%'};
           text-align: left;
+        }
+
+        .med-table th.col-qty {
+          width: 10%;
+          text-align: right;
+          padding-right: 6px;
         }
 
         .med-row td {
@@ -1461,13 +1486,14 @@ function PrintPrescriptionContent() {
         .footer-hms-branding {
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-end;
           gap: 5px;
-          margin-top: 10px;
-          padding-top: 4px;
+          margin-top: 6px;
+          padding-top: 2px;
+          padding-right: 4px;
           font-size: 7.5pt;
           color: #64748b;
-          text-align: center;
+          text-align: right;
         }
 
         .footer-hms-branding img {
@@ -1603,7 +1629,7 @@ function PrintPrescriptionContent() {
 
           {/* Bottom Section: Validity Note & Doctor Signature */}
           <div className="sheet-bottom-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: '6mm' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: 'auto' }}>
               <div className="prescription-validity-note" style={{ flex: 1 }}>
                 {!isGyno && (
                   <div className="validity-rule">* Prescription is valid for 30 days only</div>

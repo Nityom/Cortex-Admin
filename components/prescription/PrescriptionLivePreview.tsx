@@ -374,9 +374,10 @@ export default function PrescriptionLivePreview({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
-                <th className="py-2 px-1 text-left w-[58%]">Medicine</th>
-                <th className="py-2 px-1 text-center w-[8%]">Dosage</th>
-                <th className="py-2 px-2 text-left w-[34%]">Timing - Freq. - Duration</th>
+                <th className={`py-2 px-1 text-left ${isGyno ? 'w-[38%]' : 'w-[58%]'}`}>Medicine</th>
+                <th className={`py-2 px-1 text-center ${isGyno ? 'w-[14%]' : 'w-[8%]'}`}>Dosage</th>
+                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[38%]' : 'w-[34%]'}`}>Timing - Freq. - Duration</th>
+                {isGyno && <th className="py-2 px-1 text-right w-[10%] pr-2">Qty</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
@@ -419,11 +420,23 @@ export default function PrescriptionLivePreview({
                         })}</div>;
                       })()}
                     </td>
+
+                    {/* Quantity for Gynae */}
+                    {isGyno && (
+                      <td className="py-2 px-1 text-right font-bold text-xs text-slate-900 pr-2">
+                        {(() => {
+                          const qty = typeof med.quantity === 'number' && med.quantity > 0
+                            ? med.quantity
+                            : calculateMedicineQuantity(med);
+                          return qty !== undefined && qty !== null && !isNaN(Number(qty)) ? qty : '—';
+                        })()}
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="text-center py-6 text-slate-400 italic">
+                  <td colSpan={isGyno ? 4 : 3} className="text-center py-6 text-slate-400 italic">
                     No medications added yet. Add medicines from the form above.
                   </td>
                 </tr>
@@ -589,7 +602,7 @@ export default function PrescriptionLivePreview({
       )}
 
       {/* Letterhead Container */}
-      <div className={`max-w-4xl mx-auto bg-white ${isModalPreview ? 'shadow-xl rounded-xl border border-slate-300 p-5 sm:p-7' : 'shadow-2xl rounded-2xl border border-slate-300 p-6 sm:p-9'} relative overflow-hidden font-sans text-slate-900 transition`}>
+      <div className={`max-w-4xl mx-auto bg-white ${isModalPreview ? 'shadow-xl rounded-xl border border-slate-300 p-5 sm:p-7' : 'shadow-2xl rounded-2xl border border-slate-300 p-6 sm:p-9'} relative overflow-hidden font-sans text-slate-900 transition flex flex-col justify-between min-h-[640px]`}>
         {/* Background Watermark */}
         <img
           src="/cortex_logo.png"
@@ -708,18 +721,19 @@ export default function PrescriptionLivePreview({
           })}
         </div>
 
-        {renderSignature()}
-
-        {/* Validity & Generic Medicine Note */}
-        <div className="mt-3 pt-2 border-t border-slate-200">
-          {!isGyno && (
-            <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
-              * Prescription is valid for 30 days only
+        {/* Bottom Section: Validity Note & Doctor Signature */}
+        <div className="mt-auto pt-4 flex justify-between items-end gap-4 border-t border-slate-200">
+          <div className="flex-1">
+            {!isGyno && (
+              <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
+                * Prescription is valid for 30 days only
+              </div>
+            )}
+            <div className="text-slate-800 font-bold text-[10.5px] mt-0.5">
+              * Medicine can be purchased from any medical store and in a generic form also
             </div>
-          )}
-          <div className="text-slate-800 font-bold text-[10.5px] mt-0.5">
-            * Medicine can be purchased from any medical store and in a generic form also
           </div>
+          {renderSignature()}
         </div>
 
         {/* Bottom Schedule Banner */}
@@ -755,9 +769,9 @@ export default function PrescriptionLivePreview({
           <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
         </div>}
 
-        {/* Centered Powered by Svaasth-HMS Line at Bottom */}
-        {includeHeaderFooter && hospitalConfig.branding.poweredBySvasth && (
-          <div className="flex items-center justify-center gap-1.5 mt-3 pt-2 text-[10px] text-slate-500 text-center select-none">
+        {/* Powered by Svaasth-HMS Line at Bottom Corner */}
+        {hospitalConfig.branding.poweredBySvasth && (
+          <div className="flex items-center justify-end gap-1.5 mt-2 pt-1 text-[10px] text-slate-500 text-right select-none">
             <span>Powered by</span>
             <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3 w-auto inline-block" />
             <strong className="text-emerald-700 font-extrabold">Svaasth-HMS</strong>
