@@ -134,16 +134,16 @@ function getTimingFromDosage(dosage?: string): string {
   const trimmed = dosage.trim();
   const clean = trimmed.toLowerCase();
 
-  // Standard clinical dosages mapped to Marathi instructions
-  if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर (Morning after breakfast)';
-  if (clean === '0-1-0') return 'दुपारी जेवणानंतर (Afternoon after lunch)';
-  if (clean === '0-0-1') return 'रात्री जेवणानंतर (Night after dinner)';
+  // Standard clinical dosages mapped to Marathi instructions (Pure Marathi/Hindi, no English text)
+  if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर';
+  if (clean === '0-1-0') return 'दुपारी जेवणानंतर';
+  if (clean === '0-0-1') return 'रात्री जेवणानंतर';
   if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर, रात्री जेवणानंतर';
   if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर, रात्री जेवणानंतर';
   if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर';
   if (clean === '0-1-1') return 'दुपारी जेवणानंतर, रात्री जेवणानंतर';
-  if (clean === 'stat') return 'तातडीने (Immediately / Stat)';
-  if (clean === 'sos') return 'गरज भासल्यास (As needed / SOS)';
+  if (clean === 'stat') return 'तातडीने';
+  if (clean === 'sos') return 'गरज भासल्यास (SOS)';
 
   const parts = trimmed.split('-').map(p => p.trim());
   if (parts.length === 3) {
