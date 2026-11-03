@@ -5,7 +5,6 @@ import {
   GripVertical,
   ChevronUp,
   ChevronDown,
-  RotateCcw,
   PenTool,
 } from 'lucide-react';
 import {
@@ -480,46 +479,6 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
 
   return (
     <div ref={containerRef} className="space-y-4">
-      {/* Reorderable Clinical Stack Header with Expand / Collapse / Reset */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-sm text-slate-700">
-        <div className="flex items-center gap-2 font-bold">
-          <GripVertical className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span className="text-slate-900 font-extrabold text-sm sm:text-base">Prescription Section Layout</span>
-          <span className="text-xs text-slate-500 font-normal hidden lg:inline">
-            (1. Vitals • 2. Complaints • 3. Diagnosis • 4. Exam Findings • 5. Drawing • 6. Medicines • 7. Advice & Tests • 8. Next Visit • 9. Signature)
-          </span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={handleExpandAll}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
-            title="Expand all prescription sections"
-          >
-            <ChevronDown className="w-4 h-4 text-emerald-600" />
-            <span>Expand All</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleCollapseAll}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
-            title="Collapse all prescription sections"
-          >
-            <ChevronUp className="w-4 h-4 text-slate-500" />
-            <span>Collapse All</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleResetSectionOrder}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
-            title="Reset prescription sections to standard default order"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset Sequence</span>
-          </button>
-        </div>
-      </div>
-
       {/* Main Clinical Stacked Layout */}
       <div className="space-y-4">
         {rxSectionOrder

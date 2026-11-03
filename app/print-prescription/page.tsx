@@ -185,19 +185,19 @@ function PrintPrescriptionContent() {
   const [margins, setMargins] = useState<{ top: number; bottom: number; left: number; right: number }>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cortex_rx_letterhead_margins_v3');
+        const saved = localStorage.getItem('cortex_rx_letterhead_margins_v4');
         if (saved) {
           const parsed = JSON.parse(saved);
           return {
             top: parsed.top ?? 50,
-            bottom: parsed.bottom ?? 40,
+            bottom: parsed.bottom !== undefined && parsed.bottom <= 15 ? parsed.bottom : 8,
             left: Math.max(parsed.left ?? 20, 20),
             right: parsed.right ?? 5,
           };
         }
       } catch {}
     }
-    return { top: 50, bottom: 40, left: 20, right: 5 };
+    return { top: 50, bottom: 8, left: 20, right: 5 };
   });
 
   const updateMargin = (key: 'top' | 'bottom' | 'left' | 'right', val: number) => {
@@ -205,7 +205,7 @@ function PrintPrescriptionContent() {
       const next = { ...prev, [key]: val };
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('cortex_rx_letterhead_margins_v3', JSON.stringify(next));
+          localStorage.setItem('cortex_rx_letterhead_margins_v4', JSON.stringify(next));
         } catch {}
       }
       return next;
@@ -927,9 +927,15 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: 10px !important;
+            margin-top: 6px !important;
             page-break-inside: avoid !important;
-            padding-top: 4px !important;
+            padding-top: 2px !important;
+          }
+
+          .sheet-footer-fixed-bottom {
+            margin-top: auto !important;
+            page-break-inside: avoid !important;
+            page-break-before: avoid !important;
           }
 
           .footer-banner-container {
@@ -974,8 +980,12 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: 16px;
-            padding-top: 6px;
+            margin-top: 14px;
+            padding-top: 4px;
+          }
+
+          .sheet-footer-fixed-bottom {
+            margin-top: auto;
           }
         }
 
@@ -1019,8 +1029,17 @@ function PrintPrescriptionContent() {
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
-          margin-top: 16px;
-          padding-top: 6px;
+          margin-top: 14px;
+          padding-top: 4px;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+
+        .sheet-footer-fixed-bottom {
+          margin-top: auto;
+          flex-shrink: 0;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
         }
 
         /* ── Top Small Meta Line ── */
@@ -1233,24 +1252,25 @@ function PrintPrescriptionContent() {
         }
 
         .med-table th.col-med {
-          width: ${isGyno ? '38%' : '58%'};
+          width: ${isGyno ? '47%' : '58%'};
           text-align: left;
         }
 
         .med-table th.col-dosage {
-          width: ${isGyno ? '14%' : '8%'};
+          width: ${isGyno ? '13%' : '8%'};
           text-align: center;
         }
 
         .med-table th.col-timing {
-          width: ${isGyno ? '38%' : '34%'};
+          width: ${isGyno ? '28%' : '34%'};
           text-align: left;
         }
 
         .med-table th.col-qty {
-          width: 10%;
-          text-align: right;
-          padding-right: 6px;
+          width: 12%;
+          text-align: center;
+          padding-left: 2px;
+          padding-right: 2px;
         }
 
         .med-row td {
@@ -1323,7 +1343,7 @@ function PrintPrescriptionContent() {
           font-size: 11.5pt;
           font-weight: 600;
           color: #000000;
-          text-align: right;
+          text-align: center;
         }
 
         /* ── Advice & Tests Section ── */
@@ -1625,59 +1645,81 @@ function PrintPrescriptionContent() {
                   return null;
               }
             })}
-          </div>
 
-          {/* Bottom Section: Validity Note & Doctor Signature */}
-          <div className="sheet-bottom-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: '6mm' }}>
-              <div className="prescription-validity-note" style={{ flex: 1 }}>
-                {!isGyno && (
-                  <div className="validity-rule">* Prescription is valid for 30 days only</div>
-                )}
-                <div className="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
-              </div>
+            {/* Doctor Signature (Immediately after content on the right) */}
+            <div className="sheet-signature-section" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4mm' }}>
               {renderSignature()}
             </div>
           </div>
 
-          {/* Footer Schedule Banner (Only rendered on plain paper with Header & Footer) */}
-          {includeHeaderFooter && (
-            <div className="footer-banner-container">
-              {hospitalConfig.schedule.clinicDetails && (
-                <div className="footer-top-pill-row">
-                  <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}</span>
-                  <span className="clinic-time">{hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}</span>
+          {/* Bottom Fixed Footer: Validity Note, Schedule Banner & Powered by Svaasth-HMS */}
+          <div className="sheet-footer-fixed-bottom">
+            {includeHeaderFooter ? (
+              <>
+                {/* Validity Note & Generic Medicine Note */}
+                <div className="prescription-validity-note" style={{ marginBottom: '4px' }}>
+                  {!isGyno && (
+                    <div className="validity-rule">* Prescription is valid for 30 days only</div>
+                  )}
+                  <div className="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
                 </div>
-              )}
 
-              <div className="footer-clinic-title">{hospitalConfig.tagline}</div>
+                {/* Footer Schedule Banner */}
+                <div className="footer-banner-container">
+                  {hospitalConfig.schedule.clinicDetails && (
+                    <div className="footer-top-pill-row">
+                      <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}</span>
+                      <span className="clinic-time">{hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}</span>
+                    </div>
+                  )}
 
-              <div className="footer-opd-line">
-                <span className="footer-opd-label">OPD Time : </span>
-                {hospitalConfig.schedule.opdTimings}
+                  <div className="footer-clinic-title">{hospitalConfig.tagline}</div>
+
+                  <div className="footer-opd-line">
+                    <span className="footer-opd-label">OPD Time : </span>
+                    {hospitalConfig.schedule.opdTimings}
+                  </div>
+
+                  {hospitalConfig.schedule.sundayStatus && (
+                    <div className="footer-sunday-line">{hospitalConfig.schedule.sundayStatus}</div>
+                  )}
+
+                  <div className="footer-address-line">
+                    {hospitalConfig.address.fullFormatted}
+                    &nbsp;|&nbsp; Ph. : {hospitalConfig.contacts.phones.join(', ')}
+                  </div>
+
+                  <div className="footer-bottom-bar"></div>
+                </div>
+
+                {/* Powered by Svaasth-HMS Line at Bottom Corner */}
+                {hospitalConfig.branding.poweredBySvasth && (
+                  <div className="footer-hms-branding">
+                    <span>Powered by</span>
+                    <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" />
+                    <strong>Svaasth-HMS</strong>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', gap: '12px' }}>
+                <div className="prescription-validity-note" style={{ flex: 1 }}>
+                  {!isGyno && (
+                    <div className="validity-rule">* Prescription is valid for 30 days only</div>
+                  )}
+                  <div className="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
+                </div>
+
+                {hospitalConfig.branding.poweredBySvasth && (
+                  <div className="footer-hms-branding" style={{ margin: 0, padding: 0, flexShrink: 0 }}>
+                    <span>Powered by</span>
+                    <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" />
+                    <strong>Svaasth-HMS</strong>
+                  </div>
+                )}
               </div>
-
-              {hospitalConfig.schedule.sundayStatus && (
-                <div className="footer-sunday-line">{hospitalConfig.schedule.sundayStatus}</div>
-              )}
-
-              <div className="footer-address-line">
-                {hospitalConfig.address.fullFormatted}
-                &nbsp;|&nbsp; Ph. : {hospitalConfig.contacts.phones.join(', ')}
-              </div>
-
-              <div className="footer-bottom-bar"></div>
-            </div>
-          )}
-
-          {/* Centered Powered by Svaasth-HMS Line at Bottom */}
-          {hospitalConfig.branding.poweredBySvasth && (
-            <div className="footer-hms-branding">
-              <span>Powered by</span>
-              <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" />
-              <strong>Svaasth-HMS</strong>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

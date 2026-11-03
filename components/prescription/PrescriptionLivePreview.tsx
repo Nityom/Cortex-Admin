@@ -374,10 +374,10 @@ export default function PrescriptionLivePreview({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
-                <th className={`py-2 px-1 text-left ${isGyno ? 'w-[38%]' : 'w-[58%]'}`}>Medicine</th>
-                <th className={`py-2 px-1 text-center ${isGyno ? 'w-[14%]' : 'w-[8%]'}`}>Dosage</th>
-                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[38%]' : 'w-[34%]'}`}>Timing - Freq. - Duration</th>
-                {isGyno && <th className="py-2 px-1 text-right w-[10%] pr-2">Qty</th>}
+                <th className={`py-2 px-1 text-left ${isGyno ? 'w-[47%]' : 'w-[58%]'}`}>Medicine</th>
+                <th className={`py-2 px-1 text-center ${isGyno ? 'w-[13%]' : 'w-[8%]'}`}>Dosage</th>
+                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[28%]' : 'w-[34%]'}`}>Timing - Freq. - Duration</th>
+                {isGyno && <th className="py-2 px-1 text-center w-[12%]">Qty</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
@@ -423,7 +423,7 @@ export default function PrescriptionLivePreview({
 
                     {/* Quantity for Gynae */}
                     {isGyno && (
-                      <td className="py-2 px-1 text-right font-bold text-xs text-slate-900 pr-2">
+                      <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
                         {(() => {
                           const qty = typeof med.quantity === 'number' && med.quantity > 0
                             ? med.quantity
@@ -721,62 +721,93 @@ export default function PrescriptionLivePreview({
           })}
         </div>
 
-        {/* Bottom Section: Validity Note & Doctor Signature */}
-        <div className="mt-6 pt-3 flex justify-between items-end gap-4 border-t border-slate-200">
-          <div className="flex-1">
-            {!isGyno && (
-              <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
-                * Prescription is valid for 30 days only
-              </div>
-            )}
-            <div className="text-slate-800 font-bold text-[10.5px] mt-0.5">
-              * Medicine can be purchased from any medical store and in a generic form also
-            </div>
-          </div>
+        {/* Doctor Signature (Immediately after content on the right) */}
+        <div className="flex justify-end mt-3">
           {renderSignature()}
         </div>
 
-        {/* Bottom Schedule Banner */}
-        {includeHeaderFooter && <div className="mt-4 pt-3 border-t-2 border-slate-300 text-center">
-          {hospitalConfig.schedule.clinicDetails && (
-            <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
-              <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
-                {hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}
-              </span>
-              <span className="text-xs font-bold text-slate-900">
-                {hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}
-              </span>
+        {/* Bottom Fixed Footer Container */}
+        <div className="mt-auto pt-3">
+          {includeHeaderFooter ? (
+            <>
+              {/* Validity Note & Generic Medicine Note */}
+              <div className="mb-2">
+                {!isGyno && (
+                  <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
+                    * Prescription is valid for 30 days only
+                  </div>
+                )}
+                <div className="text-slate-800 font-bold text-[10.5px]">
+                  * Medicine can be purchased from any medical store and in a generic form also
+                </div>
+              </div>
+
+              {/* Bottom Schedule Banner */}
+              <div className="pt-2 border-t-2 border-slate-300 text-center">
+                {hospitalConfig.schedule.clinicDetails && (
+                  <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
+                    <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
+                      {hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}
+                    </span>
+                    <span className="text-xs font-bold text-slate-900">
+                      {hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-xs sm:text-sm font-extrabold text-black">
+                  {hospitalConfig.tagline}
+                </div>
+
+                <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
+                  <span className="font-bold text-[#7B1828]">OPD Time : </span>
+                  {hospitalConfig.schedule.opdTimings}
+                </div>
+
+                {hospitalConfig.schedule.sundayStatus && (
+                  <div className="text-[11px] font-bold text-[#7B1828] mt-0.5">{hospitalConfig.schedule.sundayStatus}</div>
+                )}
+
+                <div className="text-[10px] text-slate-600 mt-1">
+                  {hospitalConfig.address.fullFormatted} &nbsp;|&nbsp; Ph. : {hospitalConfig.contacts.phones.join(', ')}
+                </div>
+
+                <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
+              </div>
+
+              {/* Powered by Svaasth-HMS Line at Bottom Corner */}
+              {hospitalConfig.branding.poweredBySvasth && (
+                <div className="flex items-center justify-end gap-1.5 mt-2 pt-1 text-[10px] text-slate-500 text-right select-none">
+                  <span>Powered by</span>
+                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3 w-auto inline-block" />
+                  <strong className="text-emerald-700 font-extrabold">Svaasth-HMS</strong>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex justify-between items-end gap-4 pt-2 border-t border-slate-200">
+              <div className="flex-1">
+                {!isGyno && (
+                  <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">
+                    * Prescription is valid for 30 days only
+                  </div>
+                )}
+                <div className="text-slate-800 font-bold text-[10.5px]">
+                  * Medicine can be purchased from any medical store and in a generic form also
+                </div>
+              </div>
+
+              {/* Powered by Svaasth-HMS Line at Bottom Corner */}
+              {hospitalConfig.branding.poweredBySvasth && (
+                <div className="flex items-center justify-end gap-1.5 text-[10px] text-slate-500 text-right select-none shrink-0">
+                  <span>Powered by</span>
+                  <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3 w-auto inline-block" />
+                  <strong className="text-emerald-700 font-extrabold">Svaasth-HMS</strong>
+                </div>
+              )}
             </div>
           )}
-
-          <div className="text-xs sm:text-sm font-extrabold text-black">
-            {hospitalConfig.tagline}
-          </div>
-
-          <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
-            <span className="font-bold text-[#7B1828]">OPD Time : </span>
-            {hospitalConfig.schedule.opdTimings}
-          </div>
-
-          {hospitalConfig.schedule.sundayStatus && (
-            <div className="text-[11px] font-bold text-[#7B1828] mt-0.5">{hospitalConfig.schedule.sundayStatus}</div>
-          )}
-
-          <div className="text-[10px] text-slate-600 mt-1">
-            {hospitalConfig.address.fullFormatted} &nbsp;|&nbsp; Ph. : {hospitalConfig.contacts.phones.join(', ')}
-          </div>
-
-          <div className="h-1 bg-gradient-to-r from-purple-800 via-[#7B1828] to-purple-800 rounded mt-2"></div>
-        </div>}
-
-        {/* Powered by Svaasth-HMS Line at Bottom Corner */}
-        {hospitalConfig.branding.poweredBySvasth && (
-          <div className="flex items-center justify-end gap-1.5 mt-2 pt-1 text-[10px] text-slate-500 text-right select-none">
-            <span>Powered by</span>
-            <img src={hospitalConfig.branding.svasthLogoUrl} alt="Svaasth HMS" className="h-3 w-auto inline-block" />
-            <strong className="text-emerald-700 font-extrabold">Svaasth-HMS</strong>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
