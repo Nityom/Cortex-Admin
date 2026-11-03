@@ -602,7 +602,7 @@ export default function PrescriptionLivePreview({
       )}
 
       {/* Letterhead Container */}
-      <div className={`max-w-4xl mx-auto bg-white ${isModalPreview ? 'shadow-xl rounded-xl border border-slate-300 p-5 sm:p-7' : 'shadow-2xl rounded-2xl border border-slate-300 p-6 sm:p-9'} relative overflow-hidden font-sans text-slate-900 transition flex flex-col justify-between min-h-[640px]`}>
+      <div className={`max-w-4xl mx-auto bg-white ${isModalPreview ? 'shadow-xl rounded-xl border border-slate-300 p-5 sm:p-7' : 'shadow-2xl rounded-2xl border border-slate-300 p-6 sm:p-9'} relative overflow-hidden font-sans text-slate-900 transition`}>
         {/* Background Watermark */}
         <img
           src="/cortex_logo.png"
@@ -722,7 +722,7 @@ export default function PrescriptionLivePreview({
         </div>
 
         {/* Bottom Section: Validity Note & Doctor Signature */}
-        <div className="mt-auto pt-4 flex justify-between items-end gap-4 border-t border-slate-200">
+        <div className="mt-6 pt-3 flex justify-between items-end gap-4 border-t border-slate-200">
           <div className="flex-1">
             {!isGyno && (
               <div className="text-rose-700 font-extrabold text-[11px] tracking-wide">

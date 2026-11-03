@@ -927,7 +927,7 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: auto !important;
+            margin-top: 10px !important;
             page-break-inside: avoid !important;
             padding-top: 4px !important;
           }
@@ -974,7 +974,7 @@ function PrintPrescriptionContent() {
           }
 
           .sheet-bottom-section {
-            margin-top: auto;
+            margin-top: 16px;
             padding-top: 6px;
           }
         }
@@ -1019,8 +1019,8 @@ function PrintPrescriptionContent() {
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
-          margin-top: auto;
-          padding-top: 12px;
+          margin-top: 16px;
+          padding-top: 6px;
         }
 
         /* ── Top Small Meta Line ── */
@@ -1629,7 +1629,7 @@ function PrintPrescriptionContent() {
 
           {/* Bottom Section: Validity Note & Doctor Signature */}
           <div className="sheet-bottom-section">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', marginTop: '6mm' }}>
               <div className="prescription-validity-note" style={{ flex: 1 }}>
                 {!isGyno && (
                   <div className="validity-rule">* Prescription is valid for 30 days only</div>
