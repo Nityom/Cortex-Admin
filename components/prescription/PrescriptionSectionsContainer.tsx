@@ -72,31 +72,44 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
   const rxSectionOrder: PrescriptionSectionKey[] = form.rxSectionOrder || DEFAULT_RX_SECTION_ORDER;
   const setRxSectionOrder = form.setRxSectionOrder || (() => {});
 
-  // Collapsed state: support collapse & expand for every section
+  // Collapsed state: support collapse & expand for every section (all closed by default)
+  const getAllCollapsedDefault = (): Record<string, boolean> => {
+    const all: Record<string, boolean> = {};
+    DEFAULT_RX_SECTION_ORDER.forEach((key) => {
+      all[key] = true;
+    });
+    return all;
+  };
+
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cortex_rx_collapsed_sections_v2');
+        localStorage.removeItem('cortex_rx_collapsed_sections_v2');
+        localStorage.removeItem('cortex_rx_collapsed_sections');
+        const saved = sessionStorage.getItem('cortex_rx_collapsed_sections');
         if (saved !== null) return JSON.parse(saved);
       } catch {}
     }
-    return { drawing_board: true }; // Closed by default for drawing board
+    return getAllCollapsedDefault();
   });
 
   const toggleSectionCollapse = (key: string) => {
     setCollapsedSections((prev) => {
-      const updated = { ...prev, [key]: !prev[key] };
+      const isCurrentlyCollapsed = prev[key] !== false;
+      const updated = { ...prev, [key]: !isCurrentlyCollapsed };
       try {
-        localStorage.setItem('cortex_rx_collapsed_sections_v2', JSON.stringify(updated));
+        sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(updated));
       } catch {}
       return updated;
     });
   };
 
   const handleExpandAll = () => {
-    setCollapsedSections({});
+    const allExpanded: Record<string, boolean> = {};
+    rxSectionOrder.forEach((k) => { allExpanded[k] = false; });
+    setCollapsedSections(allExpanded);
     try {
-      localStorage.setItem('cortex_rx_collapsed_sections_v2', JSON.stringify({}));
+      sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(allExpanded));
     } catch {}
   };
 
@@ -105,7 +118,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
     rxSectionOrder.forEach((k) => { allCollapsed[k] = true; });
     setCollapsedSections(allCollapsed);
     try {
-      localStorage.setItem('cortex_rx_collapsed_sections_v2', JSON.stringify(allCollapsed));
+      sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(allCollapsed));
     } catch {}
   };
 
@@ -499,7 +512,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           .map((sectionKey, idx) => {
           const isBeingDragged = draggedSection === sectionKey;
           const isOver = dragOverSection === sectionKey && !isBeingDragged;
-          const isCollapsed = Boolean(collapsedSections[sectionKey]);
+          const isCollapsed = collapsedSections[sectionKey] !== false;
 
           return (
             <div
