@@ -16,6 +16,7 @@ import {
   updatePrescription,
   MedicineEntry,
   getPrescriptionsByPatient,
+  getLatestPrescriptionByPhone,
 } from '@/services/prescription';
 import {
   getOrCreatePatient,
@@ -365,7 +366,103 @@ export function usePrescriptionForm() {
     }
   }, [lmpDate, formData.date]);
 
-  // Diagnosis State
+  // Manual EDD change: Auto-derives LMP (EDD - 280 days) & calculates Gestational Age
+  const updateEddDate = useCallback(
+    (newEdd: string) => {
+      setEddDate(newEdd);
+      if (!newEdd) return;
+      try {
+        const edd = new Date(newEdd);
+        if (isNaN(edd.getTime())) return;
+
+        // Derive LMP = EDD - 280 days
+        const derivedLmp = new Date(edd.getTime() - 280 * 24 * 60 * 60 * 1000);
+        const yyyy = derivedLmp.getFullYear();
+        const mm = String(derivedLmp.getMonth() + 1).padStart(2, '0');
+        const dd = String(derivedLmp.getDate()).padStart(2, '0');
+        const lmpStr = `${yyyy}-${mm}-${dd}`;
+        setLmpDate(lmpStr);
+
+        const visitDate = formData.date ? new Date(formData.date) : new Date();
+        const diffMs = visitDate.getTime() - derivedLmp.getTime();
+        const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+        if (diffDays >= 0) {
+          setGestationalWeeks(String(Math.floor(diffDays / 7)));
+          setGestationalDays(String(diffDays % 7));
+        }
+      } catch (err) {
+        console.warn('Error calculating LMP from EDD:', err);
+      }
+    },
+    [formData.date]
+  );
+
+  // Auto-populate & calculate Antenatal (LMP • EDD • GA) for Gynae on 2nd / subsequent visits
+  const autoPopulateAntenatalFromPastRx = useCallback(
+    (pastPrescriptions: any[], currentVisitDateStr?: string) => {
+      if (!Array.isArray(pastPrescriptions) || pastPrescriptions.length === 0) return false;
+
+      // Find the most recent prescription with LMP or EDD
+      const rxWithAntenatal = pastPrescriptions
+        .filter((rx) => rx && rx.vitals && (rx.vitals.lmp || rx.vitals.edd))
+        .sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime())[0];
+
+      if (!rxWithAntenatal || !rxWithAntenatal.vitals) return false;
+
+      const v = rxWithAntenatal.vitals;
+      let effectiveLmp = v.lmp;
+      let effectiveEdd = v.edd;
+
+      // If EDD is present but LMP is missing, derive LMP = EDD - 280 days
+      if (!effectiveLmp && effectiveEdd) {
+        const eddDateObj = new Date(effectiveEdd);
+        if (!isNaN(eddDateObj.getTime())) {
+          const lmpDateObj = new Date(eddDateObj.getTime() - 280 * 24 * 60 * 60 * 1000);
+          effectiveLmp = lmpDateObj.toISOString().slice(0, 10);
+        }
+      }
+
+      // If LMP is present but EDD is missing, derive EDD = LMP + 280 days
+      if (effectiveLmp && !effectiveEdd) {
+        const lmpDateObj = new Date(effectiveLmp);
+        if (!isNaN(lmpDateObj.getTime())) {
+          const eddDateObj = new Date(lmpDateObj.getTime() + 280 * 24 * 60 * 60 * 1000);
+          effectiveEdd = eddDateObj.toISOString().slice(0, 10);
+        }
+      }
+
+      if (!effectiveLmp && !effectiveEdd) return false;
+
+      // Ensure pregnancy is from an ongoing gestation (within ~315 days of LMP)
+      const visitDate = currentVisitDateStr ? new Date(currentVisitDateStr) : new Date();
+      if (effectiveLmp) {
+        const lmpObj = new Date(effectiveLmp);
+        const daysSinceLmp = (visitDate.getTime() - lmpObj.getTime()) / (24 * 60 * 60 * 1000);
+        if (daysSinceLmp > 315 || daysSinceLmp < -30) {
+          return false;
+        }
+      }
+
+      if (effectiveLmp) setLmpDate(effectiveLmp);
+      if (effectiveEdd) setEddDate(effectiveEdd);
+
+      // Auto-calculate Gestational Age as of current visit date
+      if (effectiveLmp) {
+        const lmpObj = new Date(effectiveLmp);
+        const diffMs = visitDate.getTime() - lmpObj.getTime();
+        const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+        if (diffDays >= 0) {
+          const weeks = Math.floor(diffDays / 7);
+          const days = diffDays % 7;
+          setGestationalWeeks(String(weeks));
+          setGestationalDays(String(days));
+        }
+      }
+
+      return true;
+    },
+    []
+  );
   const [diagnosesList, setDiagnosesList] = useState<any[]>([]);
 
   // Procedure Done State
@@ -561,9 +658,9 @@ export function usePrescriptionForm() {
       if (v.weight) setWeightVal(v.weight);
       if (v.height) setHeightVal(v.height);
       if (v.temperature) setTempVal(v.temperature);
-      if (v.lmp) setLmpDate(v.lmp);
-      if (v.edd) setEddDate(v.edd);
-      if (v.gestational_age) {
+      if (v.lmp || v.edd) {
+        autoPopulateAntenatalFromPastRx([pastRx], formData.date || todayDate);
+      } else if (v.gestational_age) {
         const parts = String(v.gestational_age).split(' ');
         if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
         if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
@@ -726,6 +823,16 @@ export function usePrescriptionForm() {
                 const lastDate = sorted[0].prescription_date;
                 const diffDays = (new Date().getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24);
                 isWithin10Days = diffDays >= 0 && diffDays <= 10;
+
+                // Auto-populate & recalculate antenatal EDD / LMP / GA for 2nd / repeat visit
+                autoPopulateAntenatalFromPastRx(pastRx, formData.date || todayDate);
+              }
+            } catch {}
+          } else {
+            try {
+              const latestRx = await getLatestPrescriptionByPhone(phoneNumber);
+              if (latestRx) {
+                autoPopulateAntenatalFromPastRx([latestRx], formData.date || todayDate);
               }
             } catch {}
           }
@@ -1331,6 +1438,35 @@ export function usePrescriptionForm() {
               if (existingPatient.email) {
                 setFormData((prev) => ({ ...prev, email: existingPatient.email }));
               }
+              const targetRef = existingPatient.reference_number || qReference;
+              if (targetRef) {
+                try {
+                  const pastRx = await getPrescriptionsByPatient(targetRef);
+                  if (pastRx && pastRx.length > 0) {
+                    autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+                  }
+                } catch (e) {
+                  console.warn('Could not auto-populate antenatal data by reference in initPage:', e);
+                }
+              }
+            } else {
+              try {
+                const latestRx = await getLatestPrescriptionByPhone(qPhone);
+                if (latestRx) {
+                  autoPopulateAntenatalFromPastRx([latestRx], todayDate);
+                }
+              } catch (e) {
+                console.warn('Could not auto-populate antenatal data by phone in initPage:', e);
+              }
+            }
+          } else if (qReference) {
+            try {
+              const pastRx = await getPrescriptionsByPatient(qReference);
+              if (pastRx && pastRx.length > 0) {
+                autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+              }
+            } catch (e) {
+              console.warn('Could not auto-populate antenatal data by qReference in initPage:', e);
             }
           }
           if (qTmplId) {
@@ -1344,7 +1480,7 @@ export function usePrescriptionForm() {
     };
 
     initPage();
-  }, [applyPrescriptionTemplate]);
+  }, [applyPrescriptionTemplate, autoPopulateAntenatalFromPastRx, todayDate]);
 
   return {
     // Basic Form
@@ -1420,7 +1556,7 @@ export function usePrescriptionForm() {
     lmpDate,
     setLmpDate,
     eddDate,
-    setEddDate,
+    setEddDate: updateEddDate,
     gestationalWeeks,
     setGestationalWeeks,
     gestationalDays,

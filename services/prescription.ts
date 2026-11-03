@@ -158,6 +158,12 @@ export const getPrescriptionsByPatient = async (patientId: string) => {
   return data.map((item: any) => ({ ...item, id: item._id })) as Prescription[];
 };
 
+export const getLatestPrescriptionByPhone = async (phoneNumber: string) => {
+  if (!phoneNumber) return null;
+  const data = await convex.query(api.prescriptions.getLatestByPhone, { phone_number: phoneNumber });
+  return data ? ({ ...data, id: data._id } as any as Prescription) : null;
+};
+
 export const saveDiagnosis = async (name: string, category?: string) => {
   try {
     return await convex.mutation(api.prescriptions.saveDiagnosis, { name, category });
