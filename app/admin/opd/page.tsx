@@ -197,7 +197,7 @@ export default function OPDManagementPage() {
     if (!allAppointments) return [];
     return allAppointments
       .filter((a) => a.date === todayStr)
-      .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+      .sort((a, b) => (b.time || "").localeCompare(a.time || "") || (b._creationTime || 0) - (a._creationTime || 0));
   }, [allAppointments, todayStr]);
 
   const appointmentsForSelectedDate = useMemo(() => {
@@ -216,7 +216,7 @@ export default function OPDManagementPage() {
           (a.phone || "").includes(q)
         );
       })
-      .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+      .sort((a, b) => (b.time || "").localeCompare(a.time || "") || (b._creationTime || 0) - (a._creationTime || 0));
   }, [allAppointments, selectedApptDate, apptDoctorFilter, apptSearchQuery]);
 
   const isApptInQueue = (appt: any) => {

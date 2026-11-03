@@ -90,56 +90,164 @@ export default function PrescriptionClinicalNotesSection({
     setNewTestByWhen('');
   };
 
-  const isGynae = /gyne|shillpa|shilpa|obs|maternity/i.test(selectedDoctorName || '');
+  // Simplified clinical notes: Advice + Tests Requested (Dr Notes, Procedure Advice, Referred To, Diet & Exercise, Past Medication, Systemic Exam, General Exam commented out/hidden)
+  return (
+    <div className="space-y-4">
+      {/* 1. General Advice */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs w-full">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            Advice
+          </label>
+          <div className="flex items-center gap-1 text-slate-400">
+            <button
+              type="button"
+              title="Edit Advice"
+              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <SectionTemplatePicker
+              sectionKey="advice"
+              sectionTitle="Advice"
+              currentValue={advice}
+              align="left"
+              onApplyPreset={(val) => onUpdateAdvice(advice ? advice + '\n' + val : val)}
+            />
+            <button
+              type="button"
+              title="Reset / Clear Advice"
+              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              onClick={() => onUpdateAdvice('')}
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+        <textarea
+          value={advice}
+          onChange={(e) => onUpdateAdvice(e.target.value)}
+          rows={3}
+          placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids, rest)..."
+          className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+        />
+        <p className="mt-2 text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+          <span>*</span> Medicine can be purchased from any medical store and in a generic form also
+        </p>
+      </div>
 
-  // For Dr. Shillpa Raut: keep only Advice (comment out/hide Dr Notes, Procedure Advice, Tests Requested, Referred To, Diet & Exercise, Investigation, Past Medication, Systemic Exam, General Exam)
-  if (isGynae) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs w-full">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-              Advice
-            </label>
-            <div className="flex items-center gap-1 text-slate-400">
-              <button
-                type="button"
-                title="Edit Advice"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-              <SectionTemplatePicker
-                sectionKey="advice"
-                sectionTitle="Advice"
-                currentValue={advice}
-                align="left"
-                onApplyPreset={(val) => onUpdateAdvice(advice ? advice + '\n' + val : val)}
+      {/* 2. Tests Requested (Uncommented as requested) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs w-full">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            Tests Requested
+          </label>
+          <div className="flex items-center gap-1 text-slate-400">
+            <button
+              type="button"
+              title="Edit Tests Requested"
+              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <SectionTemplatePicker
+              sectionKey="tests_requested"
+              sectionTitle="Tests Requested"
+              currentValue={testsRequested}
+              align="left"
+              onApplyPreset={(val) => {
+                if (Array.isArray(val)) {
+                  setTestsRequested((prev) => [
+                    ...prev,
+                    ...val.map((t: any, i: number) => ({
+                      id: 'tt_' + Date.now() + '_' + i,
+                      name: t.name,
+                      by_when: t.by_when || 'Next Visit',
+                    })),
+                  ]);
+                }
+              }}
+            />
+            <button
+              type="button"
+              title="Reset / Clear Tests"
+              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              onClick={() => setTestsRequested([])}
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+          <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
+            <div className="col-span-1">#</div>
+            <div className="col-span-6">Tests Requested</div>
+            <div className="col-span-4">By When</div>
+            <div className="col-span-1 text-right">Action</div>
+          </div>
+
+          {testsRequested.map((t, idx) => (
+            <div
+              key={t.id}
+              className="grid grid-cols-12 items-center py-2 px-3 border-b border-slate-100 hover:bg-slate-50/50"
+            >
+              <div className="col-span-1 text-slate-400">{idx + 1}</div>
+              <div className="col-span-6 font-semibold text-slate-800">{t.name}</div>
+              <div className="col-span-4 text-slate-600">{t.by_when || '—'}</div>
+              <div className="col-span-1 text-right">
+                <button
+                  type="button"
+                  onClick={() => setTestsRequested((prev) => prev.filter((x) => x.id !== t.id))}
+                  className="text-rose-500 hover:text-rose-700 font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Inline Add Test */}
+          <div className="grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/30 gap-2">
+            <div className="col-span-1 text-slate-400 font-mono">{testsRequested.length + 1}</div>
+            <div className="col-span-6">
+              <input
+                type="text"
+                value={newTestName}
+                onChange={(e) => setNewTestName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddTest();
+                  }
+                }}
+                placeholder="Add Tests (e.g. CBC, Blood Sugar, X-Ray Knee)..."
+                className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white outline-none"
               />
+            </div>
+            <div className="col-span-4">
+              <input
+                type="text"
+                value={newTestByWhen}
+                onChange={(e) => setNewTestByWhen(e.target.value)}
+                placeholder="e.g. Next Visit or Before Monday"
+                className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white outline-none"
+              />
+            </div>
+            <div className="col-span-1 text-right">
               <button
                 type="button"
-                title="Reset / Clear Advice"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => onUpdateAdvice('')}
+                onClick={handleAddTest}
+                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs"
               >
-                <Undo2 className="w-3.5 h-3.5" />
+                +
               </button>
             </div>
           </div>
-          <textarea
-            value={advice}
-            onChange={(e) => onUpdateAdvice(e.target.value)}
-            rows={4}
-            placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids, rest)..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
-          />
-          <p className="mt-2 text-[11px] font-semibold text-slate-700 flex items-center gap-1">
-            <span>*</span> Medicine can be purchased from any medical store and in a generic form also
-          </p>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="space-y-4">

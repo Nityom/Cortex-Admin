@@ -167,7 +167,7 @@ export default function AppointmentsPage() {
         if (selectedDoctorFilter === 'ALL') return true;
         return (a.doctor_name || '').toLowerCase() === selectedDoctorFilter.toLowerCase();
       })
-      .sort((a, b) => a.time.localeCompare(b.time));
+      .sort((a, b) => (b.time || '').localeCompare(a.time || '') || (b._creationTime || 0) - (a._creationTime || 0));
   }, [allAppointments, selectedDate, selectedDoctorFilter]);
 
   const appointmentsByDate = useMemo(() => {

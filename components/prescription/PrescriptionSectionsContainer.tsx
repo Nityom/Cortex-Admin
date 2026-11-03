@@ -72,27 +72,41 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
   const rxSectionOrder: PrescriptionSectionKey[] = form.rxSectionOrder || DEFAULT_RX_SECTION_ORDER;
   const setRxSectionOrder = form.setRxSectionOrder || (() => {});
 
-  // Collapsed state: ONLY Drawing Board can be collapsed/expanded. All other sections are permanently open.
-  const [isDrawingBoardCollapsed, setIsDrawingBoardCollapsed] = useState<boolean>(() => {
+  // Collapsed state: support collapse & expand for every section
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cortex_rx_drawing_board_collapsed');
+        const saved = localStorage.getItem('cortex_rx_collapsed_sections_v2');
         if (saved !== null) return JSON.parse(saved);
-        // Clean up legacy key so no other section stays collapsed in local cache
-        localStorage.removeItem('cortex_rx_collapsed_sections');
       } catch {}
     }
-    return true; // Closed by default
+    return { drawing_board: true }; // Closed by default for drawing board
   });
 
-  const toggleDrawingBoardCollapse = () => {
-    setIsDrawingBoardCollapsed((prev) => {
-      const updated = !prev;
+  const toggleSectionCollapse = (key: string) => {
+    setCollapsedSections((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
       try {
-        localStorage.setItem('cortex_rx_drawing_board_collapsed', JSON.stringify(updated));
+        localStorage.setItem('cortex_rx_collapsed_sections_v2', JSON.stringify(updated));
       } catch {}
       return updated;
     });
+  };
+
+  const handleExpandAll = () => {
+    setCollapsedSections({});
+    try {
+      localStorage.setItem('cortex_rx_collapsed_sections_v2', JSON.stringify({}));
+    } catch {}
+  };
+
+  const handleCollapseAll = () => {
+    const allCollapsed: Record<string, boolean> = {};
+    rxSectionOrder.forEach((k) => { allCollapsed[k] = true; });
+    setCollapsedSections(allCollapsed);
+    try {
+      localStorage.setItem('cortex_rx_collapsed_sections_v2', JSON.stringify(allCollapsed));
+    } catch {}
   };
 
   const [activeDragHandleKey, setActiveDragHandleKey] = useState<PrescriptionSectionKey | null>(null);
@@ -270,14 +284,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           />
         );
       case 'history':
-        // For Dr. Shillpa Raut, medical history is commented out / hidden as requested
-        if (isGynae) return null;
-        return (
-          <PrescriptionHistorySection
-            value={form.formData.mh}
-            onChange={(val) => form.setFormData((prev: any) => ({ ...prev, mh: val }))}
-          />
-        );
+        // Medical history commented out / hidden as requested for both doctors
+        return null;
       case 'complaints':
         return (
           <PrescriptionComplaintsSection
@@ -285,7 +293,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             setComplaintsList={form.setComplaintsList}
             date={form.formData.date}
             onUpdateCcSummary={(summary) => form.setFormData((prev: any) => ({ ...prev, cc: summary }))}
-            isGynae={isGynae}
+            isGynae={true}
             ccSummary={form.formData.cc}
           />
         );
@@ -305,7 +313,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             onUpdateDiagnosisSummary={(summary) => form.setFormData((prev: any) => ({ ...prev, de: summary }))}
             date={form.formData.date}
             prescriptionId={form.prescriptionId || undefined}
-            isGynae={isGynae}
+            isGynae={true}
           />
         );
       case 'procedure':
@@ -401,7 +409,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                 </span>
                 <button
                   type="button"
-                  onClick={toggleDrawingBoardCollapse}
+                  onClick={() => toggleSectionCollapse('drawing_board')}
                   className="text-[11px] font-bold text-slate-500 hover:text-emerald-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-md transition cursor-pointer"
                   title="Minimize / Collapse Drawing Board"
                 >
@@ -444,35 +452,54 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
 
   return (
     <div ref={containerRef} className="space-y-4">
-      {/* Reorderable Clinical Stack Header with Reset */}
+      {/* Reorderable Clinical Stack Header with Expand / Collapse / Reset */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-xs text-slate-600">
         <div className="flex items-center gap-2 font-semibold">
           <GripVertical className="w-4 h-4 text-emerald-600 shrink-0" />
           <span className="text-slate-800 font-bold">Prescription Section Layout</span>
           <span className="text-[11px] text-slate-500 font-normal hidden lg:inline">
-            {isGynae
-              ? '(1. Vitals • 2. Complaints • 3. Diagnosis • 4. Exam Findings • 5. Drawing • 6. Medicines • 7. Advice • 8. Next Visit • 9. Signature)'
-              : '(1. Vitals • 2. Complaints • 3. Diagnosis • 4. History • 5. Exam Findings • 6. Drawing • 7. Medicines • 8. Advice & Tests • 9. Next Visit • 10. Signature)'}
+            (1. Vitals • 2. Complaints • 3. Diagnosis • 4. Exam Findings • 5. Drawing • 6. Medicines • 7. Advice & Tests • 8. Next Visit • 9. Signature)
           </span>
         </div>
-        <button
-          type="button"
-          onClick={handleResetSectionOrder}
-          className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
-          title="Reset prescription sections to standard default order"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset to Default Sequence</span>
-        </button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={handleExpandAll}
+            className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+            title="Expand all prescription sections"
+          >
+            <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Expand All</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleCollapseAll}
+            className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+            title="Collapse all prescription sections"
+          >
+            <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+            <span>Collapse All</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleResetSectionOrder}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+            title="Reset prescription sections to standard default order"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Sequence</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Clinical Stacked Layout */}
       <div className="space-y-4">
         {rxSectionOrder
-          .filter((sectionKey) => !(isGynae && sectionKey === 'history'))
+          .filter((sectionKey) => sectionKey !== 'history')
           .map((sectionKey, idx) => {
           const isBeingDragged = draggedSection === sectionKey;
           const isOver = dragOverSection === sectionKey && !isBeingDragged;
+          const isCollapsed = Boolean(collapsedSections[sectionKey]);
 
           return (
             <div
@@ -541,83 +568,90 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                     <GripVertical className="w-4 h-4" />
                   </button>
 
-                  {sectionKey === 'drawing_board' ? (
-                    <button
-                      type="button"
-                      onClick={toggleDrawingBoardCollapse}
-                      className="flex items-center gap-2 text-left truncate cursor-pointer group"
-                      title={isDrawingBoardCollapsed ? 'Click to expand drawing board' : 'Click to collapse drawing board'}
-                    >
-                      <span className="text-[11px] font-bold text-slate-700 tracking-wide group-hover:text-emerald-700 transition">
-                        {RX_SECTION_TITLES[sectionKey]}
-                      </span>
-                      {isDrawingBoardCollapsed && (
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full shrink-0">
-                          Collapsed
-                        </span>
-                      )}
-                      {isDrawingBoardCollapsed && form.drawingDataUrl && (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
-                          ✓ Sketch saved
-                        </span>
-                      )}
-                    </button>
-                  ) : (
-                    <span className="text-[11px] font-bold text-slate-700 tracking-wide select-none">
+                  <button
+                    type="button"
+                    onClick={() => toggleSectionCollapse(sectionKey)}
+                    className="flex items-center gap-2 text-left truncate cursor-pointer group"
+                    title={isCollapsed ? `Click to expand ${RX_SECTION_TITLES[sectionKey]}` : `Click to collapse ${RX_SECTION_TITLES[sectionKey]}`}
+                  >
+                    <span className="text-[11px] font-bold text-slate-700 tracking-wide group-hover:text-emerald-700 transition">
                       {RX_SECTION_TITLES[sectionKey]}
                     </span>
-                  )}
+                    {isCollapsed && (
+                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full shrink-0">
+                        Collapsed
+                      </span>
+                    )}
+                    {sectionKey === 'drawing_board' && form.drawingDataUrl && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
+                        ✓ Sketch saved
+                      </span>
+                    )}
+                  </button>
                 </div>
 
-                {/* Expand / Collapse Toggle Button - STRICTLY ONLY for Drawing Board */}
-                {sectionKey === 'drawing_board' && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={toggleDrawingBoardCollapse}
-                      className="p-1 px-2.5 rounded-md text-[11px] font-semibold text-slate-600 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 shadow-2xs flex items-center gap-1 transition cursor-pointer"
-                      title={isDrawingBoardCollapsed ? 'Expand Drawing Board' : 'Collapse Drawing Board'}
-                    >
-                      {isDrawingBoardCollapsed ? (
-                        <>
-                          <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Expand</span>
-                        </>
-                      ) : (
-                        <>
-                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Collapse</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
+                {/* Expand / Collapse Toggle Button */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleSectionCollapse(sectionKey)}
+                    className="p-1 px-2.5 rounded-md text-[11px] font-semibold text-slate-600 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 shadow-2xs flex items-center gap-1 transition cursor-pointer"
+                    title={isCollapsed ? `Expand ${RX_SECTION_TITLES[sectionKey]}` : `Collapse ${RX_SECTION_TITLES[sectionKey]}`}
+                  >
+                    {isCollapsed ? (
+                      <>
+                        <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Expand</span>
+                      </>
+                    ) : (
+                      <>
+                        <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Collapse</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Section Body */}
               <div className="rounded-b-xl border border-slate-200 overflow-visible bg-white shadow-2xs">
-                {sectionKey === 'drawing_board' && isDrawingBoardCollapsed ? (
-                  // Sleek Collapsed Preview Card ONLY for Drawing Board
-                  <div className="p-3.5 bg-slate-50/60 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
-                        <PenTool className="w-4 h-4" />
+                {isCollapsed ? (
+                  sectionKey === 'drawing_board' ? (
+                    <div className="p-3.5 bg-slate-50/60 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                          <PenTool className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-slate-800">Drawing Board & Clinical Sketch</span>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Expand when needed to draw clinical sketches or annotate anatomy templates
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-bold text-slate-800">Drawing Board & Clinical Sketch</span>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Expand when needed to draw clinical sketches or annotate anatomy templates
-                        </p>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleSectionCollapse('drawing_board')}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-xs transition cursor-pointer shrink-0 ml-3"
+                      >
+                        + Open Drawing Board
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={toggleDrawingBoardCollapse}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-xs transition cursor-pointer shrink-0 ml-3"
+                  ) : (
+                    <div
+                      onClick={() => toggleSectionCollapse(sectionKey)}
+                      className="p-3 bg-slate-50/60 hover:bg-slate-100/60 flex items-center justify-between text-xs cursor-pointer transition"
                     >
-                      + Open Drawing Board
-                    </button>
-                  </div>
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <span className="text-[11px] font-medium text-slate-600">
+                          {RX_SECTION_TITLES[sectionKey]} is collapsed. Click to expand.
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 hover:underline">
+                        + Expand
+                      </span>
+                    </div>
+                  )
                 ) : (
                   renderSectionContent(sectionKey)
                 )}

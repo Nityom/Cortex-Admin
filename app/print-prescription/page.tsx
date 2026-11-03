@@ -616,11 +616,28 @@ function PrintPrescriptionContent() {
 
   const renderFindings = () => {
     if (enabledSections.findings === false || !findingsText) return null;
+    const lines = findingsText
+      .split('\n')
+      .flatMap((l) => (l.includes(',') && !l.includes('•') ? l.split(',') : [l]))
+      .map((l) => l.trim().replace(/^[-•*]\s*/, ''))
+      .filter(Boolean);
+
     return (
       <div key="findings" className="clinical-strip-section">
-        <div className="clinical-strip-row">
-          <span className="clinical-strip-lbl">Clinical Examination:</span>
-          <span className="clinical-strip-val">{findingsText}</span>
+        <div className="clinical-strip-row" style={{ alignItems: 'flex-start' }}>
+          <span className="clinical-strip-lbl" style={{ minWidth: '135px' }}>Clinical Examination:</span>
+          <div className="clinical-findings-col" style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+            {lines.length > 1 ? (
+              lines.map((item, idx) => (
+                <div key={idx} className="clinical-finding-line" style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                  <span style={{ fontSize: '9pt', color: '#666', lineHeight: 1 }}>•</span>
+                  <span className="clinical-strip-val">{item}</span>
+                </div>
+              ))
+            ) : (
+              <span className="clinical-strip-val" style={{ whiteSpace: 'pre-line' }}>{findingsText}</span>
+            )}
+          </div>
         </div>
       </div>
     );
