@@ -36,7 +36,7 @@ const PRINT_SECTIONS_CHECKLIST: ChecklistItem[] = [
   { key: 'findings', label: 'Clinical Findings & Examination', desc: 'Physical and systemic exam findings' },
   { key: 'drawing_board', label: 'Clinical Sketch / Drawing Board', desc: 'Anatomical sketch or diagram annotation' },
   { key: 'medicines', label: 'Prescribed Medicines Table', desc: '℞ Medicines, dosage, timing & frequency' },
-  { key: 'clinical_notes', label: 'Clinical Advice, Diet & Investigations', desc: 'Special advice, diet recommendations & investigations' },
+  { key: 'clinical_notes', label: 'Clinical Advice, Test & Investigations', desc: 'Special advice, diet recommendations & investigations' },
   { key: 'next_visit', label: 'Follow-Up / Next Visit Date', desc: 'Return schedule and elapsed days calculation' },
   { key: 'signature', label: 'Doctor Signature Image', desc: 'Official digital signature image and doctor name' },
 ];

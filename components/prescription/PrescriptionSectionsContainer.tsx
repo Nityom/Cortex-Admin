@@ -72,11 +72,15 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
   const rxSectionOrder: PrescriptionSectionKey[] = form.rxSectionOrder || DEFAULT_RX_SECTION_ORDER;
   const setRxSectionOrder = form.setRxSectionOrder || (() => {});
 
-  // Collapsed state: support collapse & expand for every section (all closed by default)
+  // Collapsed state: support collapse & expand for every section (all closed by default, signature always open)
   const getAllCollapsedDefault = (): Record<string, boolean> => {
     const all: Record<string, boolean> = {};
     DEFAULT_RX_SECTION_ORDER.forEach((key) => {
-      all[key] = true;
+      if (key !== 'signature') {
+        all[key] = true;
+      } else {
+        all[key] = false; // Doctor Signature & Print / Save is always open
+      }
     });
     return all;
   };
@@ -87,16 +91,21 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
         localStorage.removeItem('cortex_rx_collapsed_sections_v2');
         localStorage.removeItem('cortex_rx_collapsed_sections');
         const saved = sessionStorage.getItem('cortex_rx_collapsed_sections');
-        if (saved !== null) return JSON.parse(saved);
+        if (saved !== null) {
+          const parsed = JSON.parse(saved);
+          parsed.signature = false;
+          return parsed;
+        }
       } catch {}
     }
     return getAllCollapsedDefault();
   });
 
   const toggleSectionCollapse = (key: string) => {
+    if (key === 'signature') return; // no collapse needed for signature
     setCollapsedSections((prev) => {
       const isCurrentlyCollapsed = prev[key] !== false;
-      const updated = { ...prev, [key]: !isCurrentlyCollapsed };
+      const updated = { ...prev, [key]: !isCurrentlyCollapsed, signature: false };
       try {
         sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(updated));
       } catch {}
@@ -115,7 +124,13 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
 
   const handleCollapseAll = () => {
     const allCollapsed: Record<string, boolean> = {};
-    rxSectionOrder.forEach((k) => { allCollapsed[k] = true; });
+    rxSectionOrder.forEach((k) => {
+      if (k !== 'signature') {
+        allCollapsed[k] = true;
+      } else {
+        allCollapsed[k] = false; // Doctor Signature & Print / Save always stays open
+      }
+    });
     setCollapsedSections(allCollapsed);
     try {
       sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(allCollapsed));
@@ -512,7 +527,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           .map((sectionKey, idx) => {
           const isBeingDragged = draggedSection === sectionKey;
           const isOver = dragOverSection === sectionKey && !isBeingDragged;
-          const isCollapsed = collapsedSections[sectionKey] !== false;
+          const isCollapsed = sectionKey === 'signature' ? false : collapsedSections[sectionKey] !== false;
 
           return (
             <div
@@ -581,49 +596,59 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                     <GripVertical className="w-4 h-4" />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => toggleSectionCollapse(sectionKey)}
-                    className="flex items-center gap-2.5 text-left truncate cursor-pointer group"
-                    title={isCollapsed ? `Click to expand ${RX_SECTION_TITLES[sectionKey]}` : `Click to collapse ${RX_SECTION_TITLES[sectionKey]}`}
-                  >
-                    <span className="text-sm font-bold text-slate-800 tracking-wide group-hover:text-emerald-700 transition">
-                      {RX_SECTION_TITLES[sectionKey]}
-                    </span>
-                    {isCollapsed && (
-                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-200/80 px-2.5 py-0.5 rounded-full shrink-0">
-                        Collapsed
+                  {sectionKey === 'signature' ? (
+                    <div className="flex items-center gap-2.5 text-left truncate">
+                      <span className="text-sm font-bold text-slate-800 tracking-wide">
+                        {RX_SECTION_TITLES[sectionKey]}
                       </span>
-                    )}
-                    {sectionKey === 'drawing_board' && form.drawingDataUrl && (
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
-                        ✓ Sketch saved
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleSectionCollapse(sectionKey)}
+                      className="flex items-center gap-2.5 text-left truncate cursor-pointer group"
+                      title={isCollapsed ? `Click to expand ${RX_SECTION_TITLES[sectionKey]}` : `Click to collapse ${RX_SECTION_TITLES[sectionKey]}`}
+                    >
+                      <span className="text-sm font-bold text-slate-800 tracking-wide group-hover:text-emerald-700 transition">
+                        {RX_SECTION_TITLES[sectionKey]}
                       </span>
-                    )}
-                  </button>
+                      {isCollapsed && (
+                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-200/80 px-2.5 py-0.5 rounded-full shrink-0">
+                          Collapsed
+                        </span>
+                      )}
+                      {sectionKey === 'drawing_board' && form.drawingDataUrl && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
+                          ✓ Sketch saved
+                        </span>
+                      )}
+                    </button>
+                  )}
                 </div>
 
-                {/* Expand / Collapse Toggle Button */}
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => toggleSectionCollapse(sectionKey)}
-                    className="p-1 px-3 rounded-lg text-xs font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
-                    title={isCollapsed ? `Expand ${RX_SECTION_TITLES[sectionKey]}` : `Collapse ${RX_SECTION_TITLES[sectionKey]}`}
-                  >
-                    {isCollapsed ? (
-                      <>
-                        <ChevronDown className="w-4 h-4 text-emerald-600" />
-                        <span>Expand</span>
-                      </>
-                    ) : (
-                      <>
-                        <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Collapse</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                {/* Expand / Collapse Toggle Button (Not needed for signature) */}
+                {sectionKey !== 'signature' && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => toggleSectionCollapse(sectionKey)}
+                      className="p-1 px-3 rounded-lg text-xs font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
+                      title={isCollapsed ? `Expand ${RX_SECTION_TITLES[sectionKey]}` : `Collapse ${RX_SECTION_TITLES[sectionKey]}`}
+                    >
+                      {isCollapsed ? (
+                        <>
+                          <ChevronDown className="w-4 h-4 text-emerald-600" />
+                          <span>Expand</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Collapse</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Section Body */}
