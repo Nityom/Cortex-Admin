@@ -453,40 +453,40 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
   return (
     <div ref={containerRef} className="space-y-4">
       {/* Reorderable Clinical Stack Header with Expand / Collapse / Reset */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-xs text-slate-600">
-        <div className="flex items-center gap-2 font-semibold">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs text-sm text-slate-700">
+        <div className="flex items-center gap-2 font-bold">
           <GripVertical className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span className="text-slate-800 font-bold">Prescription Section Layout</span>
-          <span className="text-[11px] text-slate-500 font-normal hidden lg:inline">
+          <span className="text-slate-900 font-extrabold text-sm sm:text-base">Prescription Section Layout</span>
+          <span className="text-xs text-slate-500 font-normal hidden lg:inline">
             (1. Vitals • 2. Complaints • 3. Diagnosis • 4. Exam Findings • 5. Drawing • 6. Medicines • 7. Advice & Tests • 8. Next Visit • 9. Signature)
           </span>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={handleExpandAll}
-            className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
             title="Expand all prescription sections"
           >
-            <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
+            <ChevronDown className="w-4 h-4 text-emerald-600" />
             <span>Expand All</span>
           </button>
           <button
             type="button"
             onClick={handleCollapseAll}
-            className="flex items-center gap-1 text-[11px] font-semibold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
             title="Collapse all prescription sections"
           >
-            <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+            <ChevronUp className="w-4 h-4 text-slate-500" />
             <span>Collapse All</span>
           </button>
           <button
             type="button"
             onClick={handleResetSectionOrder}
-            className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
             title="Reset prescription sections to standard default order"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-4 h-4" />
             <span>Reset Sequence</span>
           </button>
         </div>
@@ -555,8 +555,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
               )}
 
               {/* Drag Handle & Section Header Bar */}
-              <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100/90 hover:bg-slate-200/80 rounded-t-xl border border-b-0 border-slate-200 text-xs transition">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center justify-between px-3.5 py-2 bg-slate-100/90 hover:bg-slate-200/80 rounded-t-xl border border-b-0 border-slate-200 text-sm transition">
+                <div className="flex items-center gap-2.5 min-w-0">
                   {/* Dedicated Drag Handle Icon */}
                   <button
                     type="button"
@@ -571,19 +571,19 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                   <button
                     type="button"
                     onClick={() => toggleSectionCollapse(sectionKey)}
-                    className="flex items-center gap-2 text-left truncate cursor-pointer group"
+                    className="flex items-center gap-2.5 text-left truncate cursor-pointer group"
                     title={isCollapsed ? `Click to expand ${RX_SECTION_TITLES[sectionKey]}` : `Click to collapse ${RX_SECTION_TITLES[sectionKey]}`}
                   >
-                    <span className="text-[11px] font-bold text-slate-700 tracking-wide group-hover:text-emerald-700 transition">
+                    <span className="text-sm font-bold text-slate-800 tracking-wide group-hover:text-emerald-700 transition">
                       {RX_SECTION_TITLES[sectionKey]}
                     </span>
                     {isCollapsed && (
-                      <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-full shrink-0">
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-200/80 px-2.5 py-0.5 rounded-full shrink-0">
                         Collapsed
                       </span>
                     )}
                     {sectionKey === 'drawing_board' && form.drawingDataUrl && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
                         ✓ Sketch saved
                       </span>
                     )}
@@ -595,12 +595,12 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                   <button
                     type="button"
                     onClick={() => toggleSectionCollapse(sectionKey)}
-                    className="p-1 px-2.5 rounded-md text-[11px] font-semibold text-slate-600 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 shadow-2xs flex items-center gap-1 transition cursor-pointer"
+                    className="p-1 px-3 rounded-lg text-xs font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-emerald-50 border border-slate-200 shadow-2xs flex items-center gap-1.5 transition cursor-pointer"
                     title={isCollapsed ? `Expand ${RX_SECTION_TITLES[sectionKey]}` : `Collapse ${RX_SECTION_TITLES[sectionKey]}`}
                   >
                     {isCollapsed ? (
                       <>
-                        <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
+                        <ChevronDown className="w-4 h-4 text-emerald-600" />
                         <span>Expand</span>
                       </>
                     ) : (

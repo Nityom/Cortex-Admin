@@ -489,12 +489,12 @@ export default function PrescriptionDiagnosisSection({
             }}
             rows={3}
             placeholder="Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility)..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+            className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
           />
         </div>
       ) : (
         /* HealthPlix Diagnosis Table - Fully Editable with Auto-save */
-        <div className="border border-slate-200 rounded-lg overflow-visible text-xs">
+        <div className="border border-slate-200 rounded-lg overflow-visible text-sm">
         <div className="grid grid-cols-12 bg-slate-50 text-slate-700 font-semibold py-2 px-3 border-b border-slate-200 text-[11px] uppercase tracking-wider rounded-t-lg">
           <div className="col-span-1">#</div>
           <div className="col-span-5">Diagnosis (Click to edit)</div>

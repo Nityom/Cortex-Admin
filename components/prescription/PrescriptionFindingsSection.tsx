@@ -49,7 +49,7 @@ export default function PrescriptionFindingsSection({
         onChange={(e) => onChange(e.target.value)}
         rows={3}
         placeholder="Clinical findings, general examination, range of motion, swelling, tenderness, systemic signs..."
-        className="w-full p-3 text-xs border border-slate-200 rounded-lg text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+        className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
       />
     </div>
   );

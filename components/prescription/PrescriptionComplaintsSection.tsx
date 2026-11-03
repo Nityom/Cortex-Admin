@@ -172,11 +172,11 @@ export default function PrescriptionComplaintsSection({
             }}
             rows={3}
             placeholder="Enter chief complaints (e.g. Pain in abdomen, fever, nausea)..."
-            className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+            className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
           />
         </div>
       ) : (
-        <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+        <div className="border border-slate-200 rounded-lg overflow-hidden text-sm">
           <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
             <div className="col-span-1">#</div>
             <div className="col-span-4">Complaints</div>

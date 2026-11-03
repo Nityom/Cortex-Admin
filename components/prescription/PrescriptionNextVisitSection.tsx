@@ -39,8 +39,8 @@ export default function PrescriptionNextVisitSection({
         </label>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 text-xs">
-        <span className="text-slate-500 font-semibold">No of</span>
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <span className="text-slate-600 font-semibold">No of</span>
         <input
           type="number"
           min="1"
@@ -50,7 +50,7 @@ export default function PrescriptionNextVisitSection({
             setFollowupCount(count);
             calculateAndSetDate(count, followupUnit);
           }}
-          className="w-16 p-2 border border-slate-200 rounded text-center font-bold text-slate-800 outline-none"
+          className="w-20 p-2 border border-slate-200 rounded-lg text-center font-bold text-slate-800 text-sm outline-none"
         />
 
         <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50">
@@ -62,7 +62,7 @@ export default function PrescriptionNextVisitSection({
                 setFollowupUnit(unit);
                 calculateAndSetDate(followupCount, unit);
               }}
-              className={`px-3 py-1 rounded text-xs font-semibold transition cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-md text-sm font-semibold transition cursor-pointer ${
                 followupUnit === unit
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -75,13 +75,13 @@ export default function PrescriptionNextVisitSection({
 
         <span className="text-slate-400 font-semibold">Or</span>
 
-        <div className="flex items-center gap-1.5 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3.5 py-2 bg-slate-50">
+          <Calendar className="w-4 h-4 text-slate-400" />
           <input
             type="date"
             value={followupDate}
             onChange={(e) => onUpdateFollowupDate(e.target.value)}
-            className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            className="bg-transparent font-semibold text-slate-800 text-sm focus:outline-none cursor-pointer"
           />
         </div>
       </div>

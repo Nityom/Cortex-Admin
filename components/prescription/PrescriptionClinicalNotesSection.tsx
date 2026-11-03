@@ -129,9 +129,9 @@ export default function PrescriptionClinicalNotesSection({
           onChange={(e) => onUpdateAdvice(e.target.value)}
           rows={3}
           placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids, rest)..."
-          className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
+          className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
         />
-        <p className="mt-2 text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+        <p className="mt-2 text-xs font-semibold text-slate-700 flex items-center gap-1">
           <span>*</span> Medicine can be purchased from any medical store and in a generic form also
         </p>
       </div>
@@ -179,7 +179,7 @@ export default function PrescriptionClinicalNotesSection({
           </div>
         </div>
 
-        <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+        <div className="border border-slate-200 rounded-lg overflow-hidden text-sm">
           <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
             <div className="col-span-1">#</div>
             <div className="col-span-6">Tests Requested</div>
@@ -481,7 +481,7 @@ export default function PrescriptionClinicalNotesSection({
           </div>
         </div>
 
-        <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+        <div className="border border-slate-200 rounded-lg overflow-hidden text-sm">
           <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2 px-3 border-b border-slate-200">
             <div className="col-span-1">#</div>
             <div className="col-span-6">Tests Requested</div>

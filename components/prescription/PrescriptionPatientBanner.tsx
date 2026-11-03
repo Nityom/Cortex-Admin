@@ -198,9 +198,9 @@ export default function PrescriptionPatientBanner({
         </div>
 
         {/* Editable Patient Details Bar */}
-        <div className="pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 text-xs">
+        <div className="pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 text-sm">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Name *</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Name *</label>
             <input
               type="text"
               name="patientName"
@@ -208,49 +208,49 @@ export default function PrescriptionPatientBanner({
               onChange={handleChange}
               required
               placeholder="Patient Name"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Phone Number</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Phone Number</label>
             <input
               type="text"
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handlePhoneNumberChange}
               placeholder="Phone Number"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Email Address</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Email Address</label>
             <input
               type="email"
               name="email"
               value={formData.email || ''}
               onChange={handleChange}
               placeholder="patient@email.com"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Age</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Age</label>
             <input
               type="number"
               name="age"
               value={formData.age}
               onChange={handleChange}
               placeholder="Years"
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Gender</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Gender</label>
             <select
               name="sex"
               value={formData.sex}
               onChange={handleChange}
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
             >
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -258,21 +258,21 @@ export default function PrescriptionPatientBanner({
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Visit Date</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Visit Date</label>
             <input
               type="date"
               name="date"
               value={formData.date}
               onChange={handleChange}
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 focus:ring-1 focus:ring-emerald-500"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-500 uppercase">Doctor</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">Doctor</label>
             <select
               value={selectedDoctorName}
               onChange={(e) => handleDoctorSelect(e.target.value)}
-              className="w-full mt-0.5 p-1.5 border border-slate-200 rounded font-semibold text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm bg-white focus:ring-1 focus:ring-emerald-500 cursor-pointer"
             >
               {availableDoctors.map((doc) => (
                 <option key={doc.id || doc._id || doc.name} value={doc.name}>

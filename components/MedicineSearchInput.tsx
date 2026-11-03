@@ -173,7 +173,7 @@ export default function MedicineSearchInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           autoComplete="off"
-          className="w-full pl-9 pr-8 p-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition placeholder:text-gray-400"
+          className="w-full pl-9 pr-8 p-2.5 border border-gray-300 rounded-lg text-base text-gray-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition placeholder:text-gray-400"
         />
 
         {searchTerm && (
@@ -216,7 +216,7 @@ export default function MedicineSearchInput({
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm text-gray-900">
+                      <span className="font-semibold text-base text-gray-900">
                         {med.name}
                       </span>
                       {med.company && (
@@ -227,7 +227,7 @@ export default function MedicineSearchInput({
                     </div>
 
                     {med.composition && (
-                      <div className="text-xs text-gray-500 truncate mt-0.5">
+                      <div className="text-sm text-gray-600 truncate mt-0.5">
                         {med.composition}
                       </div>
                     )}
@@ -236,7 +236,7 @@ export default function MedicineSearchInput({
               })}
             </div>
           ) : (
-            <div className="px-3 py-2.5 text-xs text-gray-500 text-center">
+            <div className="px-3 py-2.5 text-sm text-gray-500 text-center">
               No registered medicine matching &quot;{searchTerm}&quot; (custom name will be used)
             </div>
           )}

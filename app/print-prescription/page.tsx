@@ -1138,7 +1138,7 @@ function PrintPrescriptionContent() {
         .clinical-strip-lbl {
           font-weight: 600;
           color: #000000;
-          font-size: 9pt;
+          font-size: 9.5pt;
           text-transform: uppercase;
           letter-spacing: 0.3px;
           flex-shrink: 0;
@@ -1235,7 +1235,7 @@ function PrintPrescriptionContent() {
         }
 
         .med-name-heading {
-          font-size: 11.5pt;
+          font-size: 12.5pt;
           font-weight: 600;
           color: #000000;
           letter-spacing: 0.1px;
@@ -1244,7 +1244,7 @@ function PrintPrescriptionContent() {
 
         .med-sub-line {
           display: flex;
-          font-size: 9pt;
+          font-size: 9.5pt;
           margin-top: 2px;
           padding-left: 12px;
           line-height: 1.35;
@@ -1256,7 +1256,7 @@ function PrintPrescriptionContent() {
           font-weight: 600;
           text-transform: uppercase;
           flex-shrink: 0;
-          font-size: 8.5pt;
+          font-size: 9pt;
         }
 
         .med-sub-sep {
@@ -1278,7 +1278,7 @@ function PrintPrescriptionContent() {
         }
 
         .dosage-val {
-          font-size: 10.5pt;
+          font-size: 11.5pt;
           font-weight: normal;
           color: #000000;
           text-align: center;
@@ -1288,14 +1288,14 @@ function PrintPrescriptionContent() {
         }
 
         .timing-val {
-          font-size: 10.5pt;
+          font-size: 11pt;
           font-weight: normal;
           color: #111111;
           line-height: 1.35;
         }
 
         .med-qty-val {
-          font-size: 11pt;
+          font-size: 11.5pt;
           font-weight: 600;
           color: #000000;
           text-align: right;
@@ -1315,14 +1315,14 @@ function PrintPrescriptionContent() {
         }
 
         .advice-heading {
-          font-size: 10.5pt;
+          font-size: 11.5pt;
           font-weight: 600;
           color: #000000;
           margin-bottom: 3px;
         }
 
         .advice-content-body {
-          font-size: 10pt;
+          font-size: 11pt;
           font-weight: normal;
           line-height: 1.4;
           color: #1f2937;
@@ -1331,7 +1331,7 @@ function PrintPrescriptionContent() {
         }
 
         .marathi-item {
-          font-size: 10pt;
+          font-size: 10.5pt;
           font-weight: normal;
           margin-top: 5px;
           color: #000000;
