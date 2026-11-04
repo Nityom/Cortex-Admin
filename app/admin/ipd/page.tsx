@@ -190,28 +190,38 @@ interface WardBedConfigItem {
 
 const DEFAULT_WARD_BED_CONFIG: WardBedConfigItem[] = [
   {
-    ward: "General Ward",
-    dailyRate: 800,
-    beds: ["GW-01", "GW-02", "GW-03", "GW-04", "GW-05", "GW-06"],
+    ward: "Room 101",
+    dailyRate: 1000,
+    beds: ["Bed 101-A", "Bed 101-B"],
   },
   {
-    ward: "Semi-Special",
-    dailyRate: 1400,
-    beds: ["SS-01", "SS-02", "SS-03", "SS-04"],
+    ward: "Room 102",
+    dailyRate: 1000,
+    beds: ["Bed 102-A", "Bed 102-B"],
   },
   {
-    ward: "Special Deluxe",
-    dailyRate: 2200,
-    beds: ["SP-01", "SP-02", "SP-03", "SP-04"],
+    ward: "Room 201 (Special)",
+    dailyRate: 1800,
+    beds: ["Bed 201-A", "Bed 201-B"],
   },
   {
-    ward: "ICU",
-    dailyRate: 4000,
-    beds: ["ICU-01", "ICU-02"],
+    ward: "Room 202",
+    dailyRate: 1500,
+    beds: ["Bed 202"],
+  },
+  {
+    ward: "Room 203",
+    dailyRate: 1500,
+    beds: ["Bed 203-A", "Bed 203-B"],
+  },
+  {
+    ward: "Room 204",
+    dailyRate: 1500,
+    beds: ["Bed 204"],
   },
 ];
 
-const BED_CONFIG_STORAGE_KEY = "cortex_ipd_bed_config_v1";
+const BED_CONFIG_STORAGE_KEY = "cortex_ipd_bed_config_v2";
 
 const DOCTORS = [
   { name: "Dr. Vipeen Raut", specialty: "Orthopaedics & Joint Replacement" },
@@ -227,36 +237,88 @@ const DEPARTMENTS = [
   "Physiotherapy & Rehabilitation",
 ];
 
-const DEFAULT_HOSPITAL_CHARGES: { name: string; category: "Procedure" | "Investigation" | "Consultation" | "Nursing" | "Medicine" | "Bed" | "Other"; price: number }[] = [
-  { name: "Consultation Fee (Dr. Vipeen Raut)", category: "Consultation", price: 400 },
-  { name: "Follow-up Consultation (Dr. Vipeen Raut)", category: "Consultation", price: 200 },
-  { name: "Consultation Fee (Dr. Shillpa Raut)", category: "Consultation", price: 200 },
-  { name: "Follow-up Consultation (Dr. Shillpa Raut)", category: "Consultation", price: 100 },
-  { name: "Doctor Round / Inpatient Visit", category: "Consultation", price: 800 },
-  { name: "Blood Test (CBC / Routine)", category: "Investigation", price: 300 },
-  { name: "Blood Sugar (RBS / Fasting)", category: "Investigation", price: 100 },
-  { name: "Serum Electrolytes / KFT / LFT", category: "Investigation", price: 600 },
-  { name: "X-Ray / Digital Radiography", category: "Investigation", price: 300 },
-  { name: "USG / Ultrasound Scan", category: "Investigation", price: 700 },
-  { name: "ECG / Cardiac Trace", category: "Investigation", price: 250 },
-  { name: "Dressing / Minor Wound Care", category: "Procedure", price: 500 },
-  { name: "Major Dressing / Sterile Wound Care", category: "Procedure", price: 800 },
-  { name: "Suturing / Minor OT Procedure", category: "Procedure", price: 600 },
-  { name: "Stitch Removal & Dressing", category: "Procedure", price: 250 },
-  { name: "POP Slab / Cast Application", category: "Procedure", price: 1200 },
-  { name: "Joint Aspiration / Injection", category: "Procedure", price: 800 },
-  { name: "Physiotherapy Session", category: "Procedure", price: 500 },
-  { name: "Nebulization Session", category: "Procedure", price: 150 },
-  { name: "OT Charges", category: "Procedure", price: 5000 },
-  { name: "Operation / Surgeon Charge", category: "Procedure", price: 10000 },
-  { name: "Anaesthesia Charges", category: "Procedure", price: 3500 },
-  { name: "Assistant Surgeon Charge", category: "Procedure", price: 2000 },
-  { name: "OT Consumables & Surgical Kit", category: "Procedure", price: 1500 },
-  { name: "Injection / IV Administration Charge", category: "Nursing", price: 150 },
-  { name: "IV Fluid Infusion Charge", category: "Nursing", price: 250 },
-  { name: "Special Nursing Care", category: "Nursing", price: 600 },
-  { name: "Medicine & Pharmacy Charges", category: "Medicine", price: 500 },
+const COMPLETE_IPD_CHARGES_CATALOG: { name: string; category: "Procedure" | "Investigation" | "Consultation" | "Nursing" | "Medicine" | "Bed" | "Other"; price: number }[] = [
+  // 1. Day Wise Charges
+  { name: "Bed Charges (Special Room 201)", category: "Bed", price: 1800 },
+  { name: "Nursing Charges (Special Room 201)", category: "Nursing", price: 300 },
+  { name: "Consultant Charges (Special Room 201)", category: "Consultation", price: 300 },
+  { name: "Assistant Doctor Charges (Special Room 201)", category: "Consultation", price: 0 },
+
+  // 2. Other Particulars
+  { name: "AC Charges", category: "Other", price: 1000 },
+  { name: "Anaesthesia Charges", category: "Procedure", price: 0 },
+  { name: "Assistant Surgeon Charges", category: "Procedure", price: 1000 },
+  { name: "Blood Transfusion Charges", category: "Procedure", price: 500 },
+  { name: "BS Charges", category: "Investigation", price: 50 },
+  { name: "Buddy Staping Charge", category: "Procedure", price: 300 },
+  { name: "C-Arm Machine", category: "Procedure", price: 2000 },
+  { name: "CR Charges", category: "Procedure", price: 300 },
+  { name: "Catheter Charges", category: "Procedure", price: 500 },
+  { name: "Certificate Charges", category: "Other", price: 100 },
+  { name: "Consultation Charges", category: "Consultation", price: 200 },
+  { name: "Consultation Charges", category: "Consultation", price: 400 },
+  { name: "Cut Charges", category: "Procedure", price: 300 },
+  { name: "Delivery Charge", category: "Procedure", price: 1000 },
+  { name: "Delivery Trial Charges", category: "Procedure", price: 0 },
+  { name: "Diagnostic Tapping Charge", category: "Procedure", price: 2500 },
+  { name: "Dr. Round Charges", category: "Consultation", price: 200 },
+  { name: "Dressing Charges", category: "Procedure", price: 150 },
+  { name: "Dressing Charges", category: "Procedure", price: 200 },
+  { name: "ECG Charges", category: "Investigation", price: 200 },
+  { name: "ECG Charges", category: "Investigation", price: 300 },
+  { name: "Emergency Charges", category: "Consultation", price: 200 },
+  { name: "Emergency Charges", category: "Consultation", price: 500 },
+  { name: "Emergency Consultation", category: "Consultation", price: 500 },
+  { name: "Endoscopy", category: "Procedure", price: 1300 },
+  { name: "Food Charges", category: "Other", price: 0 },
+  { name: "Implant Charges", category: "Procedure", price: 2000 },
+  { name: "Injection Charges", category: "Nursing", price: 100 },
+  { name: "Injection Charges", category: "Nursing", price: 250 },
+  { name: "Injection Charges", category: "Nursing", price: 500 },
+  { name: "Intubation Charges", category: "Procedure", price: 2000 },
+  { name: "IPD Emergency Consultation", category: "Consultation", price: 1000 },
+  { name: "IPD Medication", category: "Medicine", price: 0 },
+  { name: "IUI Charges", category: "Procedure", price: 500 },
+  { name: "IV Charges", category: "Nursing", price: 300 },
+  { name: "K-Wire Removal", category: "Procedure", price: 300 },
+  { name: "Labour Room Charges", category: "Procedure", price: 2000 },
+  { name: "Medicine Charges", category: "Medicine", price: 2500 },
+  { name: "Miscellaneous", category: "Other", price: 100 },
+  { name: "Monitor Charges", category: "Nursing", price: 600 },
+  { name: "Nebulizer Charges", category: "Procedure", price: 50 },
+  { name: "Nitrogen Charges", category: "Procedure", price: 1000 },
+  { name: "Nursing Charge", category: "Nursing", price: 200 },
+  { name: "OPD Consultation", category: "Consultation", price: 100 },
+  { name: "OPD Old", category: "Consultation", price: 150 },
+  { name: "Operation Charges", category: "Procedure", price: 10000 },
+  { name: "Operation/Surgeon Charges", category: "Procedure", price: 3000 },
+  { name: "OT Assistant Charges", category: "Procedure", price: 500 },
+  { name: "OT Charges", category: "Procedure", price: 1000 },
+  { name: "OT Charges", category: "Procedure", price: 2000 },
+  { name: "OT Consumable", category: "Procedure", price: 1000 },
+  { name: "OT Medicine", category: "Medicine", price: 100 },
+  { name: "OT Technician/OT Nurse Charges", category: "Procedure", price: 500 },
+  { name: "Other Charges", category: "Other", price: 0 },
+  { name: "Oxygen Charges", category: "Nursing", price: 75 },
+  { name: "Physiotherapy Charge", category: "Procedure", price: 100 },
+  { name: "Plaster Charges", category: "Procedure", price: 1000 },
+  { name: "Plaster Charges", category: "Procedure", price: 1500 },
+  { name: "Procedure Charges", category: "Procedure", price: 0 },
+  { name: "Registration Charges", category: "Other", price: 100 },
+  { name: "Room Charge OT", category: "Bed", price: 300 },
+  { name: "Room Charges", category: "Bed", price: 1000 },
+  { name: "Sonography Charges", category: "Investigation", price: 800 },
+  { name: "Suturing Charges", category: "Procedure", price: 200 },
+  { name: "Suturing Removal", category: "Procedure", price: 200 },
+  { name: "Syringe Pump (Infusion Pump)", category: "Nursing", price: 500 },
+  { name: "Therapeutic Tapping", category: "Procedure", price: 1000 },
+  { name: "Traction Charges", category: "Procedure", price: 200 },
+  { name: "Urine Catheter", category: "Procedure", price: 300 },
+  { name: "Urine Charge", category: "Investigation", price: 50 },
+  { name: "X-Ray Charges", category: "Investigation", price: 800 },
 ];
+
+const DEFAULT_HOSPITAL_CHARGES = COMPLETE_IPD_CHARGES_CATALOG;
 
 const QUICK_IPD_SUGGESTIONS = [
   { name: "Dressing / Wound Care", category: "Procedure" as const, price: 500, emoji: "🩹" },
@@ -353,15 +415,15 @@ export default function IPDManagementPage() {
     consultantDoctor: DOCTORS[0].name,
     referredBy: "",
     paymentCategory: "Cash" as const,
-    ward: "General Ward" as const,
+    ward: "Room 101" as any,
     isCustomWard: false,
     customWardName: "",
-    bedNumber: "GW-01",
+    bedNumber: "Bed 101-A",
     isCustomBed: false,
     customBedNumber: "",
-    dailyRate: 0,
-    nursingRate: 0,
-    doctorVisitFee: 0,
+    dailyRate: 1000,
+    nursingRate: 300,
+    doctorVisitFee: 300,
     initialAdvance: 0,
     advancePaymentMode: "Cash" as "Cash" | "UPI" | "Card" | "Bank Transfer",
   });
@@ -383,12 +445,21 @@ export default function IPDManagementPage() {
     bedNumber: "",
     isCustomBed: false,
     dailyRate: 1000,
-    nursingRatePerDay: 600,
-    doctorRatePerVisit: 800,
+    nursingRatePerDay: 300,
+    doctorRatePerVisit: 300,
     provisionalDiagnosis: "",
     admissionDate: "",
     admissionTime: "",
     paymentCategory: "Cash" as "Cash" | "TPA / Insurance" | "Ayushman Bharat / MJPJAY" | "Corporate",
+    status: "Admitted" as "Admitted" | "Discharged",
+    dischargeDate: "",
+    dischargeTime: "",
+    conditionAtDischarge: "Cured / Stable",
+    finalDiagnosis: "",
+    treatmentGiven: "",
+    dischargeMeds: "",
+    followupDate: "",
+    doctorNotes: "",
   });
 
   const [existingPatientFound, setExistingPatientFound] = useState<Patient | null>(null);
@@ -451,30 +522,32 @@ export default function IPDManagementPage() {
   };
 
   // Shared Procedure Suggestions Catalog (merged with custom saved procedures from localStorage)
-  const [procedureCatalog, setProcedureCatalog] = useState(DEFAULT_HOSPITAL_CHARGES);
+  const [procedureCatalog, setProcedureCatalog] = useState(COMPLETE_IPD_CHARGES_CATALOG);
+  const [showDischargeChargeSuggestions, setShowDischargeChargeSuggestions] = useState(false);
+  const [showBillingChargeSuggestions, setShowBillingChargeSuggestions] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const savedProcs = localStorage.getItem("cortex_custom_procedures_v1");
+      const savedProcs = localStorage.getItem("cortex_custom_procedures_v2");
       if (savedProcs) {
         const parsed = JSON.parse(savedProcs);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingNames = new Set(parsed.map((p: any) => (p.name || "").trim().toLowerCase()));
-          const filteredDefaults = DEFAULT_HOSPITAL_CHARGES.filter(
-            (p) => !existingNames.has(p.name.trim().toLowerCase())
+          const existingKeySet = new Set(parsed.map((p: any) => `${(p.name || "").trim().toLowerCase()}___${p.price}`));
+          const filteredDefaults = COMPLETE_IPD_CHARGES_CATALOG.filter(
+            (p) => !existingKeySet.has(`${p.name.trim().toLowerCase()}___${p.price}`)
           );
           setProcedureCatalog([...parsed, ...filteredDefaults]);
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const saveProcedureToCatalog = (name: string, price: number, category: any = "Procedure") => {
     const trimmed = name.trim();
-    if (!trimmed || price <= 0) return;
+    if (!trimmed || price < 0) return;
     setProcedureCatalog((prev) => {
-      const existingIdx = prev.findIndex((p) => p.name.trim().toLowerCase() === trimmed.toLowerCase());
+      const existingIdx = prev.findIndex((p) => p.name.trim().toLowerCase() === trimmed.toLowerCase() && p.price === price);
       let updated: any[];
       if (existingIdx >= 0) {
         updated = [...prev];
@@ -483,8 +556,8 @@ export default function IPDManagementPage() {
         updated = [{ name: trimmed, price, category }, ...prev];
       }
       try {
-        localStorage.setItem("cortex_custom_procedures_v1", JSON.stringify(updated));
-      } catch (_) {}
+        localStorage.setItem("cortex_custom_procedures_v2", JSON.stringify(updated));
+      } catch (_) { }
       return updated;
     });
   };
@@ -564,15 +637,22 @@ export default function IPDManagementPage() {
 
     // 2. Bed Configuration
     try {
-      const savedBeds = localStorage.getItem(BED_CONFIG_STORAGE_KEY);
+      const savedBeds = localStorage.getItem(BED_CONFIG_STORAGE_KEY) || localStorage.getItem("cortex_ipd_bed_config_v1");
       if (savedBeds) {
         const parsedBeds = JSON.parse(savedBeds);
-        if (Array.isArray(parsedBeds) && parsedBeds.length > 0) {
+        const hasOld = Array.isArray(parsedBeds) && parsedBeds.some((w: any) => w.ward === "General Ward" || w.ward === "ICU");
+        if (!hasOld && Array.isArray(parsedBeds) && parsedBeds.length > 0) {
           setWardBedConfig(parsedBeds);
+        } else {
+          setWardBedConfig(DEFAULT_WARD_BED_CONFIG);
+          localStorage.setItem(BED_CONFIG_STORAGE_KEY, JSON.stringify(DEFAULT_WARD_BED_CONFIG));
         }
+      } else {
+        setWardBedConfig(DEFAULT_WARD_BED_CONFIG);
       }
     } catch (e) {
       console.error("Failed to load bed config:", e);
+      setWardBedConfig(DEFAULT_WARD_BED_CONFIG);
     }
 
     // 3. OPD Queue / Patients (Clean load, only real queue entries)
@@ -619,7 +699,7 @@ export default function IPDManagementPage() {
             }
           }
         }
-      } catch {}
+      } catch { }
 
       // 2. Map Convex items to local admissions state & real-time cross-device sync
       if (liveAdmissions.length > 0) {
@@ -634,7 +714,7 @@ export default function IPDManagementPage() {
         setAdmissions(mapped);
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
-        } catch {}
+        } catch { }
 
         // Keep currently open active admission up-to-date across multiple devices
         setActiveAdmission((prevActive) => {
@@ -649,10 +729,18 @@ export default function IPDManagementPage() {
   // Real-time synchronization for Bed Config
   useEffect(() => {
     if (liveBedConfig && Array.isArray(liveBedConfig) && liveBedConfig.length > 0) {
-      setWardBedConfig(liveBedConfig);
-      try {
-        localStorage.setItem(BED_CONFIG_STORAGE_KEY, JSON.stringify(liveBedConfig));
-      } catch {}
+      const hasOld = liveBedConfig.some((w: any) => w.ward === "General Ward" || w.ward === "ICU");
+      if (hasOld) {
+        setWardBedConfig(DEFAULT_WARD_BED_CONFIG);
+        saveWardBedConfig(DEFAULT_WARD_BED_CONFIG);
+      } else {
+        setWardBedConfig(liveBedConfig);
+        try {
+          localStorage.setItem(BED_CONFIG_STORAGE_KEY, JSON.stringify(liveBedConfig));
+        } catch { }
+      }
+    } else if (liveBedConfig === null) {
+      saveWardBedConfig(DEFAULT_WARD_BED_CONFIG);
     }
   }, [liveBedConfig]);
 
@@ -682,7 +770,7 @@ export default function IPDManagementPage() {
     } else {
       // Sync all items in background
       for (const item of newItems) {
-        saveIpdMutation({ admission: item }).catch(() => {});
+        saveIpdMutation({ admission: item }).catch(() => { });
       }
     }
   };
@@ -939,8 +1027,9 @@ export default function IPDManagementPage() {
   };
 
   // Calculate running bill for an admission with override support
-  const calculateRunningBill = (admission: IPDAdmission) => {
-    const rawDays = calculateStayDays(admission.admissionDate, admission.dischargeDate);
+  const calculateRunningBill = (admission: IPDAdmission, dischargeDateOverride?: string) => {
+    const effectiveDischargeDate = dischargeDateOverride !== undefined ? dischargeDateOverride : admission.dischargeDate;
+    const rawDays = calculateStayDays(admission.admissionDate, effectiveDischargeDate);
     const days = admission.billableDaysOverride ?? rawDays;
     const dailyRate = admission.dailyRate !== undefined ? Number(admission.dailyRate) : 0;
     const bedCharges = admission.bedChargesOverride !== undefined ? admission.bedChargesOverride : (days * dailyRate);
@@ -986,14 +1075,14 @@ export default function IPDManagementPage() {
       : "";
     const medSummary = adm.medications && adm.medications.length > 0
       ? adm.medications
-          .filter((m) => m.status === "Active" || !m.status)
-          .map((m) => `${m.name} - ${m.dosage || "1-0-1"} - ${m.timing || "5 days"}`)
-          .join("\n")
+        .filter((m) => m.status === "Active" || !m.status)
+        .map((m) => `${m.name} - ${m.dosage || "1-0-1"} - ${m.timing || "5 days"}`)
+        .join("\n")
       : "";
 
     setDischargeForm({
-      dischargeDate: new Date().toISOString().split("T")[0],
-      dischargeTime: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+      dischargeDate: adm.dischargeDate || new Date().toISOString().split("T")[0],
+      dischargeTime: adm.dischargeTime || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
       conditionAtDischarge: adm.dischargeSummary?.conditionAtDischarge || "Cured / Stable",
       finalDiagnosis: adm.dischargeSummary?.finalDiagnosis || adm.provisionalDiagnosis || "",
       treatmentGiven: adm.dischargeSummary?.treatmentGiven || `${procSummary}Inpatient care for ${bill.days} days in ${adm.ward}.`.trim(),
@@ -1290,11 +1379,11 @@ export default function IPDManagementPage() {
       customCharges: adm.customCharges.map((cc) =>
         cc.id === editingCustomCharge.id
           ? {
-              ...cc,
-              description: editingCustomCharge.description,
-              amount: Number(editingCustomCharge.amount),
-              category: editingCustomCharge.category,
-            }
+            ...cc,
+            description: editingCustomCharge.description,
+            amount: Number(editingCustomCharge.amount),
+            category: editingCustomCharge.category,
+          }
           : cc
       ),
     };
@@ -1522,6 +1611,44 @@ export default function IPDManagementPage() {
     }
   };
 
+  // Open Edit Admission Modal with complete patient, clinical and discharge details
+  const handleOpenEditAdmission = (adm: IPDAdmission) => {
+    setActiveAdmission(adm);
+    setEditAdmissionForm({
+      id: adm.id,
+      name: adm.name,
+      age: adm.age,
+      sex: adm.sex,
+      phone: adm.phone,
+      address: adm.address || "",
+      uhid: adm.uhid,
+      ipdNumber: adm.ipdNumber,
+      department: adm.department,
+      consultantDoctor: adm.consultantDoctor,
+      ward: adm.ward,
+      isCustomWard: false,
+      bedNumber: adm.bedNumber,
+      isCustomBed: false,
+      dailyRate: adm.dailyRate,
+      nursingRatePerDay: adm.nursingRatePerDay,
+      doctorRatePerVisit: adm.doctorRatePerVisit,
+      provisionalDiagnosis: adm.provisionalDiagnosis,
+      admissionDate: adm.admissionDate,
+      admissionTime: adm.admissionTime,
+      paymentCategory: adm.paymentCategory,
+      status: adm.status,
+      dischargeDate: adm.dischargeDate || new Date().toISOString().split("T")[0],
+      dischargeTime: adm.dischargeTime || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+      conditionAtDischarge: adm.dischargeSummary?.conditionAtDischarge || "Cured / Stable",
+      finalDiagnosis: adm.dischargeSummary?.finalDiagnosis || adm.provisionalDiagnosis || "",
+      treatmentGiven: adm.dischargeSummary?.treatmentGiven || "",
+      dischargeMeds: adm.dischargeSummary?.dischargeMeds || "",
+      followupDate: adm.dischargeSummary?.followupDate || "",
+      doctorNotes: adm.dischargeSummary?.doctorNotes || "",
+    });
+    setActiveModal("editAdmission");
+  };
+
   // Save Edited Inpatient Details & Rates (Editable by Admin)
   const handleSaveEditAdmission = () => {
     if (!editAdmissionForm.name.trim() || !editAdmissionForm.phone.trim()) {
@@ -1543,6 +1670,7 @@ export default function IPDManagementPage() {
 
     const updated = admissions.map((adm) => {
       if (adm.id === editAdmissionForm.id) {
+        const isDischarged = editAdmissionForm.status === "Discharged";
         return {
           ...adm,
           name: editAdmissionForm.name.trim(),
@@ -1563,18 +1691,29 @@ export default function IPDManagementPage() {
           admissionDate: editAdmissionForm.admissionDate,
           admissionTime: editAdmissionForm.admissionTime,
           paymentCategory: editAdmissionForm.paymentCategory as any,
+          status: editAdmissionForm.status,
+          dischargeDate: isDischarged ? (editAdmissionForm.dischargeDate || adm.dischargeDate) : adm.dischargeDate,
+          dischargeTime: isDischarged ? (editAdmissionForm.dischargeTime || adm.dischargeTime) : adm.dischargeTime,
+          dischargeSummary: isDischarged ? {
+            conditionAtDischarge: editAdmissionForm.conditionAtDischarge || adm.dischargeSummary?.conditionAtDischarge || "Cured / Stable",
+            finalDiagnosis: editAdmissionForm.finalDiagnosis || adm.dischargeSummary?.finalDiagnosis || editAdmissionForm.provisionalDiagnosis,
+            treatmentGiven: editAdmissionForm.treatmentGiven || adm.dischargeSummary?.treatmentGiven || "",
+            dischargeMeds: editAdmissionForm.dischargeMeds || adm.dischargeSummary?.dischargeMeds || "",
+            followupDate: editAdmissionForm.followupDate || adm.dischargeSummary?.followupDate || "",
+            doctorNotes: editAdmissionForm.doctorNotes || adm.dischargeSummary?.doctorNotes || "",
+          } : adm.dischargeSummary,
         };
       }
       return adm;
     });
 
-    saveAdmissions(updated);
+    const changed = updated.find((a) => a.id === editAdmissionForm.id);
+    saveAdmissions(updated, changed);
     if (activeAdmission?.id === editAdmissionForm.id) {
-      const activeUpd = updated.find((a) => a.id === editAdmissionForm.id);
-      if (activeUpd) setActiveAdmission(activeUpd);
+      if (changed) setActiveAdmission(changed);
     }
     setActiveModal("none");
-    setSuccessToast(`Inpatient details, bed & charge rates updated for ${editAdmissionForm.name}!`);
+    setSuccessToast(`Inpatient details, bed, rates & discharge info updated for ${editAdmissionForm.name}!`);
     setTimeout(() => setSuccessToast(null), 3500);
   };
 
@@ -2018,7 +2157,7 @@ export default function IPDManagementPage() {
 
   // Add Custom Charge
   const handleAddCustomCharge = (admissionId: string) => {
-    if (!chargeInput.description.trim() || Number(chargeInput.amount) <= 0) return;
+    if (!chargeInput.description.trim() || Number(chargeInput.amount) < 0) return;
     const newCharge = {
       id: `cc_${Date.now()}`,
       description: chargeInput.description.trim(),
@@ -2048,7 +2187,7 @@ export default function IPDManagementPage() {
     const name = dischargeChargeInput.name.trim();
     const price = Number(dischargeChargeInput.unitPrice) || 0;
     const qty = Number(dischargeChargeInput.quantity) || 1;
-    if (!name || price <= 0) return;
+    if (!name || isNaN(price) || price < 0) return;
 
     const total = price * qty;
     const newCharge = {
@@ -2137,16 +2276,16 @@ export default function IPDManagementPage() {
           finalSettlement: adm.finalSettlement
             ? { ...adm.finalSettlement, discount: newDiscount }
             : {
-                billNumber: "",
-                date: new Date().toISOString().split("T")[0],
-                grossTotal: 0,
-                discount: newDiscount,
-                netTotal: 0,
-                advanceAdjusted: 0,
-                balancePaid: 0,
-                paymentMode: dischargeForm.finalPaymentMode || "Cash",
-                status: "PARTIAL" as const,
-              },
+              billNumber: "",
+              date: new Date().toISOString().split("T")[0],
+              grossTotal: 0,
+              discount: newDiscount,
+              netTotal: 0,
+              advanceAdjusted: 0,
+              balancePaid: 0,
+              paymentMode: dischargeForm.finalPaymentMode || "Cash",
+              status: "PARTIAL" as const,
+            },
         };
       }
       return adm;
@@ -2193,12 +2332,12 @@ export default function IPDManagementPage() {
     const adm = admissions.find((a) => a.id === admissionId);
     if (!adm) return;
 
-    const billing = calculateRunningBill(adm);
+    const billing = calculateRunningBill(adm, dischargeForm.dischargeDate);
     const discount = Number(dischargeForm.discount) || 0;
     const netTotal = Math.max(0, billing.grossTotal - discount);
     const finalBalance = netTotal - billing.totalAdvances;
 
-    const finalBillNumber = `CRX-IPD-${Date.now().toString().slice(-5)}`;
+    const finalBillNumber = adm.finalSettlement?.billNumber || `CRX-IPD-${Date.now().toString().slice(-5)}`;
 
     const updated = admissions.map((item) => {
       if (item.id === admissionId) {
@@ -2235,7 +2374,11 @@ export default function IPDManagementPage() {
     saveAdmissions(updated, dischargedAdm);
     setActiveAdmission(dischargedAdm || null);
     setActiveModal("printDischarge");
-    setSuccessToast(`Patient ${adm.name} discharged successfully! Bed ${adm.bedNumber} is now released and vacant.`);
+    if (adm.status === "Discharged") {
+      setSuccessToast(`Discharge details and settlement updated for ${adm.name}! All changes saved to DB.`);
+    } else {
+      setSuccessToast(`Patient ${adm.name} discharged successfully! Bed ${adm.bedNumber} is now released and vacant.`);
+    }
   };
 
   // Generate & Save Final Hospital Bill for IPD
@@ -2471,7 +2614,12 @@ export default function IPDManagementPage() {
             a.name.toLowerCase().includes(q) ||
             a.phone.includes(q) ||
             a.uhid.toLowerCase().includes(q) ||
-            a.ipdNumber.toLowerCase().includes(q)
+            a.ipdNumber.toLowerCase().includes(q) ||
+            a.bedNumber.toLowerCase().includes(q) ||
+            a.ward.toLowerCase().includes(q) ||
+            a.consultantDoctor.toLowerCase().includes(q) ||
+            (a.dischargeSummary?.finalDiagnosis || "").toLowerCase().includes(q) ||
+            (a.provisionalDiagnosis || "").toLowerCase().includes(q)
           );
         }
         return true;
@@ -2529,11 +2677,10 @@ export default function IPDManagementPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
-                activeTab === "dashboard"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-              }`}
+              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${activeTab === "dashboard"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+                }`}
             >
               <Activity className="w-4 h-4" />
               Inpatient Board ({stats.admittedCount})
@@ -2550,11 +2697,10 @@ export default function IPDManagementPage() {
 
             <button
               onClick={() => setActiveTab("admit")}
-              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
-                activeTab === "admit"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-              }`}
+              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${activeTab === "admit"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+                }`}
             >
               <UserPlus className="w-4 h-4" />
               + New Admission
@@ -2562,11 +2708,10 @@ export default function IPDManagementPage() {
 
             <button
               onClick={() => setActiveTab("history")}
-              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${
-                activeTab === "history"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
-              }`}
+              className={`px-3.5 py-2 font-medium text-xs rounded-lg transition flex items-center gap-2 ${activeTab === "history"
+                ? "bg-emerald-600 text-white shadow-xs"
+                : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
+                }`}
             >
               <ClipboardCheck className="w-4 h-4" />
               Discharge Archive ({stats.dischargedCount})
@@ -2713,18 +2858,16 @@ export default function IPDManagementPage() {
                               setActiveTab("admit");
                             }
                           }}
-                          className={`p-2.5 rounded-lg border cursor-pointer transition text-left relative overflow-hidden ${
-                            isOccupied
-                              ? "bg-slate-50 border-slate-300 hover:bg-slate-100"
-                              : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-slate-50/50"
-                          }`}
+                          className={`p-2.5 rounded-lg border cursor-pointer transition text-left relative overflow-hidden ${isOccupied
+                            ? "bg-slate-50 border-slate-300 hover:bg-slate-100"
+                            : "bg-white border-slate-200 hover:border-emerald-400 hover:bg-slate-50/50"
+                            }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-mono text-xs font-bold text-slate-900">{bedId}</span>
                             <span
-                              className={`w-2 h-2 rounded-full ${
-                                isOccupied ? "bg-amber-500" : "bg-emerald-500"
-                              }`}
+                              className={`w-2 h-2 rounded-full ${isOccupied ? "bg-amber-500" : "bg-emerald-500"
+                                }`}
                             ></span>
                           </div>
                           {isOccupied ? (
@@ -2934,35 +3077,7 @@ export default function IPDManagementPage() {
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setActiveAdmission(adm);
-                              const isKnownWard = wardBedConfig.some(w => w.ward === adm.ward);
-                              const isKnownBed = wardBedConfig.some(w => w.beds.includes(adm.bedNumber));
-                              setEditAdmissionForm({
-                                id: adm.id,
-                                name: adm.name,
-                                age: adm.age,
-                                sex: adm.sex,
-                                phone: adm.phone,
-                                address: adm.address || "",
-                                uhid: adm.uhid,
-                                ipdNumber: adm.ipdNumber,
-                                department: adm.department,
-                                consultantDoctor: adm.consultantDoctor,
-                                ward: adm.ward,
-                                isCustomWard: !isKnownWard,
-                                bedNumber: adm.bedNumber,
-                                isCustomBed: !isKnownBed,
-                                dailyRate: adm.dailyRate,
-                                nursingRatePerDay: adm.nursingRatePerDay,
-                                doctorRatePerVisit: adm.doctorRatePerVisit,
-                                provisionalDiagnosis: adm.provisionalDiagnosis,
-                                admissionDate: adm.admissionDate,
-                                admissionTime: adm.admissionTime,
-                                paymentCategory: adm.paymentCategory,
-                              });
-                              setActiveModal("editAdmission");
-                            }}
+                            onClick={() => handleOpenEditAdmission(adm)}
                             className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
                             title="Edit Inpatient Details, Ward, Bed & Rates"
                           >
@@ -3071,11 +3186,10 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedOpdDate(new Date().toISOString().split("T")[0])}
-                      className={`px-2 py-1 text-[11px] font-semibold rounded-lg border transition ${
-                        selectedOpdDate === new Date().toISOString().split("T")[0]
-                          ? "bg-emerald-600 text-white border-emerald-600"
-                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                      }`}
+                      className={`px-2 py-1 text-[11px] font-semibold rounded-lg border transition ${selectedOpdDate === new Date().toISOString().split("T")[0]
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                        }`}
                     >
                       Today
                     </button>
@@ -3542,39 +3656,95 @@ export default function IPDManagementPage() {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
-                    <th className="py-3 px-4">IPD No.</th>
-                    <th className="py-3 px-4">UHID</th>
-                    <th className="py-3 px-4">Patient Name</th>
-                    <th className="py-3 px-4">Consultant Doctor</th>
-                    <th className="py-3 px-4">Admitted & Discharged</th>
-                    <th className="py-3 px-4">Condition</th>
-                    <th className="py-3 px-4">Settlement</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-3">IPD No.</th>
+                    <th className="py-3 px-3">UHID</th>
+                    <th className="py-3 px-3">Patient Info</th>
+                    <th className="py-3 px-3">Room / Bed</th>
+                    <th className="py-3 px-3">Consultant Doctor</th>
+                    <th className="py-3 px-3">Stay Period & Times</th>
+                    <th className="py-3 px-3">Condition & Diagnosis</th>
+                    <th className="py-3 px-3">Settlement</th>
+                    <th className="py-3 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {dischargedAdmissions.map((adm) => (
                     <tr key={adm.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">{adm.ipdNumber}</td>
-                      <td className="py-3 px-4 font-mono text-slate-600">{adm.uhid}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{adm.name}</td>
-                      <td className="py-3 px-4">{adm.consultantDoctor}</td>
-                      <td className="py-3 px-4">
-                        {adm.admissionDate} → {adm.dischargeDate || "N/A"} ({calculateStayDays(adm.admissionDate, adm.dischargeDate)} days)
+                      <td className="py-3 px-3 font-mono font-bold text-slate-900">{adm.ipdNumber}</td>
+                      <td className="py-3 px-3 font-mono text-slate-600">{adm.uhid}</td>
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{adm.name}</div>
+                        <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5 mt-0.5">
+                          <span>{adm.phone}</span>
+                          <span>•</span>
+                          <span>{adm.age}y / {adm.sex}</span>
+                        </div>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
-                          {adm.dischargeSummary?.conditionAtDischarge || "Discharged"}
+                      <td className="py-3 px-3 font-semibold text-slate-800">
+                        <div>{adm.ward}</div>
+                        <span className="text-[11px] text-slate-500 font-mono">{adm.bedNumber}</span>
+                      </td>
+                      <td className="py-3 px-3">{adm.consultantDoctor}</td>
+                      <td className="py-3 px-3">
+                        <div className="font-medium text-slate-800">
+                          {adm.admissionDate} {adm.admissionTime ? `(${adm.admissionTime})` : ""}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          → {adm.dischargeDate || "N/A"} {adm.dischargeTime ? `(${adm.dischargeTime})` : ""}
+                        </div>
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[10px] bg-slate-100 rounded text-slate-700 font-semibold">
+                          {calculateStayDays(adm.admissionDate, adm.dischargeDate)} billable days
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-bold text-slate-900">
-                        {adm.finalSettlement ? `₹${adm.finalSettlement.netTotal.toLocaleString("en-IN")}` : "Settled"}
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[11px]">
+                          {adm.dischargeSummary?.conditionAtDischarge || "Discharged"}
+                        </span>
+                        {adm.dischargeSummary?.finalDiagnosis && (
+                          <div className="text-[11px] text-slate-600 mt-1 line-clamp-1" title={adm.dischargeSummary.finalDiagnosis}>
+                            {adm.dischargeSummary.finalDiagnosis}
+                          </div>
+                        )}
                       </td>
-                      <td className="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
+                      <td className="py-3 px-3 font-bold text-slate-900">
+                        {adm.finalSettlement ? (
+                          <div>
+                            <div>₹{adm.finalSettlement.netTotal.toLocaleString("en-IN")}</div>
+                            <span className="text-[10px] text-emerald-700 font-normal">
+                              {adm.finalSettlement.paymentMode || "Settled"}
+                            </span>
+                          </div>
+                        ) : (
+                          "Settled"
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right space-x-1.5 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditAdmission(adm)}
+                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                          title="Edit patient details, admission/discharge dates, times, notes anytime"
+                        >
+                          <Pencil className="w-3 h-3 text-amber-700" />
+                          Edit Details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveAdmission(adm);
+                            initDischargeFormForAdmission(adm);
+                            setActiveModal("discharge");
+                          }}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] inline-flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                          title="Edit patient bill, charges, discharge date/time, and settlement"
+                        >
+                          <IndianRupee className="w-3 h-3 text-white" />
+                          Edit Bill & Settle
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleGenerateFinalBill(adm)}
-                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                          className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer"
                           title="View / Print Final Hospital Bill"
                         >
                           <FileText className="w-3 h-3 text-emerald-700" />
@@ -3583,7 +3753,7 @@ export default function IPDManagementPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenPatientReceipt(adm)}
-                          className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer"
+                          className="px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg font-semibold text-[11px] inline-flex items-center gap-1 cursor-pointer"
                           title="View all payment receipts"
                         >
                           <Receipt className="w-3 h-3 text-emerald-600" />
@@ -3595,19 +3765,9 @@ export default function IPDManagementPage() {
                             setActiveAdmission(adm);
                             setActiveModal("printDischarge");
                           }}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-semibold text-[11px]"
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg font-semibold text-[11px]"
                         >
                           Summary
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveAdmission(adm);
-                            setActiveModal("profile");
-                          }}
-                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-semibold text-[11px]"
-                        >
-                          Stay Chart
                         </button>
                       </td>
                     </tr>
@@ -3624,7 +3784,7 @@ export default function IPDManagementPage() {
       ───────────────────────────────────────────────────────────── */}
       {activeModal === "editAdmission" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
               <div>
@@ -3958,6 +4118,116 @@ export default function IPDManagementPage() {
                   </div>
                 </div>
               </div>
+
+              {/* 5. Status & Discharge Details (Editable after discharge) */}
+              <div>
+                <h3 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 flex items-center gap-1.5">
+                  <ClipboardCheck className="w-3.5 h-3.5 text-rose-600" />
+                  5. Inpatient Status & Discharge Details (Editable Anytime)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-rose-50/40 p-3.5 rounded-xl border border-rose-200">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Inpatient Status</label>
+                    <select
+                      value={editAdmissionForm.status}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, status: e.target.value as any })}
+                      className="w-full px-3 py-1.5 border border-rose-300 rounded-lg text-xs bg-white font-bold text-slate-900"
+                    >
+                      <option value="Admitted">Admitted (Active Inpatient)</option>
+                      <option value="Discharged">Discharged</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Discharge Date</label>
+                    <input
+                      type="date"
+                      value={editAdmissionForm.dischargeDate}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, dischargeDate: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-rose-300 rounded-lg text-xs bg-white font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Discharge Time</label>
+                    <input
+                      type="text"
+                      value={editAdmissionForm.dischargeTime}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, dischargeTime: e.target.value })}
+                      placeholder="e.g. 11:30 AM"
+                      className="w-full px-3 py-1.5 border border-rose-300 rounded-lg text-xs bg-white font-bold"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Condition at Discharge</label>
+                    <select
+                      value={editAdmissionForm.conditionAtDischarge}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, conditionAtDischarge: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                    >
+                      <option value="Cured / Stable">Cured / Stable</option>
+                      <option value="Improved">Improved</option>
+                      <option value="Transferred to Higher Centre">Transferred to Higher Centre</option>
+                      <option value="LAMA (Left Against Medical Advice)">LAMA</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Final Diagnosis</label>
+                    <input
+                      type="text"
+                      value={editAdmissionForm.finalDiagnosis}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, finalDiagnosis: e.target.value })}
+                      placeholder="Final confirmed clinical diagnosis at discharge"
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-semibold"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Treatment Given During Stay</label>
+                    <textarea
+                      rows={2}
+                      value={editAdmissionForm.treatmentGiven}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, treatmentGiven: e.target.value })}
+                      placeholder="Summary of surgeries, procedures, medications, and treatments given..."
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Discharge Medications (To Continue at Home)</label>
+                    <textarea
+                      rows={2}
+                      value={editAdmissionForm.dischargeMeds}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, dischargeMeds: e.target.value })}
+                      placeholder="Medications to continue at home..."
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Next Follow-up Date</label>
+                    <input
+                      type="date"
+                      value={editAdmissionForm.followupDate}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, followupDate: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Post-Discharge Instructions / Advice</label>
+                    <input
+                      type="text"
+                      value={editAdmissionForm.doctorNotes}
+                      onChange={(e) => setEditAdmissionForm({ ...editAdmissionForm, doctorNotes: e.target.value })}
+                      placeholder="e.g. Bed rest 7 days, wound dressing every 2 days, review in OPD"
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Modal Footer */}
@@ -4124,11 +4394,10 @@ export default function IPDManagementPage() {
                     setProfileTab(tab.id as any);
                     setEditingClinicalItem(null);
                   }}
-                  className={`pb-2.5 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
-                    profileTab === tab.id
-                      ? "border-emerald-600 text-emerald-700 font-bold"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
+                  className={`pb-2.5 flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${profileTab === tab.id
+                    ? "border-emerald-600 text-emerald-700 font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                    }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
                   {tab.label}
@@ -4518,11 +4787,10 @@ export default function IPDManagementPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateMedication(activeAdmission.id, m.id, { status: m.status === 'Active' ? 'Discontinued' : 'Active' })}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
-                                    m.status === 'Active'
-                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                  }`}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${m.status === 'Active'
+                                    ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
                                   title="Click to toggle status"
                                 >
                                   {m.status}
@@ -4618,7 +4886,7 @@ export default function IPDManagementPage() {
                         </button>
                       </div>
                     ) : (
-                        <button
+                      <button
                         type="button"
                         onClick={() => handleAddInvestigation(activeAdmission.id)}
                         className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs shadow"
@@ -4651,11 +4919,10 @@ export default function IPDManagementPage() {
                                   onClick={() => handleUpdateClinicalInvestigation(activeAdmission.id, inv.id, {
                                     status: inv.status === 'Ordered' ? 'Completed' : 'Ordered'
                                   })}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
-                                    inv.status === 'Completed'
-                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                      : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                  }`}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${inv.status === 'Completed'
+                                    ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                    : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                    }`}
                                   title="Click to toggle status"
                                 >
                                   {inv.status}
@@ -5699,204 +5966,267 @@ export default function IPDManagementPage() {
       })()}
 
       {/* ─────────────────────────────────────────────────────────────
-          MODAL 3: DISCHARGE SUMMARY & FINANCIAL SETTLEMENT
+          MODAL 3: DISCHARGE SUMMARY & FINANCIAL SETTLEMENT (FULL-SCREEN)
       ───────────────────────────────────────────────────────────── */}
       {activeModal === "discharge" && activeAdmission && (() => {
-        const bill = calculateRunningBill(activeAdmission);
+        const bill = calculateRunningBill(activeAdmission, dischargeForm.dischargeDate);
         const discount = Number(dischargeForm.discount) || 0;
         const netTotal = Math.max(0, bill.grossTotal - discount);
         const finalBalance = netTotal - bill.totalAdvances;
         const toRecover = finalBalance > 0 ? finalBalance : 0;
         const toRefund = finalBalance < 0 ? Math.abs(finalBalance) : 0;
 
+        const matchingCharges = procedureCatalog.filter((c) =>
+          c.name.toLowerCase().includes((dischargeChargeInput.name || "").trim().toLowerCase())
+        );
+
+        const isAlreadyDischarged = activeAdmission.status === "Discharged";
+
         return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5">
-            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-2 md:p-3">
+            <div className="bg-white sm:rounded-2xl w-full h-full max-h-[98vh] flex flex-col shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
               {/* Header */}
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-mono font-bold text-xs">
-                      DISCHARGE & SETTLEMENT
-                    </span>
-                    <span className="font-mono text-xs text-slate-500">{activeAdmission.ipdNumber} • {activeAdmission.uhid}</span>
+              <div className="p-4 sm:p-6 border-b border-slate-200 flex flex-col gap-3 bg-slate-50/80 rounded-t-2xl">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded font-mono font-bold text-xs uppercase tracking-wider ${isAlreadyDischarged ? "bg-amber-100 text-amber-900 border border-amber-300" : "bg-rose-100 text-rose-800 border border-rose-300"}`}>
+                        {isAlreadyDischarged ? "DISCHARGED • EDITABLE RECORD & SETTLEMENT" : "DISCHARGE & FINANCIAL SETTLEMENT"}
+                      </span>
+                      <span className="font-mono text-xs font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        IPD: {activeAdmission.ipdNumber}
+                      </span>
+                      <span className="font-mono text-xs text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        UHID: {activeAdmission.uhid}
+                      </span>
+                      <span className="text-xs text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        📞 {activeAdmission.phone}
+                      </span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1.5 flex items-center gap-2">
+                      {isAlreadyDischarged ? "Edit Discharge & Bill:" : "Discharge & Settle:"} {activeAdmission.name}
+                      <span className="text-sm font-normal text-slate-500 font-sans">
+                        ({activeAdmission.age} yrs, {activeAdmission.sex})
+                      </span>
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                      Doctor: <strong className="text-slate-900">{activeAdmission.consultantDoctor}</strong> • Room & Bed: <strong className="text-slate-900">{activeAdmission.ward} — {activeAdmission.bedNumber}</strong>
+                    </p>
                   </div>
-                  <h2 className="text-xl font-black text-slate-900 mt-1">Discharge & Settle: {activeAdmission.name}</h2>
-                  <p className="text-xs text-slate-500">
-                    Stay: {activeAdmission.admissionDate} to {dischargeForm.dischargeDate} ({bill.days} days) • Bed {activeAdmission.bedNumber} ({activeAdmission.ward}) • Doctor: {activeAdmission.consultantDoctor}
-                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModal("none");
+                      setActiveAdmission(null);
+                    }}
+                    className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 transition cursor-pointer"
+                    title="Close"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveModal("none");
-                    setActiveAdmission(null);
-                  }}
-                  className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                {/* Admission & Discharge Date/Time Bar (Directly Editable with Live Bill Recalculation) */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Admission Date & Time</span>
+                      <span className="font-bold text-slate-800">
+                        {activeAdmission.admissionDate} {activeAdmission.admissionTime ? `• ${activeAdmission.admissionTime}` : ""}
+                      </span>
+                    </div>
+                    <div className="h-7 w-px bg-slate-200 hidden sm:block" />
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">Discharge Date</label>
+                      <input
+                        type="date"
+                        value={dischargeForm.dischargeDate}
+                        onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeDate: e.target.value })}
+                        className="px-2.5 py-1 border border-slate-300 rounded-lg font-bold text-xs sm:text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">Discharge Time</label>
+                      <input
+                        type="text"
+                        value={dischargeForm.dischargeTime}
+                        onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeTime: e.target.value })}
+                        placeholder="e.g. 02:30 PM"
+                        className="w-28 px-2.5 py-1 border border-slate-300 rounded-lg font-bold text-xs sm:text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1.5 bg-emerald-50 text-emerald-800 rounded-lg font-bold text-xs sm:text-sm border border-emerald-300 shadow-2xs">
+                      ⏱️ {bill.days} Billable Stay Days
+                    </span>
+                    {activeAdmission.finalSettlement?.billNumber && (
+                      <span className="px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg font-mono font-bold text-xs sm:text-sm border border-blue-200 shadow-2xs">
+                        Bill #{activeAdmission.finalSettlement.billNumber}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex items-center gap-2 px-5 pt-3 border-b border-slate-200 bg-white">
+              <div className="flex items-center gap-2 px-6 pt-3 border-b border-slate-200 bg-white">
                 <button
                   type="button"
                   onClick={() => setDischargeTab("settlement")}
-                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition cursor-pointer ${
-                    dischargeTab === "settlement"
-                      ? "border-emerald-600 text-emerald-800"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
+                  className={`pb-3 px-4 text-sm font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${dischargeTab === "settlement"
+                    ? "border-emerald-600 text-emerald-800"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                    }`}
                 >
-                  <IndianRupee className="w-3.5 h-3.5" />
+                  <IndianRupee className="w-4 h-4" />
                   1. Financial Settlement & Charges (Recover / Return)
                 </button>
                 <button
                   type="button"
                   onClick={() => setDischargeTab("clinical")}
-                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 flex items-center gap-1.5 transition cursor-pointer ${
-                    dischargeTab === "clinical"
-                      ? "border-emerald-600 text-emerald-800"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
+                  className={`pb-3 px-4 text-sm font-bold border-b-2 flex items-center gap-2 transition cursor-pointer ${dischargeTab === "clinical"
+                    ? "border-emerald-600 text-emerald-800"
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                    }`}
                 >
-                  <FileText className="w-3.5 h-3.5" />
+                  <FileText className="w-4 h-4" />
                   2. Clinical Summary & Discharge Medications
                 </button>
               </div>
 
               {/* Body */}
-              <div className="p-5 overflow-y-auto flex-1 space-y-5 text-xs">
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 text-sm">
                 {dischargeTab === "settlement" ? (
                   <>
                     {/* SECTION A: PROMINENT RECOVERY / REFUND STATUS BANNER */}
                     {toRecover > 0 ? (
-                      <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                      <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow shrink-0">
-                            <AlertCircle className="w-6 h-6" />
+                          <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow shrink-0">
+                            <AlertCircle className="w-7 h-7" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-rose-200 text-rose-900">
+                              <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded bg-rose-200 text-rose-900">
                                 Payment Due From Patient
                               </span>
                             </div>
-                            <h4 className="text-sm font-black text-rose-950 mt-0.5">
+                            <h4 className="text-base sm:text-lg font-black text-rose-950 mt-1">
                               AMOUNT NEEDED TO RECOVER FROM PATIENT
                             </h4>
-                            <p className="text-xs text-rose-700">
+                            <p className="text-xs sm:text-sm text-rose-700">
                               Patient has remaining balance dues after adjusting all advances. Collect this balance before discharge.
                             </p>
                           </div>
                         </div>
-                        <div className="text-left sm:text-right sm:border-l sm:border-rose-200 sm:pl-5">
-                          <span className="text-[11px] font-semibold text-rose-600 uppercase tracking-wider block">Balance to Recover</span>
-                          <span className="text-2xl sm:text-3xl font-black font-mono text-rose-700">
+                        <div className="text-left sm:text-right sm:border-l sm:border-rose-200 sm:pl-6">
+                          <span className="text-xs font-bold text-rose-600 uppercase tracking-wider block">Balance to Recover</span>
+                          <span className="text-3xl sm:text-4xl font-black font-mono text-rose-700">
                             ₹{toRecover.toLocaleString("en-IN")}
                           </span>
                         </div>
                       </div>
                     ) : toRefund > 0 ? (
-                      <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                      <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow shrink-0">
-                            <CheckCircle2 className="w-6 h-6" />
+                          <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow shrink-0">
+                            <CheckCircle2 className="w-7 h-7" />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-200 text-emerald-900">
+                              <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-200 text-emerald-900">
                                 Excess Advance Deposited
                               </span>
                             </div>
-                            <h4 className="text-sm font-black text-emerald-950 mt-0.5">
+                            <h4 className="text-base sm:text-lg font-black text-emerald-950 mt-1">
                               AMOUNT TO BE GIVEN / RETURNED TO PATIENT (REFUND)
                             </h4>
-                            <p className="text-xs text-emerald-700">
+                            <p className="text-xs sm:text-sm text-emerald-700">
                               Patient deposited more than the total charges incurred. Refund this excess amount upon discharge.
                             </p>
                           </div>
                         </div>
-                        <div className="text-left sm:text-right sm:border-l sm:border-emerald-200 sm:pl-5">
-                          <span className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider block">Refund to Patient</span>
-                          <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-700">
+                        <div className="text-left sm:text-right sm:border-l sm:border-emerald-200 sm:pl-6">
+                          <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">Refund to Patient</span>
+                          <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-700">
                             ₹{toRefund.toLocaleString("en-IN")}
                           </span>
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm">
+                      <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 flex items-center justify-between gap-4 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow shrink-0">
-                            <CheckCircle2 className="w-6 h-6" />
+                          <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow shrink-0">
+                            <CheckCircle2 className="w-7 h-7" />
                           </div>
                           <div>
-                            <h4 className="text-sm font-black text-blue-950">
+                            <h4 className="text-base sm:text-lg font-black text-blue-950">
                               ACCOUNT FULLY SETTLED (₹0.00 DUE)
                             </h4>
-                            <p className="text-xs text-blue-700">
+                            <p className="text-xs sm:text-sm text-blue-700">
                               All accumulated charges match patient advances exactly. No recovery or refund required.
                             </p>
                           </div>
                         </div>
-                        <span className="text-2xl font-black font-mono text-blue-800">₹0</span>
+                        <span className="text-3xl sm:text-4xl font-black font-mono text-blue-800">₹0</span>
                       </div>
                     )}
 
                     {/* SECTION B: 4 NUMERICAL METRIC PILLS */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase block">1. Gross Total Charges</span>
-                        <span className="text-base font-bold font-mono text-slate-900">₹{bill.grossTotal.toLocaleString("en-IN")}</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">1. Gross Total Charges</span>
+                        <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 mt-1 block">₹{bill.grossTotal.toLocaleString("en-IN")}</span>
                       </div>
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase block">2. Hospital Discount</span>
+                          <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">2. Hospital Discount</span>
                           {ipdAutoSaved && (
-                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                               Saved
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-xs font-bold text-slate-400">₹</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-sm font-bold text-slate-400">₹</span>
                           <input
                             type="number"
                             min="0"
                             value={dischargeForm.discount === 0 ? "" : dischargeForm.discount}
                             placeholder="0"
                             onChange={(e) => handleDischargeDiscountChange(activeAdmission.id, Math.max(0, Number(e.target.value)))}
-                            className="w-20 p-1 border border-slate-300 rounded font-mono font-bold text-xs bg-white text-right focus:ring-1 focus:ring-emerald-500 outline-none"
+                            className="w-28 p-1.5 border border-slate-300 rounded-lg font-mono font-bold text-base bg-white text-right focus:ring-2 focus:ring-emerald-500 outline-none"
                           />
                         </div>
                       </div>
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase block">3. Net Final Bill</span>
-                        <span className="text-base font-black font-mono text-slate-900">₹{netTotal.toLocaleString("en-IN")}</span>
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">3. Net Final Bill</span>
+                        <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 mt-1 block">₹{netTotal.toLocaleString("en-IN")}</span>
                       </div>
-                      <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3">
-                        <span className="text-[10px] font-bold text-emerald-800 uppercase block">4. Total Advances Paid</span>
-                        <span className="text-base font-bold font-mono text-emerald-800">− ₹{bill.totalAdvances.toLocaleString("en-IN")}</span>
+                      <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4">
+                        <span className="text-xs font-bold text-emerald-800 uppercase block tracking-wider">4. Total Advances Paid</span>
+                        <span className="text-xl sm:text-2xl font-black font-mono text-emerald-800 mt-1 block">− ₹{bill.totalAdvances.toLocaleString("en-IN")}</span>
                       </div>
                     </div>
 
                     {/* SECTION C: ADD MORE CHARGES & SERVICES (LIKE OPD BILLING) */}
-                    <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-3">
+                    <div className="border border-slate-200 rounded-2xl p-4 sm:p-5 bg-slate-50/60 space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                            <Plus className="w-3.5 h-3.5 text-emerald-600" />
-                            Add More Charges & Services (Like OPD Billing)
+                          <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                            <Plus className="w-4 h-4 text-emerald-600" />
+                            Add More Charges & Services (Full Charges Catalog with Autocomplete)
                           </h3>
-                          <p className="text-[11px] text-slate-500">
-                            Select a preset procedure / investigation or type custom service. Shared with OPD procedure catalog.
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Type to search from 75 standard IPD charges (Day-wise & other particulars) or enter a custom service.
                           </p>
                         </div>
                         {ipdAutoSaved ? (
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shadow-2xs">
-                            <Check className="w-3.5 h-3.5 text-emerald-600" /> Auto-saved
+                            <Check className="w-3.5 h-3.5 text-emerald-600" /> Auto-saved to DB
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
@@ -5905,61 +6235,16 @@ export default function IPDManagementPage() {
                         )}
                       </div>
 
-                      {/* Quick Suggestions Presets Bar (Like OPD Billing) */}
-                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-2.5 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-emerald-600" />
-                            Popular Hospital Presets &amp; Suggestions (Click to autofill or + to add):
-                          </span>
-                          <span className="text-[10px] text-emerald-700 font-medium hidden sm:inline">Shared with OPD Catalog</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-                          {QUICK_IPD_SUGGESTIONS.map((preset, pIdx) => (
-                            <div
-                              key={pIdx}
-                              className="inline-flex items-center rounded-lg text-[11px] font-semibold bg-white border border-emerald-200 text-slate-700 shadow-2xs overflow-hidden"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDischargeChargeInput({
-                                    name: preset.name,
-                                    category: preset.category,
-                                    unitPrice: String(preset.price),
-                                    quantity: 1,
-                                  });
-                                }}
-                                className="px-2 py-1 hover:bg-emerald-50 flex items-center gap-1 transition cursor-pointer"
-                                title={`Click to autofill ${preset.name}`}
-                              >
-                                <span>{preset.emoji}</span>
-                                <span>{preset.name}</span>
-                                <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-1 rounded text-[10px]">
-                                  ₹{preset.price}
-                                </span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleQuickAddPreset(activeAdmission.id, preset)}
-                                className="px-1.5 py-1 bg-emerald-100/60 hover:bg-emerald-200 text-emerald-800 transition cursor-pointer border-l border-emerald-200"
-                                title={`Instantly add ${preset.name} (₹${preset.price})`}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Quick Add Form Row with Auto-Suggestions & Keyboard Support */}
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-white p-3 border border-slate-200 rounded-xl shadow-xs">
-                        <div className="sm:col-span-4">
-                          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Service / Procedure Name</label>
+                      {/* Quick Add Form Row with Rich Autocomplete & Keyboard Support */}
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-white p-4 border border-slate-200 rounded-xl shadow-xs">
+                        <div className="relative sm:col-span-5">
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            Service / Procedure Name (Type to search 75+ charges)
+                          </label>
                           <input
                             type="text"
-                            list="discharge-service-presets"
                             value={dischargeChargeInput.name}
+                            onFocus={() => setShowDischargeChargeSuggestions(true)}
                             onChange={(e) => {
                               const val = e.target.value;
                               const matched = procedureCatalog.find((p) => p.name.toLowerCase() === val.toLowerCase());
@@ -5973,33 +6258,80 @@ export default function IPDManagementPage() {
                               } else {
                                 setDischargeChargeInput({ ...dischargeChargeInput, name: val });
                               }
+                              setShowDischargeChargeSuggestions(true);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
-                                if (dischargeChargeInput.name.trim() && Number(dischargeChargeInput.unitPrice) > 0) {
+                                if (dischargeChargeInput.name.trim() && !isNaN(Number(dischargeChargeInput.unitPrice)) && Number(dischargeChargeInput.unitPrice) >= 0) {
                                   handleAddChargeInDischarge(activeAdmission.id);
+                                  setShowDischargeChargeSuggestions(false);
                                 }
+                              } else if (e.key === "Escape") {
+                                setShowDischargeChargeSuggestions(false);
                               }
                             }}
-                            placeholder="e.g. Dressing, X-Ray, Blood Test, OT Charges..."
-                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-medium focus:ring-1 focus:ring-emerald-500 outline-none"
+                            placeholder="Type e.g. Dressing, X-Ray, Blood, OT, Injection, AC..."
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
                           />
-                          <datalist id="discharge-service-presets">
-                            {procedureCatalog.map((c, idx) => (
-                              <option key={idx} value={c.name}>
-                                ₹{c.price} • {c.category}
-                              </option>
-                            ))}
-                          </datalist>
+
+                          {/* Autocomplete Dropdown */}
+                          {showDischargeChargeSuggestions && (
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto divide-y divide-slate-100">
+                              <div className="p-2 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between sticky top-0 border-b border-slate-200">
+                                <span>Charges Catalog ({matchingCharges.length} matching)</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowDischargeChargeSuggestions(false)}
+                                  className="text-slate-400 hover:text-slate-700 font-bold px-1"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              {matchingCharges.length === 0 ? (
+                                <div className="p-3 text-xs text-slate-500 text-center">
+                                  No preset match. You can still type custom name and rate.
+                                </div>
+                              ) : (
+                                matchingCharges.map((item, idx) => (
+                                  <button
+                                    key={`${item.name}-${item.price}-${idx}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setDischargeChargeInput({
+                                        ...dischargeChargeInput,
+                                        name: item.name,
+                                        category: item.category,
+                                        unitPrice: String(item.price),
+                                      });
+                                      setShowDischargeChargeSuggestions(false);
+                                    }}
+                                    className="w-full text-left p-2.5 hover:bg-emerald-50 transition flex items-center justify-between gap-2 group cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-900">
+                                        {item.name}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-600 font-semibold">
+                                        {item.category}
+                                      </span>
+                                    </div>
+                                    <span className="font-mono font-bold text-xs sm:text-sm text-emerald-700">
+                                      ₹{item.price.toLocaleString("en-IN")}
+                                    </span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="sm:col-span-3">
-                          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Category</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
                           <select
                             value={dischargeChargeInput.category}
                             onChange={(e) => setDischargeChargeInput({ ...dischargeChargeInput, category: e.target.value as any })}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-medium outline-none"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white font-medium outline-none"
                           >
                             <option value="Procedure">Procedure</option>
                             <option value="Investigation">Investigation</option>
@@ -6012,7 +6344,7 @@ export default function IPDManagementPage() {
                         </div>
 
                         <div className="sm:col-span-2">
-                          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Rate (₹)</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Rate (₹)</label>
                           <input
                             type="number"
                             min="0"
@@ -6021,18 +6353,19 @@ export default function IPDManagementPage() {
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
-                                if (dischargeChargeInput.name.trim() && Number(dischargeChargeInput.unitPrice) > 0) {
+                                if (dischargeChargeInput.name.trim() && !isNaN(Number(dischargeChargeInput.unitPrice)) && Number(dischargeChargeInput.unitPrice) >= 0) {
                                   handleAddChargeInDischarge(activeAdmission.id);
+                                  setShowDischargeChargeSuggestions(false);
                                 }
                               }
                             }}
                             placeholder="₹ 0"
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-right outline-none"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono font-bold text-right outline-none"
                           />
                         </div>
 
                         <div className="sm:col-span-1">
-                          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Qty</label>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">Qty</label>
                           <input
                             type="number"
                             min="1"
@@ -6041,87 +6374,91 @@ export default function IPDManagementPage() {
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
-                                if (dischargeChargeInput.name.trim() && Number(dischargeChargeInput.unitPrice) > 0) {
+                                if (dischargeChargeInput.name.trim() && !isNaN(Number(dischargeChargeInput.unitPrice)) && Number(dischargeChargeInput.unitPrice) >= 0) {
                                   handleAddChargeInDischarge(activeAdmission.id);
+                                  setShowDischargeChargeSuggestions(false);
                                 }
                               }
                             }}
-                            className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-center outline-none"
+                            className="w-full px-2 py-2 border border-slate-300 rounded-lg text-sm font-mono font-bold text-center outline-none"
                           />
                         </div>
 
-                        <div className="sm:col-span-2 flex items-end">
+                        <div className="sm:col-span-1 flex items-end">
                           <button
                             type="button"
-                            onClick={() => handleAddChargeInDischarge(activeAdmission.id)}
-                            disabled={!dischargeChargeInput.name.trim() || Number(dischargeChargeInput.unitPrice) <= 0}
-                            className="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                            onClick={() => {
+                              handleAddChargeInDischarge(activeAdmission.id);
+                              setShowDischargeChargeSuggestions(false);
+                            }}
+                            disabled={!dischargeChargeInput.name.trim() || isNaN(Number(dischargeChargeInput.unitPrice)) || Number(dischargeChargeInput.unitPrice) < 0}
+                            className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-lg text-sm font-bold transition shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            Add Item
+                            <Plus className="w-4 h-4" />
+                            Add
                           </button>
                         </div>
                       </div>
 
                       {/* Itemized Charges Table with Inline Editing & Delete */}
-                      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs shadow-xs max-h-56 overflow-y-auto">
+                      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-sm shadow-xs min-h-[220px] max-h-72 overflow-y-auto">
                         <table className="w-full text-left">
-                          <thead className="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 sticky top-0">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0">
                             <tr>
-                              <th className="p-2.5">Service Description</th>
-                              <th className="p-2.5">Category</th>
-                              <th className="p-2.5 text-right">Amount (₹)</th>
-                              <th className="p-2.5 text-center w-16">Action</th>
+                              <th className="p-3">Service Description</th>
+                              <th className="p-3">Category</th>
+                              <th className="p-3 text-right">Amount (₹)</th>
+                              <th className="p-3 text-center w-20">Action</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {/* Bed charges */}
                             {bill.bedCharges > 0 && (
                               <tr className="hover:bg-slate-50/50">
-                                <td className="p-2.5 font-semibold text-slate-800">
+                                <td className="p-3 font-semibold text-slate-800">
                                   Bed & Accommodation ({activeAdmission.ward} - {activeAdmission.bedNumber}) • {bill.days} days @ ₹{activeAdmission.dailyRate}/day
                                 </td>
-                                <td className="p-2.5 text-slate-500">Stay / Bed</td>
-                                <td className="p-2.5 text-right font-mono font-bold text-slate-900">₹{bill.bedCharges}</td>
-                                <td className="p-2.5 text-center text-slate-400 text-[10px] italic">Base</td>
+                                <td className="p-3 text-slate-500">Stay / Bed</td>
+                                <td className="p-3 text-right font-mono font-bold text-slate-900">₹{bill.bedCharges.toLocaleString("en-IN")}</td>
+                                <td className="p-3 text-center text-slate-400 text-xs italic">Base</td>
                               </tr>
                             )}
                             {/* Nursing charges */}
                             {bill.nursingCharges > 0 && (
                               <tr className="hover:bg-slate-50/50">
-                                <td className="p-2.5 font-semibold text-slate-800">
+                                <td className="p-3 font-semibold text-slate-800">
                                   Nursing Care & Monitoring • {bill.days} days @ ₹{activeAdmission.nursingRatePerDay}/day
                                 </td>
-                                <td className="p-2.5 text-slate-500">Nursing</td>
-                                <td className="p-2.5 text-right font-mono font-bold text-slate-900">₹{bill.nursingCharges}</td>
-                                <td className="p-2.5 text-center text-slate-400 text-[10px] italic">Base</td>
+                                <td className="p-3 text-slate-500">Nursing</td>
+                                <td className="p-3 text-right font-mono font-bold text-slate-900">₹{bill.nursingCharges.toLocaleString("en-IN")}</td>
+                                <td className="p-3 text-center text-slate-400 text-xs italic">Base</td>
                               </tr>
                             )}
                             {/* Doctor visits */}
                             {bill.doctorCharges > 0 && (
                               <tr className="hover:bg-slate-50/50">
-                                <td className="p-2.5 font-semibold text-slate-800">
+                                <td className="p-3 font-semibold text-slate-800">
                                   Doctor Consultations ({activeAdmission.consultantDoctor}) • {bill.doctorVisitsCount} visit(s) @ ₹{activeAdmission.doctorRatePerVisit}/visit
                                 </td>
-                                <td className="p-2.5 text-slate-500">Consultation</td>
-                                <td className="p-2.5 text-right font-mono font-bold text-slate-900">₹{bill.doctorCharges}</td>
-                                <td className="p-2.5 text-center text-slate-400 text-[10px] italic">Base</td>
+                                <td className="p-3 text-slate-500">Consultation</td>
+                                <td className="p-3 text-right font-mono font-bold text-slate-900">₹{bill.doctorCharges.toLocaleString("en-IN")}</td>
+                                <td className="p-3 text-center text-slate-400 text-xs italic">Base</td>
                               </tr>
                             )}
                             {/* Diagnostic Investigations */}
                             {(activeAdmission.investigations || []).map((inv) => (
                               <tr key={inv.id} className="hover:bg-slate-50/50">
-                                <td className="p-2.5 font-semibold text-slate-800">🔬 Lab Test: {inv.name}</td>
-                                <td className="p-2.5 text-slate-500">Investigation</td>
-                                <td className="p-2.5 text-right font-mono font-bold text-slate-900">₹{inv.cost}</td>
-                                <td className="p-2.5 text-center">
+                                <td className="p-3 font-semibold text-slate-800">🔬 Lab Test: {inv.name}</td>
+                                <td className="p-3 text-slate-500">Investigation</td>
+                                <td className="p-3 text-right font-mono font-bold text-slate-900">₹{inv.cost.toLocaleString("en-IN")}</td>
+                                <td className="p-3 text-center">
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteChargeInDischarge(activeAdmission.id, inv.id, "inv")}
-                                    className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
+                                    className="p-1.5 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
                                     title="Remove charge"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </td>
                               </tr>
@@ -6129,17 +6466,17 @@ export default function IPDManagementPage() {
                             {/* Surgical Procedures */}
                             {(activeAdmission.procedures || []).map((proc) => (
                               <tr key={proc.id} className="hover:bg-slate-50/50">
-                                <td className="p-2.5 font-semibold text-slate-800">⚕️ Procedure: {proc.name}{proc.surgeon ? ` (${proc.surgeon})` : ""}</td>
-                                <td className="p-2.5 text-slate-500">Procedure</td>
-                                <td className="p-2.5 text-right font-mono font-bold text-slate-900">₹{proc.cost}</td>
-                                <td className="p-2.5 text-center">
+                                <td className="p-3 font-semibold text-slate-800">⚕️ Procedure: {proc.name}{proc.surgeon ? ` (${proc.surgeon})` : ""}</td>
+                                <td className="p-3 text-slate-500">Procedure</td>
+                                <td className="p-3 text-right font-mono font-bold text-slate-900">₹{proc.cost.toLocaleString("en-IN")}</td>
+                                <td className="p-3 text-center">
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteChargeInDischarge(activeAdmission.id, proc.id, "proc")}
-                                    className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
+                                    className="p-1.5 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
                                     title="Remove charge"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </td>
                               </tr>
@@ -6147,36 +6484,36 @@ export default function IPDManagementPage() {
                             {/* Custom Hospital Charges (Inline Editable like OPD Billing) */}
                             {(activeAdmission.customCharges || []).map((cc) => (
                               <tr key={cc.id} className="hover:bg-slate-50/50 group">
-                                <td className="p-1.5 font-semibold text-slate-800">
+                                <td className="p-2 font-semibold text-slate-800">
                                   <input
                                     type="text"
                                     value={cc.description}
                                     onChange={(e) => handleUpdateCustomChargeInDischarge(activeAdmission.id, cc.id, e.target.value, cc.amount)}
                                     placeholder="Service description"
-                                    className="w-full px-2 py-1 border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded text-xs font-semibold bg-transparent focus:bg-white outline-none"
+                                    className="w-full px-2.5 py-1.5 border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded text-sm font-semibold bg-transparent focus:bg-white outline-none"
                                   />
                                 </td>
-                                <td className="p-2.5 text-slate-500">{cc.category || "Custom"}</td>
-                                <td className="p-1.5 text-right font-mono font-bold text-slate-900">
+                                <td className="p-3 text-slate-500">{cc.category || "Custom"}</td>
+                                <td className="p-2 text-right font-mono font-bold text-slate-900">
                                   <div className="flex items-center justify-end gap-1">
-                                    <span className="text-slate-400 text-xs">₹</span>
+                                    <span className="text-slate-400 text-sm">₹</span>
                                     <input
                                       type="number"
                                       min="0"
                                       value={cc.amount}
                                       onChange={(e) => handleUpdateCustomChargeInDischarge(activeAdmission.id, cc.id, cc.description, Number(e.target.value))}
-                                      className="w-20 px-1.5 py-1 border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded text-right font-mono font-bold text-xs bg-transparent focus:bg-white outline-none"
+                                      className="w-24 px-2 py-1 border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded text-right font-mono font-bold text-sm bg-transparent focus:bg-white outline-none"
                                     />
                                   </div>
                                 </td>
-                                <td className="p-2.5 text-center">
+                                <td className="p-3 text-center">
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteChargeInDischarge(activeAdmission.id, cc.id, "custom")}
-                                    className="p-1 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
+                                    className="p-1.5 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
                                     title="Remove charge"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </td>
                               </tr>
@@ -6187,30 +6524,30 @@ export default function IPDManagementPage() {
                     </div>
 
                     {/* SECTION D: ADVANCE PAYMENTS DEPOSITED (PATIENT MONEY IN) */}
-                    <div className="border border-slate-200 rounded-xl p-3 bg-white space-y-2">
+                    <div className="border border-slate-200 rounded-xl p-4 bg-white space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <Receipt className="w-3.5 h-3.5 text-emerald-600" />
-                          Patient Advance Payments Received ({(activeAdmission.advances || []).length} slips):
+                        <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <Receipt className="w-4 h-4 text-emerald-600" />
+                          Patient Advance Payments Received ({(activeAdmission.advances || []).length} receipts):
                         </span>
                         <button
                           type="button"
                           onClick={() => handleOpenRecordPayment(activeAdmission, "discharge")}
-                          className="text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded border border-emerald-200 flex items-center gap-1 transition cursor-pointer"
+                          className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 flex items-center gap-1.5 transition cursor-pointer"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3.5 h-3.5" />
                           + Record Additional Advance
                         </button>
                       </div>
                       {(activeAdmission.advances || []).length === 0 ? (
-                        <p className="text-[11px] text-slate-400 italic">No advance deposits received yet for this patient.</p>
+                        <p className="text-xs text-slate-400 italic">No advance deposits received yet for this patient.</p>
                       ) : (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2.5">
                           {activeAdmission.advances.map((adv, idx) => (
-                            <div key={adv.id} className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 text-[11px] flex items-center gap-2">
+                            <div key={adv.id} className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2.5">
                               <span className="font-mono font-bold text-emerald-900">#{idx + 1} {adv.receiptNumber}</span>
                               <span className="text-slate-600">({adv.date} • {adv.mode})</span>
-                              <span className="font-mono font-bold text-emerald-700">₹{adv.amount}</span>
+                              <span className="font-mono font-bold text-emerald-700">₹{adv.amount.toLocaleString("en-IN")}</span>
                             </div>
                           ))}
                         </div>
@@ -6218,19 +6555,19 @@ export default function IPDManagementPage() {
                     </div>
 
                     {/* SECTION E: SETTLEMENT PAYMENT COLLECTION MODE */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-bold text-slate-800">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-bold text-slate-800">
                           {toRecover > 0
                             ? "Mode of Balance Recovery:"
                             : toRefund > 0
-                            ? "Mode of Refund to Patient:"
-                            : "Settlement Mode:"}
+                              ? "Mode of Refund to Patient:"
+                              : "Settlement Mode:"}
                         </label>
                         <select
                           value={dischargeForm.finalPaymentMode}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, finalPaymentMode: e.target.value as any })}
-                          className="p-1.5 border border-slate-300 rounded-lg bg-white text-xs font-bold text-slate-800 outline-none"
+                          className="p-2 border border-slate-300 rounded-lg bg-white text-sm font-bold text-slate-800 outline-none"
                         >
                           <option value="Cash">Cash</option>
                           <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
@@ -6240,7 +6577,7 @@ export default function IPDManagementPage() {
                         </select>
                       </div>
 
-                      <div className="text-xs font-semibold text-slate-500">
+                      <div className="text-sm font-semibold text-slate-600">
                         {toRecover > 0 ? (
                           <span className="text-rose-700 font-bold">Collect ₹{toRecover.toLocaleString("en-IN")} via {dischargeForm.finalPaymentMode}</span>
                         ) : toRefund > 0 ? (
@@ -6254,23 +6591,23 @@ export default function IPDManagementPage() {
                 ) : (
                   /* TAB 2: CLINICAL DISCHARGE SUMMARY & MEDS */
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-slate-600 font-semibold mb-1">Discharge Date</label>
+                        <label className="block text-slate-700 font-bold mb-1">Discharge Date</label>
                         <input
                           type="date"
                           value={dischargeForm.dischargeDate}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeDate: e.target.value })}
-                          className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-semibold"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-slate-600 font-semibold mb-1">Condition at Discharge</label>
+                        <label className="block text-slate-700 font-bold mb-1">Condition at Discharge</label>
                         <select
                           value={dischargeForm.conditionAtDischarge}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, conditionAtDischarge: e.target.value })}
-                          className="w-full p-2 border border-slate-300 rounded-lg bg-white text-xs"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl bg-white text-sm font-semibold"
                         >
                           <option value="Cured / Stable">Cured / Stable</option>
                           <option value="Improved">Improved</option>
@@ -6280,55 +6617,55 @@ export default function IPDManagementPage() {
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-slate-600 font-semibold mb-1">Final Diagnosis</label>
+                        <label className="block text-slate-700 font-bold mb-1">Final Diagnosis</label>
                         <input
                           type="text"
                           value={dischargeForm.finalDiagnosis}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, finalDiagnosis: e.target.value })}
                           placeholder="Final clinical diagnosis"
-                          className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl text-sm"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-slate-600 font-semibold mb-1">Treatment Given During Stay</label>
+                        <label className="block text-slate-700 font-bold mb-1">Treatment Given During Stay</label>
                         <textarea
-                          rows={2}
+                          rows={3}
                           value={dischargeForm.treatmentGiven}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, treatmentGiven: e.target.value })}
                           placeholder="Summary of surgeries, IV medications, and care provided..."
-                          className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl text-sm"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-slate-600 font-semibold mb-1">Discharge Medications (To Continue at Home)</label>
+                        <label className="block text-slate-700 font-bold mb-1">Discharge Medications (To Continue at Home)</label>
                         <textarea
-                          rows={3}
+                          rows={4}
                           value={dischargeForm.dischargeMeds}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeMeds: e.target.value })}
                           placeholder="Medications, dosages, timings..."
-                          className="w-full p-2 border border-slate-300 rounded-lg text-xs font-mono"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-mono"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-slate-600 font-semibold mb-1">Next Follow-up Date</label>
+                        <label className="block text-slate-700 font-bold mb-1">Next Follow-up Date</label>
                         <input
                           type="date"
                           value={dischargeForm.followupDate}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, followupDate: e.target.value })}
-                          className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl text-sm font-semibold"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-slate-600 font-semibold mb-1">Diet / Activity Advice</label>
+                        <label className="block text-slate-700 font-bold mb-1">Diet / Activity Advice</label>
                         <input
                           type="text"
                           value={dischargeForm.doctorNotes}
                           onChange={(e) => setDischargeForm({ ...dischargeForm, doctorNotes: e.target.value })}
-                          className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                          className="w-full p-2.5 border border-slate-300 rounded-xl text-sm"
                         />
                       </div>
                     </div>
@@ -6337,15 +6674,15 @@ export default function IPDManagementPage() {
               </div>
 
               {/* Footer Actions */}
-              <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={() => handleFinalizeDischarge(activeAdmission.id)}
-                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2 transition cursor-pointer"
+                    className="px-5 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-bold shadow flex items-center gap-2 transition cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    Discharge Only
+                    {isAlreadyDischarged ? "Save Summary Only" : "Discharge Only"}
                   </button>
 
                   <button
@@ -6354,10 +6691,10 @@ export default function IPDManagementPage() {
                       handleFinalizeDischarge(activeAdmission.id);
                       await handleGenerateFinalBill(activeAdmission);
                     }}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center gap-2 transition cursor-pointer"
+                    className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow flex items-center gap-2 transition cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
-                    Discharge & Generate Final Bill
+                    {isAlreadyDischarged ? "Update Discharge & Settle Bill" : "Discharge & Generate Final Bill"}
                   </button>
                 </div>
 
@@ -6367,7 +6704,7 @@ export default function IPDManagementPage() {
                     setActiveModal("none");
                     setActiveAdmission(null);
                   }}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                  className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -6601,7 +6938,8 @@ export default function IPDManagementPage() {
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
             {/* Embedded Print CSS to print receipt matching bill size (A6 / A7 / A4) */}
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+              __html: `
               @media print {
                 @page {
                   size: ${receiptPageSize === "A7" ? "74mm 105mm" : receiptPageSize === "A6" ? "105mm 148mm" : "A4 portrait"};
@@ -6634,7 +6972,7 @@ export default function IPDManagementPage() {
             `}} />
 
             <div className={`bg-white rounded-2xl w-full ${receiptPageSize === 'A7' ? 'max-w-sm' : 'max-w-lg'} p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-3.5 print:p-0 print:border-none print:shadow-none`}>
-              
+
               {/* Top Navigation & Paper Size Selector */}
               <div className="no-print space-y-2 pb-2 border-b border-slate-200">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -6647,11 +6985,10 @@ export default function IPDManagementPage() {
                         key={item.id || idx}
                         type="button"
                         onClick={() => setPrintReceiptData({ patient: pt, advance: item })}
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${
-                          adv.id === item.id
-                            ? "bg-emerald-600 text-white shadow-2xs font-bold"
-                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                        }`}
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold whitespace-nowrap transition cursor-pointer ${adv.id === item.id
+                          ? "bg-emerald-600 text-white shadow-2xs font-bold"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                          }`}
                       >
                         #{idx + 1}: ₹{item.amount.toLocaleString("en-IN")}
                       </button>
@@ -6663,33 +7000,30 @@ export default function IPDManagementPage() {
                     <button
                       type="button"
                       onClick={() => setReceiptPageSize("A6")}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                        receiptPageSize === "A6"
-                          ? "bg-white text-emerald-800 shadow-2xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${receiptPageSize === "A6"
+                        ? "bg-white text-emerald-800 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                        }`}
                     >
                       A6 (Bill Size)
                     </button>
                     <button
                       type="button"
                       onClick={() => setReceiptPageSize("A7")}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                        receiptPageSize === "A7"
-                          ? "bg-white text-emerald-800 shadow-2xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${receiptPageSize === "A7"
+                        ? "bg-white text-emerald-800 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                        }`}
                     >
                       A7 (Pocket)
                     </button>
                     <button
                       type="button"
                       onClick={() => setReceiptPageSize("A4")}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                        receiptPageSize === "A4"
-                          ? "bg-white text-emerald-800 shadow-2xs"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${receiptPageSize === "A4"
+                        ? "bg-white text-emerald-800 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                        }`}
                     >
                       A4
                     </button>
@@ -7247,7 +7581,7 @@ export default function IPDManagementPage() {
       ───────────────────────────────────────────────────────────── */}
       {showBedConfigModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
               <div className="flex items-center gap-2">
@@ -7365,11 +7699,10 @@ export default function IPDManagementPage() {
                           return (
                             <div
                               key={b}
-                              className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-2 ${
-                                occ
-                                  ? "bg-amber-50 border-amber-300 text-amber-900"
-                                  : "bg-slate-50 border-slate-200 text-slate-700"
-                              }`}
+                              className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center gap-2 ${occ
+                                ? "bg-amber-50 border-amber-300 text-amber-900"
+                                : "bg-slate-50 border-slate-200 text-slate-700"
+                                }`}
                             >
                               <span className="font-mono font-bold">{b}</span>
                               {occ ? (
@@ -7557,11 +7890,10 @@ export default function IPDManagementPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedOpdDate(new Date().toISOString().split("T")[0])}
-                  className={`px-2.5 py-1 font-bold rounded-lg border transition ${
-                    selectedOpdDate === new Date().toISOString().split("T")[0]
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                  }`}
+                  className={`px-2.5 py-1 font-bold rounded-lg border transition ${selectedOpdDate === new Date().toISOString().split("T")[0]
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                    }`}
                 >
                   Today
                 </button>
