@@ -2360,11 +2360,7 @@ export default function IPDManagementPage() {
       .filter((a) => a.status === "Discharged")
       .filter((a) => {
         if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          const admDateRev = a.admissionDate ? a.admissionDate.split("-").reverse().join("-") : "";
-          const dischDateRev = a.dischargeDate ? a.dischargeDate.split("-").reverse().join("-") : "";
-          const admDateSlash = a.admissionDate ? a.admissionDate.split("-").reverse().join("/") : "";
-          const dischDateSlash = a.dischargeDate ? a.dischargeDate.split("-").reverse().join("/") : "";
+          const q = searchQuery.toLowerCase();
           return (
             a.name.toLowerCase().includes(q) ||
             a.phone.includes(q) ||
@@ -2373,14 +2369,6 @@ export default function IPDManagementPage() {
             a.bedNumber.toLowerCase().includes(q) ||
             a.ward.toLowerCase().includes(q) ||
             a.consultantDoctor.toLowerCase().includes(q) ||
-            (a.admissionDate && a.admissionDate.toLowerCase().includes(q)) ||
-            (a.dischargeDate && a.dischargeDate.toLowerCase().includes(q)) ||
-            admDateRev.includes(q) ||
-            dischDateRev.includes(q) ||
-            admDateSlash.includes(q) ||
-            dischDateSlash.includes(q) ||
-            (a.admissionTime && a.admissionTime.toLowerCase().includes(q)) ||
-            (a.dischargeTime && a.dischargeTime.toLowerCase().includes(q)) ||
             (a.dischargeSummary?.finalDiagnosis || "").toLowerCase().includes(q) ||
             (a.provisionalDiagnosis || "").toLowerCase().includes(q)
           );
