@@ -887,25 +887,40 @@ export default function AppointmentsPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-7 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">{editingId ? 'Edit Appointment' : 'New Appointment'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:bg-gray-100 p-2 rounded-full transition">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {editingId ? 'Edit Appointment' : 'New Appointment'}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Scheduled for <strong className="text-emerald-700 font-semibold">{selectedDate}</strong> • Direct queue booking
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="space-y-5">
+            <form onSubmit={handleSave} className="space-y-4">
               <div className="relative">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="sm:col-span-1">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                  <div className="sm:col-span-6">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
                     <input
                       ref={nameInputRef}
                       required
                       type="text"
-                      placeholder="Patient name"
+                      placeholder="Patient full name"
                       value={formData.name}
                       onChange={e => {
                         const val = e.target.value;
@@ -920,11 +935,13 @@ export default function AppointmentsPage() {
                         }
                       }}
                       onKeyDown={e => handleEnterNext(e, ageInputRef)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm font-semibold transition"
                     />
                   </div>
-                  <div className="sm:col-span-1">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Age (Yrs)</label>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Age (Yrs)
+                    </label>
                     <input
                       ref={ageInputRef}
                       type="text"
@@ -932,11 +949,13 @@ export default function AppointmentsPage() {
                       value={formData.age}
                       onChange={e => setFormData({ ...formData, age: e.target.value })}
                       onKeyDown={e => handleEnterNext(e, phoneInputRef)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm font-semibold transition"
                     />
                   </div>
-                  <div className="sm:col-span-1">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone</label>
+                  <div className="sm:col-span-4">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
                     <input
                       ref={phoneInputRef}
                       required
@@ -956,7 +975,7 @@ export default function AppointmentsPage() {
                         }
                       }}
                       onKeyDown={e => handleEnterNext(e, addressInputRef)}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm font-semibold font-mono transition"
                     />
                   </div>
                 </div>
@@ -1005,7 +1024,7 @@ export default function AppointmentsPage() {
                                 {p.phone}
                               </span>
                               {p.address && (
-                                <span className="flex items-center gap-1 text-slate-600 truncate max-w-[220px]">
+                                <span className="flex items-center gap-1 text-slate-600 truncate max-w-[280px]">
                                   <MapPin className="w-3 h-3 text-slate-400" />
                                   {p.address}
                                 </span>
@@ -1021,24 +1040,28 @@ export default function AppointmentsPage() {
                   </div>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Address / City</label>
-                <input
-                  ref={addressInputRef}
-                  type="text"
-                  placeholder="e.g. Wardha, Maharashtra"
-                  value={formData.address}
-                  onChange={e => setFormData({...formData, address: e.target.value})}
-                  onKeyDown={e => handleEnterNext(e, timeInputRef)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-5">
-                <div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                <div className="sm:col-span-6">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Address / City
+                  </label>
+                  <input
+                    ref={addressInputRef}
+                    type="text"
+                    placeholder="e.g. Wardha, Maharashtra"
+                    value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    onKeyDown={e => handleEnterNext(e, timeInputRef)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm transition"
+                  />
+                </div>
+
+                <div className="sm:col-span-3">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">Time</label>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Time</label>
                     {isTimeSlotBooked && (
-                      <span className="text-[11px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                      <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
                         Slot Taken
                       </span>
                     )}
@@ -1050,13 +1073,13 @@ export default function AppointmentsPage() {
                     value={formData.time}
                     onChange={e => setFormData({...formData, time: e.target.value})}
                     onKeyDown={e => handleEnterNext(e, doctorSelectRef)}
-                    className={`w-full px-4 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white transition ${
+                    className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl focus:ring-2 focus:bg-white font-mono text-sm font-semibold transition ${
                       isTimeSlotBooked ? 'border-amber-400 focus:ring-amber-500' : 'border-gray-200 focus:ring-emerald-500'
                     }`}
                   />
                   {isTimeSlotBooked && (
-                    <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700">
-                      <span>Already booked for this doctor</span>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-amber-700">
+                      <span>Booked</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1070,42 +1093,91 @@ export default function AppointmentsPage() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Doctor</label>
+
+                <div className="sm:col-span-3">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Duration
+                  </label>
                   <select
-                    ref={doctorSelectRef}
-                    value={formData.doctor_name}
-                    onChange={e => {
-                      const doc = e.target.value;
-                      const nextTime = getNextAvailableTime(selectedDate, doc, formData.time);
-                      setFormData(prev => ({
-                        ...prev,
-                        doctor_name: doc,
-                        time: nextTime,
-                      }));
-                    }}
-                    onKeyDown={e => handleEnterNext(e, problemInputRef)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
+                    value={formData.duration_minutes}
+                    onChange={e => setFormData({ ...formData, duration_minutes: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm font-semibold transition"
                   >
-                    <option value="Dr. Vipeen Raut">Dr. Vipeen Raut (Orthopaedic)</option>
-                    <option value="Dr. Shillpa Raut">Dr. Shillpa Raut (Gynecology)</option>
+                    <option value={15}>15 mins</option>
+                    <option value={30}>30 mins (Standard)</option>
+                    <option value={45}>45 mins</option>
+                    <option value={60}>60 mins (Extended)</option>
                   </select>
                 </div>
               </div>
+
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Condition / Problem</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Consulting Doctor <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { name: "Dr. Vipeen Raut", title: "Dr. Vipeen Raut", specialty: "Orthopaedics & Joint Replacement Surgeon", color: "emerald" },
+                    { name: "Dr. Shillpa Raut", title: "Dr. Shillpa Raut", specialty: "Obstetrics & Gynaecology Specialist", color: "pink" },
+                  ].map((doc) => {
+                    const isSelected = formData.doctor_name === doc.name;
+                    return (
+                      <button
+                        key={doc.name}
+                        type="button"
+                        onClick={() => {
+                          const nextTime = getNextAvailableTime(selectedDate, doc.name, formData.time);
+                          setFormData(prev => ({
+                            ...prev,
+                            doctor_name: doc.name,
+                            time: nextTime,
+                          }));
+                        }}
+                        className={`p-3 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? doc.color === 'pink'
+                              ? 'bg-pink-50/80 border-pink-400 text-pink-950 shadow-xs ring-1 ring-pink-400'
+                              : 'bg-emerald-50/80 border-emerald-400 text-emerald-950 shadow-xs ring-1 ring-emerald-400'
+                            : 'bg-gray-50/60 border-gray-200 hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-bold text-sm flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${isSelected ? (doc.color === 'pink' ? 'bg-pink-600' : 'bg-emerald-600') : 'bg-gray-400'}`} />
+                            {doc.title}
+                          </div>
+                          <p className="text-[11px] opacity-80 mt-0.5">{doc.specialty}</p>
+                        </div>
+                        {isSelected && (
+                          <span className={`text-xs font-bold ${doc.color === 'pink' ? 'text-pink-700' : 'text-emerald-700'}`}>
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Condition / Chief Complaint
+                </label>
                 <input
                   ref={problemInputRef}
                   type="text"
                   value={formData.dental_problem}
                   onChange={e => setFormData({...formData, dental_problem: e.target.value})}
                   onKeyDown={e => handleEnterNext(e, notesTextareaRef)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-                  placeholder="e.g. Knee Pain, Back Pain, Pregnancy Care, Joint Replacement"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm transition"
+                  placeholder="e.g. Knee Pain, Back Pain, Antenatal Checkup, Fracture Follow-up"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Notes</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Notes / Clinical Remarks
+                </label>
                 <textarea
                   ref={notesTextareaRef}
                   value={formData.notes}
@@ -1121,23 +1193,24 @@ export default function AppointmentsPage() {
                       }
                     }
                   }}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition resize-none"
-                  rows={3}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm transition resize-none"
+                  rows={2}
+                  placeholder="Additional patient notes, referral source, or instructions..."
                 ></textarea>
               </div>
 
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition cursor-pointer"
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 text-xs transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   ref={submitButtonRef}
                   type="submit"
-                  className="px-6 py-2.5 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 shadow-sm transition cursor-pointer"
+                  className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-sm text-xs transition cursor-pointer"
                 >
                   Save Appointment
                 </button>
