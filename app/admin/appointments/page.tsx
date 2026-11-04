@@ -807,9 +807,6 @@ export default function AppointmentsPage() {
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-emerald-500" />
                         <span className="text-sm font-bold text-emerald-600 tracking-tight">{appt.time}</span>
-                        {appt.duration_minutes && (
-                          <span className="text-xs text-gray-400 font-medium">· {appt.duration_minutes}min</span>
-                        )}
                       </div>
                       <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button
@@ -1042,7 +1039,7 @@ export default function AppointmentsPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-                <div className="sm:col-span-6">
+                <div className="sm:col-span-7">
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                     Address / City
                   </label>
@@ -1057,7 +1054,7 @@ export default function AppointmentsPage() {
                   />
                 </div>
 
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-5">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Time</label>
                     {isTimeSlotBooked && (
@@ -1092,22 +1089,6 @@ export default function AppointmentsPage() {
                       </button>
                     </div>
                   )}
-                </div>
-
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Duration
-                  </label>
-                  <select
-                    value={formData.duration_minutes}
-                    onChange={e => setFormData({ ...formData, duration_minutes: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm font-semibold transition"
-                  >
-                    <option value={15}>15 mins</option>
-                    <option value={30}>30 mins (Standard)</option>
-                    <option value={45}>45 mins</option>
-                    <option value={60}>60 mins (Extended)</option>
-                  </select>
                 </div>
               </div>
 
