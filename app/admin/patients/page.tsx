@@ -56,6 +56,7 @@ const ViewPatients = () => {
   const [patients, setPatients] = useState<PatientWithPrescriptions[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<PatientWithPrescriptions[]>([]);
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<'All' | 'Dr. Vipeen Raut' | 'Dr. Shillpa Raut'>('All');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -324,7 +325,7 @@ const ViewPatients = () => {
   }, [fetchPatients]);
 
   useEffect(() => {
-    // Filter patients when search term or doctor filter changes
+    // Filter patients when search term, doctor filter, or date filter changes
     let result = patients;
 
     if (selectedDoctorFilter !== 'All') {
@@ -334,18 +335,39 @@ const ViewPatients = () => {
       });
     }
 
+    if (selectedDateFilter) {
+      result = result.filter(patient => {
+        const matchesLatest = Boolean(patient.latestVisit && patient.latestVisit.startsWith(selectedDateFilter));
+        const matchesCreated = Boolean(patient.created_at && patient.created_at.startsWith(selectedDateFilter));
+        const matchesAnyRx = (patient.prescriptions || []).some(p => {
+          const rxDate = p.prescription_date || (p as any).date;
+          return rxDate && rxDate.startsWith(selectedDateFilter);
+        });
+        return matchesLatest || matchesCreated || matchesAnyRx;
+      });
+    }
+
     if (searchTerm.trim() !== '') {
-      const searchLower = searchTerm.toLowerCase();
-      result = result.filter(patient =>
-        patient.name.toLowerCase().includes(searchLower) ||
-        patient.phone_number.includes(searchTerm) ||
-        (patient.reference_number && patient.reference_number.toLowerCase().includes(searchLower))
-      );
+      const searchLower = searchTerm.toLowerCase().trim();
+      result = result.filter(patient => {
+        const nameMatches = patient.name.toLowerCase().includes(searchLower);
+        const phoneMatches = patient.phone_number.includes(searchTerm);
+        const refMatches = Boolean(patient.reference_number && patient.reference_number.toLowerCase().includes(searchLower));
+
+        // Date search in text input (e.g. searching 2026-11-04 or 04-11-2026)
+        const latestMatches = Boolean(patient.latestVisit && patient.latestVisit.toLowerCase().includes(searchLower));
+        const anyRxDateMatches = (patient.prescriptions || []).some(p => {
+          const rxDate = p.prescription_date || (p as any).date;
+          return rxDate && rxDate.toLowerCase().includes(searchLower);
+        });
+
+        return nameMatches || phoneMatches || refMatches || latestMatches || anyRxDateMatches;
+      });
     }
 
     setFilteredPatients(result);
     setCurrentPage(1); // Reset to first page on new search or filter change
-  }, [searchTerm, selectedDoctorFilter, patients, getPatientDoctors]);
+  }, [searchTerm, selectedDoctorFilter, selectedDateFilter, patients, getPatientDoctors]);
 
   const orthoCount = useMemo(() => {
     return patients.filter((p) => getPatientDoctors(p).includes('Dr. Vipeen Raut')).length;
@@ -547,6 +569,55 @@ const ViewPatients = () => {
             </button>
           </div>
 
+          {/* Date Filter Picker */}
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 uppercase px-2">
+              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+              <span>Date:</span>
+            </div>
+            <input
+              type="date"
+              value={selectedDateFilter}
+              onChange={(e) => setSelectedDateFilter(e.target.value)}
+              className="px-2 py-1 border border-slate-300 rounded-lg text-xs bg-white font-mono font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              title="Filter patients by visit or registration date"
+            />
+            <button
+              type="button"
+              onClick={() => setSelectedDateFilter(new Date().toISOString().split('T')[0])}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                selectedDateFilter === new Date().toISOString().split('T')[0]
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedDateFilter(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+              }
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                selectedDateFilter === new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              Yesterday
+            </button>
+            {selectedDateFilter && (
+              <button
+                type="button"
+                onClick={() => setSelectedDateFilter('')}
+                className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+                title="Clear date filter"
+              >
+                All Dates
+              </button>
+            )}
+          </div>
+
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/admin/prescription">
@@ -620,9 +691,21 @@ const ViewPatients = () => {
           ) : filteredPatients.length === 0 ? (
             <div className="p-12 text-center text-slate-500">
               <p className="font-semibold text-sm">
-                No patients found {selectedDoctorFilter !== 'All' ? `for ${selectedDoctorFilter}` : ''}.
+                No patients found {selectedDateFilter ? `for date ${selectedDateFilter}` : ''} {selectedDoctorFilter !== 'All' ? `(${selectedDoctorFilter})` : ''}.
               </p>
-              {searchTerm && <p className="text-xs text-slate-400 mt-1">Try clearing your search term.</p>}
+              {(searchTerm || selectedDateFilter || selectedDoctorFilter !== 'All') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedDateFilter('');
+                    setSelectedDoctorFilter('All');
+                  }}
+                  className="mt-2 text-xs text-emerald-600 font-bold hover:underline cursor-pointer"
+                >
+                  Clear all search &amp; date filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
