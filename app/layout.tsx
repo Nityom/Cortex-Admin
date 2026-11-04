@@ -1,28 +1,7 @@
 import type { Metadata } from "next";
-import { DM_Sans, Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
 import { hospitalConfig } from "@/config/hospital";
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: `${hospitalConfig.name} | Svaasth-HMS`,
@@ -43,10 +22,14 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" href={hospitalConfig.branding.faviconUrl} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Manrope:wght@400..800&family=Geist+Mono:wght@400..700&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body
-        className={`${dmSans.variable} ${manrope.variable} ${geistMono.variable} font-sans antialiased text-slate-900`}
-      >
+      <body className="font-sans antialiased text-slate-900">
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
