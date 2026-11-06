@@ -120,26 +120,16 @@ export function AppTopNav() {
             <button
               type="button"
               onClick={() => router.push('/admin/opd')}
-              className="flex items-center gap-3 group text-left cursor-pointer"
+              className="flex items-center gap-2.5 group text-left cursor-pointer select-none"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center p-1.5 shadow-2xs group-hover:border-emerald-300 transition">
-                <img
-                  src={hospitalConfig.branding.svasthLogoUrl}
-                  alt="Svaasth HMS"
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-black tracking-wide text-[#34785b] leading-tight group-hover:text-emerald-800 transition">
-                  SVAASTH HMS
-                </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Cortex Hospital • Wardha
-                </span>
-              </div>
+              <img
+                src={hospitalConfig.branding.svasthLogoUrl}
+                alt="Svaasth HMS"
+                className="h-8 w-8 shrink-0 object-contain group-hover:scale-105 transition-transform"
+              />
+              <span className="whitespace-nowrap text-[13px] font-extrabold tracking-[0.12em] text-[#34785b] group-hover:text-[#285d46] transition-colors">
+                SVAASTH HMS
+              </span>
             </button>
           </div>
 
