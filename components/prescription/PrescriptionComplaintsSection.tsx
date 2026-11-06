@@ -20,6 +20,7 @@ interface PrescriptionComplaintsSectionProps {
   onUpdateCcSummary?: (summary: string) => void;
   isGynae?: boolean;
   ccSummary?: string;
+  onRestorePreviousComplaints?: () => void;
 }
 
 export default function PrescriptionComplaintsSection({
@@ -29,6 +30,7 @@ export default function PrescriptionComplaintsSection({
   onUpdateCcSummary,
   isGynae = false,
   ccSummary,
+  onRestorePreviousComplaints,
 }: PrescriptionComplaintsSectionProps) {
   const [newComplaintText, setNewComplaintText] = useState('');
   const [newComplaintFreq, setNewComplaintFreq] = useState('');
@@ -100,6 +102,7 @@ export default function PrescriptionComplaintsSection({
               sectionKey="complaints"
               sectionTitle="Complaints"
               currentValue={isGynae ? (ccSummary || complaintsList[0]?.complaint || '') : complaintsList}
+              category={isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics'}
               align="left"
               onApplyPreset={(val) => {
                 if (isGynae) {
@@ -138,9 +141,9 @@ export default function PrescriptionComplaintsSection({
             />
             <button
               type="button"
-              title="Reset / Clear All Complaints"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              onClick={handleClearAll}
+              title="Restore Previous Prescription Complaints"
+              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              onClick={onRestorePreviousComplaints || handleClearAll}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>

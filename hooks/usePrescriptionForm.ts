@@ -7,6 +7,7 @@ import {
   getAllTemplates,
   getTemplateById,
   saveTemplate as saveTemplateService,
+  fetchTemplatesFromConvex,
   PrescriptionTemplate,
 } from '@/services/templates';
 import {
@@ -338,6 +339,9 @@ export function usePrescriptionForm() {
     return doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gyn');
   }, [selectedDoctorName]);
 
+  // Previous visit prescription cache for restoring fields via Undo button
+  const [previousPrescription, setPreviousPrescription] = useState<any | null>(null);
+
   // Auto-calculate EDD (Naegele's rule: LMP + 280 days) & Gestational Age (from LMP to visit date)
   useEffect(() => {
     if (!lmpDate) {
@@ -503,9 +507,13 @@ export function usePrescriptionForm() {
   const [isLoadTemplateModalOpen, setIsLoadTemplateModalOpen] = useState(false);
   const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
   const [savedTemplatesList, setSavedTemplatesList] = useState<PrescriptionTemplate[]>([]);
-  const [templateCategoryFilter, setTemplateCategoryFilter] = useState('All');
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState(() => {
+    return isGynaeDoc ? 'Gynaecology' : 'Orthopaedics';
+  });
   const [templateNameInput, setTemplateNameInput] = useState('');
-  const [templateCategoryInput, setTemplateCategoryInput] = useState('Orthopaedics');
+  const [templateCategoryInput, setTemplateCategoryInput] = useState(() => {
+    return isGynaeDoc ? 'Gynaecology' : 'Orthopaedics';
+  });
 
   // Toast State
   const [templateToastMessage, setTemplateToastMessage] = useState<string | null>(null);
@@ -517,12 +525,22 @@ export function usePrescriptionForm() {
 
   const refreshTemplates = useCallback(() => {
     setSavedTemplatesList(getAllTemplates());
+    fetchTemplatesFromConvex()
+      .then((convexList) => {
+        if (convexList && Array.isArray(convexList) && convexList.length > 0) {
+          setSavedTemplatesList(convexList);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Switch Doctor Handler
   const handleDoctorSelect = (docName: string) => {
     setSelectedDoctorName(docName);
     const docProfile = getDoctorProfile(docName);
+    const isDocGyn = docName.toLowerCase().includes('shilpa') || docName.toLowerCase().includes('shillpa');
+    setTemplateCategoryInput(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
+    setTemplateCategoryFilter(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
     const fee = isNewPatient
       ? (docProfile?.consultationFee?.firstVisit ?? 400)
       : (docProfile?.consultationFee?.followupVisit ?? 200);
@@ -634,6 +652,7 @@ export function usePrescriptionForm() {
   const handleLoadPastPrescription = useCallback(
     (pastRx: any, isGynaeAutoFill: boolean = false) => {
       if (!pastRx) return;
+      setPreviousPrescription(pastRx);
 
       if (pastRx.diagnosis) {
         setFormData((prev) => ({ ...prev, de: pastRx.diagnosis }));
@@ -655,6 +674,36 @@ export function usePrescriptionForm() {
       }
       if (pastRx.advice) {
         setFormData((prev) => ({ ...prev, advice: pastRx.advice }));
+      }
+      if (pastRx.findings) {
+        setFindingsText(pastRx.findings);
+      }
+      if (pastRx.dr_notes) {
+        setDrNotes(pastRx.dr_notes);
+      }
+      if (pastRx.quick_notes) {
+        setQuickNotes(pastRx.quick_notes);
+      }
+      if (pastRx.procedure_advice) {
+        setProcedureAdvice(pastRx.procedure_advice);
+      }
+      if (pastRx.diet_exercise) {
+        setDietExercise(pastRx.diet_exercise);
+      }
+      if (pastRx.investigations) {
+        setInvestigationText(pastRx.investigations);
+      }
+      if (pastRx.tests_requested && Array.isArray(pastRx.tests_requested)) {
+        setTestsRequested(pastRx.tests_requested);
+      }
+      if (pastRx.general_examinations) {
+        setGeneralExam(pastRx.general_examinations);
+      }
+      if (pastRx.systemic_examinations) {
+        setSystemicExam(pastRx.systemic_examinations);
+      }
+      if (pastRx.past_medications) {
+        setPastMedication(pastRx.past_medications);
       }
       if (pastRx.vitals) {
         const v = pastRx.vitals;
@@ -686,6 +735,165 @@ export function usePrescriptionForm() {
     },
     [autoPopulateAntenatalFromPastRx, formData.date, todayDate]
   );
+
+  // Restore handlers for Undo2 buttons in each clinical section
+  const getEffectivePreviousRx = useCallback(() => {
+    if (previousPrescription) return previousPrescription;
+    try {
+      const saved = localStorage.getItem('cortex_last_prescribed_prescription');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return null;
+  }, [previousPrescription]);
+
+  const restorePreviousDiagnosis = useCallback(() => {
+    const prev = getEffectivePreviousRx();
+    if (!prev) {
+      showTemplateToast('No previous prescription records found for this patient.');
+      return;
+    }
+    const prevDiag = prev.diagnosis || prev.de;
+    const prevList = prev.diagnoses_list;
+    if (prevList && Array.isArray(prevList) && prevList.length > 0) {
+      setDiagnosesList(prevList);
+      setFormData((f) => ({ ...f, de: prevDiag || prevList.map((d: any) => d.diagnosis).join(', ') }));
+      showTemplateToast(`Restored diagnosis from previous visit (${prev.prescription_date || ''})`);
+    } else if (prevDiag) {
+      setFormData((f) => ({ ...f, de: prevDiag }));
+      setDiagnosesList([{ id: `diag_${Date.now()}`, diagnosis: prevDiag, snomed_code: '', duration: '', date: '' }]);
+      showTemplateToast(`Restored diagnosis from previous visit (${prev.prescription_date || ''})`);
+    } else {
+      showTemplateToast('No diagnosis found in previous prescription.');
+    }
+  }, [getEffectivePreviousRx, showTemplateToast]);
+
+  const restorePreviousComplaints = useCallback(() => {
+    const prev = getEffectivePreviousRx();
+    if (!prev) {
+      showTemplateToast('No previous prescription records found for this patient.');
+      return;
+    }
+    const prevCc = prev.chief_complaint || prev.cc;
+    const prevList = prev.complaints || prev.complaints_list;
+    if (prevList && Array.isArray(prevList) && prevList.length > 0) {
+      setComplaintsList(prevList);
+      setFormData((f) => ({ ...f, cc: prevCc || prevList.map((c: any) => c.complaint).join(', ') }));
+      showTemplateToast(`Restored complaints from previous visit (${prev.prescription_date || ''})`);
+    } else if (prevCc) {
+      setFormData((f) => ({ ...f, cc: prevCc }));
+      setComplaintsList([{ id: `cmp_${Date.now()}`, complaint: prevCc, frequency: 'Regular', severity: 'Moderate', duration: '' }]);
+      showTemplateToast(`Restored complaints from previous visit (${prev.prescription_date || ''})`);
+    } else {
+      showTemplateToast('No complaints found in previous prescription.');
+    }
+  }, [getEffectivePreviousRx, showTemplateToast]);
+
+  const restorePreviousFindings = useCallback(() => {
+    const prev = getEffectivePreviousRx();
+    if (!prev) {
+      showTemplateToast('No previous prescription records found for this patient.');
+      return;
+    }
+    if (prev.findings) {
+      setFindingsText(prev.findings);
+      showTemplateToast(`Restored clinical findings from previous visit (${prev.prescription_date || ''})`);
+    } else {
+      showTemplateToast('No findings found in previous prescription.');
+    }
+  }, [getEffectivePreviousRx, showTemplateToast]);
+
+  const restorePreviousVitals = useCallback(() => {
+    const prev = getEffectivePreviousRx();
+    if (!prev) {
+      showTemplateToast('No previous prescription records found for this patient.');
+      return;
+    }
+    const v = prev.vitals;
+    if (v) {
+      if (v.bp_systolic) setBpSystolic(v.bp_systolic);
+      if (v.bp_diastolic) setBpDiastolic(v.bp_diastolic);
+      if (v.pulse) setPulseVal(v.pulse);
+      if (v.spo2) setSpo2Val(v.spo2);
+      if (v.weight) setWeightVal(v.weight);
+      if (v.height) setHeightVal(v.height);
+      if (v.temperature) setTempVal(v.temperature);
+      if (v.waist_hip) setWaistHipVal(v.waist_hip);
+      if (v.lmp) setLmpDate(v.lmp);
+      if (v.edd) setEddDate(v.edd);
+      if (v.gestational_weeks) setGestationalWeeks(v.gestational_weeks);
+      if (v.gestational_days) setGestationalDays(v.gestational_days);
+      showTemplateToast(`Restored vitals from previous visit (${prev.prescription_date || ''})`);
+    } else {
+      showTemplateToast('No vitals found in previous prescription.');
+    }
+  }, [getEffectivePreviousRx, showTemplateToast]);
+
+  const restorePreviousMedicines = useCallback(() => {
+    const prev = getEffectivePreviousRx();
+    let prevMeds = prev?.medicines;
+    if (!prevMeds) {
+      try {
+        const raw = localStorage.getItem('cortex_last_prescribed_medicines');
+        if (raw) prevMeds = JSON.parse(raw);
+      } catch {}
+    } else if (typeof prevMeds === 'string') {
+      try { prevMeds = JSON.parse(prevMeds); } catch {}
+    }
+
+    if (Array.isArray(prevMeds) && prevMeds.length > 0) {
+      setMedicines(prevMeds);
+      showTemplateToast(`Restored ${prevMeds.length} medicines from previous visit`);
+    } else {
+      showTemplateToast('No previous medicines found.');
+    }
+  }, [getEffectivePreviousRx, showTemplateToast]);
+
+  const restorePreviousClinicalNote = useCallback((fieldKey: string) => {
+    const prev = getEffectivePreviousRx();
+    if (!prev) {
+      showTemplateToast('No previous prescription records found for this patient.');
+      return;
+    }
+    const val = prev[fieldKey];
+    if (!val) {
+      showTemplateToast(`No previous ${fieldKey.replace('_', ' ')} found in past records.`);
+      return;
+    }
+    switch (fieldKey) {
+      case 'advice':
+        setFormData((f) => ({ ...f, advice: val }));
+        break;
+      case 'dr_notes':
+        setDrNotes(val);
+        break;
+      case 'quick_notes':
+        setQuickNotes(val);
+        break;
+      case 'procedure_advice':
+        setProcedureAdvice(val);
+        break;
+      case 'diet_exercise':
+        setDietExercise(val);
+        break;
+      case 'investigations':
+      case 'tests_requested':
+        if (Array.isArray(val)) setTestsRequested(val);
+        else setInvestigationText(val);
+        break;
+      case 'general_examinations':
+        setGeneralExam(val);
+        break;
+      case 'systemic_examinations':
+        setSystemicExam(val);
+        break;
+      case 'past_medications':
+        setPastMedication(val);
+        break;
+      default:
+        break;
+    }
+    showTemplateToast(`Restored ${fieldKey.replace('_', ' ')} from previous visit`);
+  }, [getEffectivePreviousRx, showTemplateToast]);
 
   // Apply Master Prescription Template
   const applyPrescriptionTemplate = useCallback(
@@ -835,6 +1043,7 @@ export function usePrescriptionForm() {
               const pastRx = await getPrescriptionsByPatient(existingPatient.reference_number);
               if (pastRx && pastRx.length > 0) {
                 const sorted = pastRx.sort((a, b) => new Date(b.prescription_date).getTime() - new Date(a.prescription_date).getTime());
+                setPreviousPrescription(sorted[0]);
                 const lastDate = sorted[0].prescription_date;
                 const diffDays = (new Date().getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24);
                 isWithin10Days = diffDays >= 0 && diffDays <= 10;
@@ -852,6 +1061,7 @@ export function usePrescriptionForm() {
             try {
               const latestRx = await getLatestPrescriptionByPhone(phoneNumber);
               if (latestRx) {
+                setPreviousPrescription(latestRx);
                 if (isGynae && !isEditMode && !prescriptionId) {
                   handleLoadPastPrescription(latestRx, true);
                 } else {
@@ -1014,6 +1224,26 @@ export function usePrescriptionForm() {
           treatmentDiscount,
         });
       }
+
+      try {
+        localStorage.setItem(
+          'cortex_last_prescribed_prescription',
+          JSON.stringify({
+            ...prescriptionData,
+            findings: findingsText,
+            dr_notes: drNotes,
+            quick_notes: quickNotes,
+            procedure_advice: procedureAdvice,
+            diet_exercise: dietExercise,
+            diagnoses_list: diagnosesList,
+            complaints: complaintsList,
+          })
+        );
+        localStorage.setItem(
+          'cortex_last_prescribed_medicines',
+          JSON.stringify(medicinesWithQuantity)
+        );
+      } catch {}
 
       return savedPrescription;
     } catch (err: any) {
@@ -1465,6 +1695,7 @@ export function usePrescriptionForm() {
                   const pastRx = await getPrescriptionsByPatient(targetRef);
                   if (pastRx && pastRx.length > 0) {
                     const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
+                    if (sortedPast[0]) setPreviousPrescription(sortedPast[0]);
                     if (isGynaeDoc && sortedPast[0]) {
                       handleLoadPastPrescription(sortedPast[0], true);
                     } else {
@@ -1479,6 +1710,7 @@ export function usePrescriptionForm() {
               try {
                 const latestRx = await getLatestPrescriptionByPhone(qPhone);
                 if (latestRx) {
+                  setPreviousPrescription(latestRx);
                   if (isGynaeDoc) {
                     handleLoadPastPrescription(latestRx, true);
                   } else {
@@ -1494,6 +1726,7 @@ export function usePrescriptionForm() {
               const pastRx = await getPrescriptionsByPatient(qReference);
               if (pastRx && pastRx.length > 0) {
                 const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
+                if (sortedPast[0]) setPreviousPrescription(sortedPast[0]);
                 if (isGynaeDoc && sortedPast[0]) {
                   handleLoadPastPrescription(sortedPast[0], true);
                 } else {
@@ -1694,5 +1927,14 @@ export function usePrescriptionForm() {
     // Toast
     templateToastMessage,
     showTemplateToast,
+
+    // Previous Visit & Restore Handlers (Undo2 buttons)
+    previousPrescription,
+    restorePreviousDiagnosis,
+    restorePreviousComplaints,
+    restorePreviousFindings,
+    restorePreviousVitals,
+    restorePreviousMedicines,
+    restorePreviousClinicalNote,
   };
 }

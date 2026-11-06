@@ -105,6 +105,7 @@ interface PrescriptionDiagnosisSectionProps {
   prescriptionId?: string;
   isGynae?: boolean;
   onApplyMasterTemplate?: (tmpl: PrescriptionTemplate) => void;
+  onRestorePreviousDiagnosis?: () => void;
 }
 
 export default function PrescriptionDiagnosisSection({
@@ -116,6 +117,7 @@ export default function PrescriptionDiagnosisSection({
   prescriptionId,
   isGynae = false,
   onApplyMasterTemplate,
+  onRestorePreviousDiagnosis,
 }: PrescriptionDiagnosisSectionProps) {
   // Inline Add Row state
   const [newDiagnosis, setNewDiagnosis] = useState('');
@@ -314,8 +316,37 @@ export default function PrescriptionDiagnosisSection({
     }
 
     const all = Array.from(map.values());
+    const sortFn = (a: LinkedDiagnosis, b: LinkedDiagnosis) => {
+      // Priority 1: Match current doctor's specialty
+      const aCat = (a.category || '').toLowerCase();
+      const bCat = (b.category || '').toLowerCase();
+      const aMatchesCat = isGynae
+        ? aCat.includes('gyn') || aCat.includes('obs') || aCat.includes('anc')
+        : aCat.includes('ortho') || aCat.includes('joint') || aCat.includes('spine');
+      const bMatchesCat = isGynae
+        ? bCat.includes('gyn') || bCat.includes('obs') || bCat.includes('anc')
+        : bCat.includes('ortho') || bCat.includes('joint') || bCat.includes('spine');
+
+      if (aMatchesCat && !bMatchesCat) return -1;
+      if (!aMatchesCat && bMatchesCat) return 1;
+
+      // Priority 2: Master Templates
+      if (a.type === 'template' && b.type !== 'template') return -1;
+      if (b.type === 'template' && a.type !== 'template') return 1;
+      if (a.type === 'preset' && b.type !== 'preset') return -1;
+      if (b.type === 'preset' && a.type !== 'preset') return 1;
+
+      if (q) {
+        const aStarts = (a.label || a.name).toLowerCase().startsWith(q);
+        const bStarts = (b.label || b.name).toLowerCase().startsWith(q);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+      }
+      return (a.label || a.name).localeCompare(b.label || b.name);
+    };
+
     if (!q) {
-      return all.slice(0, 15);
+      return all.sort(sortFn).slice(0, 15);
     }
 
     return all
@@ -323,19 +354,9 @@ export default function PrescriptionDiagnosisSection({
         const n = (item.label || item.name).toLowerCase();
         return n.includes(q);
       })
-      .sort((a, b) => {
-        if (a.type === 'template' && b.type !== 'template') return -1;
-        if (b.type === 'template' && a.type !== 'template') return 1;
-        if (a.type === 'preset' && b.type !== 'preset') return -1;
-        if (b.type === 'preset' && a.type !== 'preset') return 1;
-        const aStarts = (a.label || a.name).toLowerCase().startsWith(q);
-        const bStarts = (b.label || b.name).toLowerCase().startsWith(q);
-        if (aStarts && !bStarts) return -1;
-        if (!aStarts && bStarts) return 1;
-        return (a.label || a.name).localeCompare(b.label || b.name);
-      })
+      .sort(sortFn)
       .slice(0, 15);
-  }, [newDiagnosis, dbSuggestions]);
+  }, [newDiagnosis, dbSuggestions, isGynae]);
 
   // When selecting a suggestion, auto-fill linked fields or apply template!
   const handleSelectSuggestion = (item: LinkedDiagnosis) => {
@@ -568,6 +589,7 @@ export default function PrescriptionDiagnosisSection({
               sectionKey="diagnosis"
               sectionTitle="Diagnosis"
               currentValue={isGynae ? diagnosisSummary : diagnosesList}
+              category={isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics'}
               align="left"
               onApplyPreset={(val) => {
                 if (isGynae) {
@@ -614,9 +636,9 @@ export default function PrescriptionDiagnosisSection({
             />
             <button
               type="button"
-              title="Reset / Clear Diagnosis List"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              onClick={handleClearAll}
+              title="Restore Previous Prescription Diagnosis"
+              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              onClick={onRestorePreviousDiagnosis || handleClearAll}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>

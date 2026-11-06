@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Save, Printer, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Save, Printer, Mail, ArrowRight, Loader2, BookmarkPlus } from 'lucide-react';
 
 export interface DoctorOption {
   id?: string;
@@ -21,6 +21,7 @@ interface PrescriptionDoctorSignatureCardProps {
   isEditMode: boolean;
   handlePrintablePrescription: () => void;
   onEmailPrescription?: () => void;
+  onOpenSaveTemplate?: () => void;
   nextReadyPatientName?: string;
   onMoveToNextPatient?: () => void;
   movingToNextPatient?: boolean;
@@ -38,6 +39,7 @@ export default function PrescriptionDoctorSignatureCard({
   isEditMode,
   handlePrintablePrescription,
   onEmailPrescription,
+  onOpenSaveTemplate,
   nextReadyPatientName,
   onMoveToNextPatient,
   movingToNextPatient = false,
@@ -158,6 +160,19 @@ export default function PrescriptionDoctorSignatureCard({
             <Printer className="w-5 h-5" />
             Print Prescription
           </button>
+
+          {onOpenSaveTemplate && (
+            <button
+              type="button"
+              onClick={onOpenSaveTemplate}
+              disabled={loading || saving}
+              className="px-4 py-2.5 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold text-sm flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:cursor-not-allowed disabled:opacity-50"
+              title="Save entire prescription as master reusable template"
+            >
+              <BookmarkPlus className="w-4 h-4 text-purple-600" />
+              <span>Save as Template</span>
+            </button>
+          )}
 
           {onEmailPrescription && (
             <button

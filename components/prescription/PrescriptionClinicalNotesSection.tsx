@@ -40,6 +40,7 @@ interface PrescriptionClinicalNotesSectionProps {
   generalExam: string;
   setGeneralExam: React.Dispatch<React.SetStateAction<string>>;
   selectedDoctorName?: string;
+  onRestorePreviousNote?: (fieldKey: string) => void;
 }
 
 export default function PrescriptionClinicalNotesSection({
@@ -72,7 +73,10 @@ export default function PrescriptionClinicalNotesSection({
   generalExam,
   setGeneralExam,
   selectedDoctorName,
+  onRestorePreviousNote,
 }: PrescriptionClinicalNotesSectionProps) {
+  const isGynae = (selectedDoctorName || "").toLowerCase().includes("shilpa") || (selectedDoctorName || "").toLowerCase().includes("shillpa") || (selectedDoctorName || "").toLowerCase().includes("gyn");
+  const docCategory = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics";
   const [newTestName, setNewTestName] = useState('');
   const [newTestByWhen, setNewTestByWhen] = useState('');
 
@@ -111,14 +115,15 @@ export default function PrescriptionClinicalNotesSection({
               sectionKey="advice"
               sectionTitle="Advice"
               currentValue={advice}
+              category={docCategory}
               align="left"
               onApplyPreset={(val) => onUpdateAdvice(advice ? advice + '\n' + val : val)}
             />
             <button
               type="button"
-              title="Reset / Clear Advice"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              onClick={() => onUpdateAdvice('')}
+              title="Restore Previous Prescription Advice"
+              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              onClick={() => onRestorePreviousNote ? onRestorePreviousNote("advice") : onUpdateAdvice('')}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
@@ -154,6 +159,7 @@ export default function PrescriptionClinicalNotesSection({
               sectionKey="tests_requested"
               sectionTitle="Tests Requested"
               currentValue={testsRequested}
+              category={docCategory}
               align="left"
               onApplyPreset={(val) => {
                 if (Array.isArray(val)) {
@@ -170,9 +176,9 @@ export default function PrescriptionClinicalNotesSection({
             />
             <button
               type="button"
-              title="Reset / Clear Tests"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-              onClick={() => setTestsRequested([])}
+              title="Restore Previous Prescription Tests"
+              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              onClick={() => onRestorePreviousNote ? onRestorePreviousNote("investigations") : setTestsRequested([])}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
@@ -273,17 +279,18 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="dr_notes"
-                sectionTitle="Dr Notes"
-                currentValue={drNotes}
-                align="left"
+              sectionKey="dr_notes"
+              sectionTitle="Dr Notes"
+              currentValue={drNotes}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => setDrNotes((prev) => (prev ? prev + '\n' + val : val))}
               />
               <button
                 type="button"
-                title="Reset / Clear Dr Notes"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setDrNotes('')}
+                title="Restore Previous Doctor Notes"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("dr_notes") : setDrNotes('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -313,17 +320,18 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="quick_notes"
-                sectionTitle="Quick Notes"
-                currentValue={quickNotes}
-                align="left"
+              sectionKey="quick_notes"
+              sectionTitle="Quick Notes"
+              currentValue={quickNotes}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => setQuickNotes((prev) => (prev ? prev + '\n' + val : val))}
               />
               <button
                 type="button"
-                title="Reset / Clear Quick Notes"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setQuickNotes('')}
+                title="Restore Previous Quick Notes"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("quick_notes") : setQuickNotes('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -356,10 +364,11 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="procedure_done"
-                sectionTitle="Procedure Advice"
-                currentValue={procedureAdvice}
-                align="left"
+              sectionKey="procedure_done"
+              sectionTitle="Procedure Advice"
+              currentValue={procedureAdvice}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => {
                   const text =
                     typeof val === 'string'
@@ -372,9 +381,9 @@ export default function PrescriptionClinicalNotesSection({
               />
               <button
                 type="button"
-                title="Reset / Clear Procedure Advice"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setProcedureAdvice('')}
+                title="Restore Previous Procedure Advice"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("procedure_advice") : setProcedureAdvice('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -404,10 +413,11 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="advice"
-                sectionTitle="Advice"
-                currentValue={advice}
-                align="left"
+              sectionKey="advice"
+              sectionTitle="Advice"
+              currentValue={advice}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => onUpdateAdvice(advice ? advice + '\n' + val : val)}
               />
               <button
@@ -456,6 +466,7 @@ export default function PrescriptionClinicalNotesSection({
               sectionKey="tests_requested"
               sectionTitle="Tests Requested"
               currentValue={testsRequested}
+              category={docCategory}
               align="left"
               onApplyPreset={(val) => {
                 if (Array.isArray(val)) {
@@ -648,17 +659,18 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="diet_exercise"
-                sectionTitle="Diet & Exercise"
-                currentValue={dietExercise}
-                align="left"
+              sectionKey="diet_exercise"
+              sectionTitle="Diet & Exercise"
+              currentValue={dietExercise}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => setDietExercise((prev) => (prev ? prev + '\n' + val : val))}
               />
               <button
                 type="button"
-                title="Reset / Clear Diet & Exercise"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setDietExercise('')}
+                title="Restore Previous Diet & Exercise"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("diet_exercise") : setDietExercise('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -688,19 +700,20 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="investigations"
-                sectionTitle="Investigations"
-                currentValue={investigationText}
-                align="left"
+              sectionKey="investigations"
+              sectionTitle="Investigations"
+              currentValue={investigationText}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) =>
                   setInvestigationText((prev) => (prev ? prev + '\n' + val : val))
                 }
               />
               <button
                 type="button"
-                title="Reset / Clear Investigations"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setInvestigationText('')}
+                title="Restore Previous Investigations"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("investigations") : setInvestigationText('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -731,19 +744,20 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="past_medications"
-                sectionTitle="Past Medication"
-                currentValue={pastMedication}
-                align="left"
+              sectionKey="past_medications"
+              sectionTitle="Past Medication"
+              currentValue={pastMedication}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) =>
                   setPastMedication((prev) => (prev ? prev + '\n' + val : val))
                 }
               />
               <button
                 type="button"
-                title="Reset / Clear Past Medication"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setPastMedication('')}
+                title="Restore Previous Past Medication"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("past_medications") : setPastMedication('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -771,17 +785,18 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="systemic_examinations"
-                sectionTitle="Systemic Examination"
-                currentValue={systemicExam}
-                align="left"
+              sectionKey="systemic_examinations"
+              sectionTitle="Systemic Examination"
+              currentValue={systemicExam}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => setSystemicExam((prev) => (prev ? prev + '\n' + val : val))}
               />
               <button
                 type="button"
-                title="Reset / Clear Systemic Examination"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setSystemicExam('')}
+                title="Restore Previous Systemic Examination"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("systemic_examinations") : setSystemicExam('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
@@ -809,17 +824,18 @@ export default function PrescriptionClinicalNotesSection({
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
               <SectionTemplatePicker
-                sectionKey="general_examinations"
-                sectionTitle="General Examinations"
-                currentValue={generalExam}
-                align="left"
+              sectionKey="general_examinations"
+              sectionTitle="General Examinations"
+              currentValue={generalExam}
+              category={docCategory}
+              align="left"
                 onApplyPreset={(val) => setGeneralExam((prev) => (prev ? prev + '\n' + val : val))}
               />
               <button
                 type="button"
-                title="Reset / Clear General Examinations"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => setGeneralExam('')}
+                title="Restore Previous General Examinations"
+                className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                onClick={() => onRestorePreviousNote ? onRestorePreviousNote("general_examinations") : setGeneralExam('')}
               >
                 <Undo2 className="w-3.5 h-3.5" />
               </button>

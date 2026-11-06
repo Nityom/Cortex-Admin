@@ -276,6 +276,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
   const isGynae = (form.selectedDoctorName || '').toLowerCase().includes('shilpa') ||
                   (form.selectedDoctorName || '').toLowerCase().includes('shillpa') ||
                   (form.selectedDoctorName || '').toLowerCase().includes('gynae');
+  const doctorCategory = isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics';
 
   const renderSectionContent = (sectionKey: PrescriptionSectionKey) => {
     switch (sectionKey) {
@@ -308,6 +309,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             gestationalDays={form.gestationalDays}
             setGestationalDays={form.setGestationalDays}
             isGynae={isGynae}
+            onRestorePreviousVitals={form.restorePreviousVitals}
           />
         );
       case 'history':
@@ -320,8 +322,9 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             setComplaintsList={form.setComplaintsList}
             date={form.formData.date}
             onUpdateCcSummary={(summary) => form.setFormData((prev: any) => ({ ...prev, cc: summary }))}
-            isGynae={true}
+            isGynae={form.isGynaeDoc}
             ccSummary={form.formData.cc}
+            onRestorePreviousComplaints={form.restorePreviousComplaints}
           />
         );
       case 'findings':
@@ -329,6 +332,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           <PrescriptionFindingsSection
             value={form.findingsText}
             onChange={form.setFindingsText}
+            category={doctorCategory}
+            onRestorePreviousFindings={form.restorePreviousFindings}
           />
         );
       case 'diagnosis':
@@ -342,6 +347,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             prescriptionId={form.prescriptionId || undefined}
             isGynae={form.isGynaeDoc}
             onApplyMasterTemplate={form.applyPrescriptionTemplate}
+            onRestorePreviousDiagnosis={form.restorePreviousDiagnosis}
           />
         );
       case 'procedure':
@@ -369,6 +375,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
               medicineOptions={form.filteredMedicineOptions}
               prescriptionDate={form.formData.date}
               onAutoSaveMedicine={form.autoSaveMedicineIfNew}
+              category={doctorCategory}
+              onRestorePreviousMedicines={form.restorePreviousMedicines}
             />
           </div>
         );
@@ -415,6 +423,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             generalExam={form.generalExam}
             setGeneralExam={form.setGeneralExam}
             selectedDoctorName={form.selectedDoctorName}
+            onRestorePreviousNote={form.restorePreviousClinicalNote}
           />
         );
       case 'drawing_board':
@@ -471,6 +480,10 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             onMoveToNextPatient={form.moveToNextReadyPatient}
             movingToNextPatient={form.movingToNextPatient}
             isOpdVisit={Boolean(form.opdVisitId)}
+            onOpenSaveTemplate={() => {
+              form.setTemplateNameInput(form.formData.de ? `${form.formData.de} Protocol` : '');
+              form.setIsSaveTemplateModalOpen(true);
+            }}
           />
         );
       default:

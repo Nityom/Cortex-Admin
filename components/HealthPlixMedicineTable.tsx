@@ -17,6 +17,7 @@ import {
   Sparkles,
   Layers,
   Clock,
+  Undo2,
 } from 'lucide-react';
 import MedicineSearchInput from './MedicineSearchInput';
 import SectionTemplatePicker from './SectionTemplatePicker';
@@ -29,6 +30,7 @@ import {
   getSectionCustomTemplates,
   saveSectionCustomTemplate,
   deleteSectionCustomTemplate,
+  fetchSectionTemplatesFromConvex,
 } from '@/services/clinicalSectionPresets';
 
 interface HealthPlixMedicineTableProps {
@@ -39,6 +41,8 @@ interface HealthPlixMedicineTableProps {
   onOpenLoadTemplate?: () => void;
   onOpenSaveTemplate?: () => void;
   onAutoSaveMedicine?: (name: string, composition?: string) => void;
+  category?: string;
+  onRestorePreviousMedicines?: () => void;
 }
 
 const DOSAGE_OPTIONS = [
@@ -276,6 +280,8 @@ export default function HealthPlixMedicineTable({
   onOpenLoadTemplate,
   onOpenSaveTemplate,
   onAutoSaveMedicine,
+  category,
+  onRestorePreviousMedicines,
 }: HealthPlixMedicineTableProps) {
   const [editingCompositionIndex, setEditingCompositionIndex] = useState<number | null>(null);
   const [compositionDraft, setCompositionDraft] = useState<string>('');
@@ -285,8 +291,8 @@ export default function HealthPlixMedicineTable({
   const [isMedicalModalOpen, setIsMedicalModalOpen] = useState(false);
   const [isSaveMedicalModalOpen, setIsSaveMedicalModalOpen] = useState(false);
   const [newMedTemplateName, setNewMedTemplateName] = useState('');
-  const [newMedTemplateCat, setNewMedTemplateCat] = useState('General Medicine');
-  const [medModalTab, setMedModalTab] = useState<'presets' | 'saved'>('presets');
+  const [newMedTemplateCat, setNewMedTemplateCat] = useState(category || 'General Medicine');
+  const [medModalTab, setMedModalTab] = useState<'presets' | 'saved'>('saved');
   const [medSearchQuery, setMedSearchQuery] = useState('');
   const [savedMedTemplates, setSavedMedTemplates] = useState<ClinicalSectionPreset[]>([]);
   const [medToastMessage, setMedToastMessage] = useState<string | null>(null);
@@ -323,6 +329,9 @@ export default function HealthPlixMedicineTable({
   const loadSavedMedTemplates = useCallback(() => {
     const list = getSectionCustomTemplates('medicines');
     setSavedMedTemplates(list);
+    fetchSectionTemplatesFromConvex('medicines').then((updated) => {
+      if (updated && Array.isArray(updated)) setSavedMedTemplates(updated);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -838,17 +847,28 @@ export default function HealthPlixMedicineTable({
                       </span>
                     )}
                   </div>
-                  <SectionTemplatePicker
-                    sectionKey="medicines"
-                    sectionTitle="Medical"
-                    currentValue={medicines}
-                    onApplyPreset={(presetMeds) => {
-                      if (Array.isArray(presetMeds) && presetMeds.length > 0) {
-                        onChange(normalizePresetMedicines(presetMeds, prescriptionDate));
-                      }
-                    }}
-                    align="left"
-                  />
+                  <div className="flex items-center gap-1">
+                    <SectionTemplatePicker
+                      sectionKey="medicines"
+                      sectionTitle="Medicines"
+                      currentValue={medicines}
+                      category={category || "General Medicine"}
+                      onApplyPreset={(presetMeds) => {
+                        if (Array.isArray(presetMeds) && presetMeds.length > 0) {
+                          onChange(normalizePresetMedicines(presetMeds, prescriptionDate));
+                        }
+                      }}
+                      align="left"
+                    />
+                    <button
+                      type="button"
+                      title="Restore Previous Prescription Medicines"
+                      className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                      onClick={onRestorePreviousMedicines}
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </th>
               <th rowSpan={2} style={{ width: '9%' }} className="py-2.5 px-2 border-r border-slate-300/70 align-middle">
@@ -1363,70 +1383,79 @@ export default function HealthPlixMedicineTable({
       </div>
 
       {/* Template & Action Controls (HealthPlix Style Footer) */}
-      <div className="py-2 px-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-end gap-4 text-xs font-medium text-slate-600">
-        <button
-          type="button"
-          onClick={() => {
-            try {
-              const lastRx = localStorage.getItem('cortex_last_prescribed_medicines');
-              if (lastRx) {
-                const parsed = JSON.parse(lastRx);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  onChange([...medicines, ...parsed]);
-                }
+      <div className="py-2 px-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs font-medium text-slate-600">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (onRestorePreviousMedicines) {
+                onRestorePreviousMedicines();
+              } else {
+                try {
+                  const lastRx = localStorage.getItem('cortex_last_prescribed_medicines');
+                  if (lastRx) {
+                    const parsed = JSON.parse(lastRx);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                      onChange(parsed);
+                    }
+                  }
+                } catch {}
               }
-            } catch {}
-          }}
-          title="Load Previous Consultation Medicines"
-          className="flex items-center gap-1 hover:text-emerald-600 transition cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Load Prev</span>
-        </button>
+            }}
+            title="Restore Previous Prescription Medicines"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer font-bold shadow-2xs"
+          >
+            <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Load Prev (Undo)</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            loadSavedMedTemplates();
-            setIsMedicalModalOpen(true);
-          }}
-          title="Load Medical Template (Drug Regimen)"
-          className="flex items-center gap-1 hover:text-emerald-600 transition cursor-pointer font-medium"
-        >
-          <FolderOpen className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Load template</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              loadSavedMedTemplates();
+              setIsMedicalModalOpen(true);
+            }}
+            title="Load Medical Template (Drug Regimen)"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer font-bold shadow-2xs"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Load template</span>
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (medicines.length === 0) {
-              alert('Please add medicines before saving as medical template.');
-              return;
-            }
-            setNewMedTemplateName('');
-            setIsSaveMedicalModalOpen(true);
-          }}
-          title="Save Current Medicines as Medical Template"
-          className="flex items-center gap-1 hover:text-purple-600 transition cursor-pointer font-medium"
-        >
-          <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
-          <span>Save as template</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (medicines.length === 0) {
+                alert('Please add medicines before saving as medical template.');
+                return;
+              }
+              setNewMedTemplateName('');
+              if (category) setNewMedTemplateCat(category);
+              setIsSaveMedicalModalOpen(true);
+            }}
+            title="Save Current Medicines as Medical Template"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 hover:bg-purple-100 transition cursor-pointer font-bold shadow-2xs"
+          >
+            <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
+            <span>Save Medicines as Template</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm('Clear all medicines?')) {
-              onChange([]);
-            }
-          }}
-          title="Clear All Medicines from Prescription"
-          className="flex items-center gap-1 text-slate-400 hover:text-red-600 transition cursor-pointer"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          <span>Clear All</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('Clear all medicines?')) {
+                onChange([]);
+              }
+            }}
+            title="Clear All Medicines from Prescription"
+            className="flex items-center gap-1 text-slate-400 hover:text-red-600 px-2 py-1 transition cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clear All</span>
+          </button>
+        </div>
       </div>
 
       {/* 1. Medical Template Picker Modal */}

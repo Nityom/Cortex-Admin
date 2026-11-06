@@ -16,6 +16,7 @@ import {
   getSectionCustomTemplates,
   saveSectionCustomTemplate,
   deleteSectionCustomTemplate,
+  fetchSectionTemplatesFromConvex,
 } from '@/services/clinicalSectionPresets';
 
 interface SectionTemplatePickerProps {
@@ -25,6 +26,7 @@ interface SectionTemplatePickerProps {
   onApplyPreset: (data: any) => void;
   className?: string;
   align?: 'left' | 'right';
+  category?: string;
 }
 
 export default function SectionTemplatePicker({
@@ -34,9 +36,10 @@ export default function SectionTemplatePicker({
   onApplyPreset,
   className = '',
   align = 'left',
+  category,
 }: SectionTemplatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'presets' | 'saved'>('presets');
+  const [activeTab, setActiveTab] = useState<'saved' | 'presets'>('saved');
   const [searchQuery, setSearchQuery] = useState('');
   const [newTemplateName, setNewTemplateName] = useState('');
   const [savedTemplates, setSavedTemplates] = useState<ClinicalSectionPreset[]>([]);
@@ -48,6 +51,14 @@ export default function SectionTemplatePicker({
   const loadSavedTemplates = React.useCallback(() => {
     const list = getSectionCustomTemplates(sectionKey);
     setSavedTemplates(list);
+    // Also sync from Convex DB in background
+    fetchSectionTemplatesFromConvex(sectionKey)
+      .then((updated) => {
+        if (updated && Array.isArray(updated)) {
+          setSavedTemplates(updated);
+        }
+      })
+      .catch(() => {});
   }, [sectionKey]);
 
   useEffect(() => {
@@ -102,7 +113,7 @@ export default function SectionTemplatePicker({
       showToast(`Current ${sectionTitle} is empty. Enter details first.`);
       return;
     }
-    const saved = saveSectionCustomTemplate(sectionKey, trimmed, currentValue);
+    const saved = saveSectionCustomTemplate(sectionKey, trimmed, currentValue, category || 'General');
     loadSavedTemplates();
     setNewTemplateName('');
     setActiveTab('saved');
@@ -122,6 +133,27 @@ export default function SectionTemplatePicker({
     }
   };
 
+  const filteredSaved = savedTemplates
+    .filter((s) => {
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        s.name.toLowerCase().includes(q) ||
+        (s.category && s.category.toLowerCase().includes(q)) ||
+        (s.description && s.description.toLowerCase().includes(q))
+      );
+    })
+    .sort((a, b) => {
+      if (category) {
+        const catLower = category.toLowerCase();
+        const aMatches = a.category && a.category.toLowerCase().includes(catLower);
+        const bMatches = b.category && b.category.toLowerCase().includes(catLower);
+        if (aMatches && !bMatches) return -1;
+        if (!aMatches && bMatches) return 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
   const filteredPresets = presets.filter((p) => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
@@ -132,19 +164,13 @@ export default function SectionTemplatePicker({
     );
   });
 
-  const filteredSaved = savedTemplates.filter((s) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return s.name.toLowerCase().includes(q);
-  });
-
   return (
     <div className={`relative inline-flex items-center ${className}`} ref={containerRef}>
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        title={`${sectionTitle} Templates & Presets`}
+        title={`${sectionTitle} Templates`}
         className={`p-1 rounded transition cursor-pointer flex items-center justify-center ${
           isOpen
             ? 'text-emerald-600 bg-emerald-50 ring-1 ring-emerald-300'
@@ -162,6 +188,11 @@ export default function SectionTemplatePicker({
             <div className="flex items-center gap-1.5 font-bold text-slate-800">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
               <span>{sectionTitle} Templates</span>
+              {category && (
+                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md">
+                  {category}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -193,7 +224,7 @@ export default function SectionTemplatePicker({
             />
           </div>
 
-          {/* Quick Save Current as Template Form (Docked at TOP, not bottom) */}
+          {/* Quick Save Current as Template Form */}
           <form onSubmit={handleSaveCurrent} className="mb-2 p-2 bg-emerald-50/70 border border-emerald-200/90 rounded-lg">
             <div className="flex items-center justify-between mb-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
@@ -211,12 +242,8 @@ export default function SectionTemplatePicker({
                 type="text"
                 value={newTemplateName}
                 onChange={(e) => setNewTemplateName(e.target.value)}
-                placeholder={
-                  searchQuery.trim()
-                    ? `Save as "${searchQuery.trim()}"...`
-                    : `Template name (e.g. My ${sectionTitle} Protocol)...`
-                }
-                className="flex-1 py-1.5 px-2.5 text-xs bg-white border border-emerald-300 rounded-lg text-slate-800 outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs"
+                placeholder={`Name (e.g. ${sectionTitle} Protocol)`}
+                className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
               />
               <button
                 type="submit"
@@ -229,38 +256,9 @@ export default function SectionTemplatePicker({
             </div>
           </form>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 mb-2 p-0.5 bg-slate-100 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setActiveTab('presets')}
-              title="View Standard Medical Presets"
-              className={`flex-1 py-1 text-[11px] font-bold rounded-md transition cursor-pointer text-center ${
-                activeTab === 'presets'
-                  ? 'bg-white text-emerald-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Clinical Presets ({filteredPresets.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('saved')}
-              title="View Doctor Saved Custom Templates"
-              className={`flex-1 py-1 text-[11px] font-bold rounded-md transition cursor-pointer text-center ${
-                activeTab === 'saved'
-                  ? 'bg-white text-emerald-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Saved Templates ({filteredSaved.length})
-            </button>
-          </div>
-
-          {/* Preset / Template List */}
+          {/* Template List */}
           <div className="max-h-56 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-thin">
-            {/* If user typed a search query and no match was found in active tab */}
-            {searchQuery.trim() && (activeTab === 'presets' ? filteredPresets.length === 0 : filteredSaved.length === 0) && (
+            {searchQuery.trim() && filteredSaved.length === 0 && (
               <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-lg text-center space-y-2 my-1">
                 <p className="text-[11px] text-amber-900 font-semibold">
                   No template found matching <span className="underline decoration-amber-400 font-bold">"{searchQuery.trim()}"</span>
@@ -276,38 +274,7 @@ export default function SectionTemplatePicker({
               </div>
             )}
 
-            {activeTab === 'presets' ? (
-              filteredPresets.length > 0 ? (
-                filteredPresets.map((preset) => (
-                  <div
-                    key={preset.id}
-                    onClick={() => handleApply(preset)}
-                    title={`Click to apply ${preset.name} into ${sectionTitle}`}
-                    className="p-2 border border-slate-100 hover:border-emerald-300 rounded-lg bg-slate-50/60 hover:bg-emerald-50/40 transition cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-bold text-slate-800 text-[11px] group-hover:text-emerald-900 line-clamp-1">
-                        {preset.name}
-                      </span>
-                      {preset.category && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700 whitespace-nowrap">
-                          {preset.category}
-                        </span>
-                      )}
-                    </div>
-                    {preset.description && (
-                      <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
-                        {preset.description}
-                      </p>
-                    )}
-                  </div>
-                ))
-              ) : !searchQuery.trim() ? (
-                <div className="py-4 text-center text-slate-400 italic text-[11px]">
-                  No clinical presets available for {sectionTitle}.
-                </div>
-              ) : null
-            ) : filteredSaved.length > 0 ? (
+            {filteredSaved.length > 0 ? (
               filteredSaved.map((saved) => (
                 <div
                   key={saved.id}
@@ -318,10 +285,19 @@ export default function SectionTemplatePicker({
                     title={`Click to apply ${saved.name}`}
                     className="flex-1 cursor-pointer min-w-0"
                   >
-                    <span className="font-bold text-slate-800 text-[11px] group-hover:text-emerald-900 block truncate">
-                      {saved.name}
-                    </span>
-                    <span className="text-[9px] text-slate-400">Custom Template</span>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-bold text-slate-800 text-[11px] group-hover:text-emerald-900 block truncate">
+                        {saved.name}
+                      </span>
+                      {saved.category && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+                          {saved.category}
+                        </span>
+                      )}
+                    </div>
+                    {saved.description && (
+                      <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{saved.description}</p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -338,7 +314,7 @@ export default function SectionTemplatePicker({
               ))
             ) : !searchQuery.trim() ? (
               <div className="py-4 text-center text-slate-400 italic text-[11px]">
-                No custom templates saved yet. Fill out {sectionTitle} and save above.
+                No templates saved yet. Fill out {sectionTitle} and save above to store in database.
               </div>
             ) : null}
           </div>

@@ -30,6 +30,7 @@ interface PrescriptionVitalsSectionProps {
   gestationalDays: string;
   setGestationalDays: (v: string) => void;
   onResetVitals?: () => void;
+  onRestorePreviousVitals?: () => void;
   isGynae?: boolean;
 }
 
@@ -60,6 +61,7 @@ export default function PrescriptionVitalsSection({
   gestationalDays,
   setGestationalDays,
   onResetVitals,
+  onRestorePreviousVitals,
   isGynae = false,
 }: PrescriptionVitalsSectionProps) {
   const handleReset = () => {
@@ -97,9 +99,9 @@ export default function PrescriptionVitalsSection({
           </button>
           <button
             type="button"
-            title="Reset / Clear All Vitals"
-            className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-            onClick={handleReset}
+            title="Restore Previous Prescription Vitals"
+            className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+            onClick={onRestorePreviousVitals || handleReset}
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>

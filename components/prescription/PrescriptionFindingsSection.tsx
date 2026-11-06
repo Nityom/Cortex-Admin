@@ -7,11 +7,15 @@ import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 interface PrescriptionFindingsSectionProps {
   value: string;
   onChange: (val: string) => void;
+  onRestorePreviousFindings?: () => void;
+  category?: string;
 }
 
 export default function PrescriptionFindingsSection({
   value,
   onChange,
+  onRestorePreviousFindings,
+  category,
 }: PrescriptionFindingsSectionProps) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
@@ -31,14 +35,15 @@ export default function PrescriptionFindingsSection({
             sectionKey="findings"
             sectionTitle="Findings"
             currentValue={value}
+            category={category}
             align="left"
             onApplyPreset={(val) => onChange(value ? value + '\n' + val : val)}
           />
           <button
             type="button"
-            title="Reset / Clear Findings"
-            className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-            onClick={() => onChange('')}
+            title="Restore Previous Prescription Findings"
+            className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+            onClick={onRestorePreviousFindings || (() => onChange(''))}
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
@@ -54,4 +59,3 @@ export default function PrescriptionFindingsSection({
     </div>
   );
 }
-
