@@ -667,5 +667,28 @@ export default defineSchema({
     wards: v.any(),
     updated_at: v.optional(v.number()),
   }).index("by_config_key", ["config_key"]),
+
+  clinical_templates: defineTable({
+    template_id: v.string(),
+    name: v.string(),
+    category: v.string(),
+    doctor_name: v.optional(v.string()),
+    diagnosis: v.optional(v.string()),
+    advice: v.optional(v.string()),
+    dr_notes: v.optional(v.string()),
+    procedure_advice: v.optional(v.string()),
+    diet_exercise: v.optional(v.string()),
+    followup_count: v.optional(v.string()),
+    followup_unit: v.optional(v.string()),
+    medicines: v.optional(v.any()),
+    complaints: v.optional(v.any()),
+    tests_requested: v.optional(v.any()),
+    section_key: v.optional(v.string()),
+    is_preset: v.optional(v.boolean()),
+    created_at: v.optional(v.number()),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_template_id", ["template_id"])
+    .index("by_category", ["category"]),
 });
 

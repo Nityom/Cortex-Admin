@@ -1,5 +1,11 @@
 import { MedicineEntry } from './prescription';
+import { ConvexHttpClient } from 'convex/browser';
+// @ts-ignore
+import { api } from '@/convex/_generated/api';
 export * from './clinicalSectionPresets';
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const convexClient = convexUrl ? new ConvexHttpClient(convexUrl) : null;
 
 export interface PrescriptionTemplate {
   id: string;
@@ -428,6 +434,74 @@ export function getTemplateById(id: string): PrescriptionTemplate | undefined {
 }
 
 /**
+ * Sync template with Convex DB
+ */
+export async function syncTemplateToConvex(template: PrescriptionTemplate): Promise<void> {
+  if (!convexClient) return;
+  try {
+    await convexClient.mutation(api.clinical_templates.upsert, {
+      template_id: template.id,
+      name: template.name,
+      category: template.category || 'General',
+      doctor_name: template.doctor_name,
+      diagnosis: template.diagnosis,
+      advice: template.advice,
+      dr_notes: template.dr_notes,
+      procedure_advice: template.procedure_advice,
+      diet_exercise: template.diet_exercise,
+      followup_count: template.followup_count,
+      followup_unit: template.followup_unit,
+      medicines: template.medicines,
+      complaints: template.complaints,
+      tests_requested: template.tests_requested,
+    });
+  } catch (err) {
+    console.warn('Could not sync template to Convex:', err);
+  }
+}
+
+export async function deleteTemplateFromConvex(templateId: string): Promise<void> {
+  if (!convexClient) return;
+  try {
+    await convexClient.mutation(api.clinical_templates.remove, {
+      template_id: templateId,
+    });
+  } catch (err) {
+    console.warn('Could not delete template from Convex:', err);
+  }
+}
+
+export async function fetchTemplatesFromConvex(): Promise<PrescriptionTemplate[]> {
+  if (!convexClient) return [];
+  try {
+    const list = await convexClient.query(api.clinical_templates.list, {});
+    if (list && Array.isArray(list)) {
+      return list.map((item: any) => ({
+        id: item.template_id || item._id,
+        name: item.name,
+        diagnosis: item.diagnosis || '',
+        category: item.category || 'General',
+        doctor_name: item.doctor_name,
+        advice: item.advice,
+        dr_notes: item.dr_notes,
+        procedure_advice: item.procedure_advice,
+        diet_exercise: item.diet_exercise,
+        followup_count: item.followup_count,
+        followup_unit: item.followup_unit,
+        medicines: item.medicines || [],
+        complaints: item.complaints,
+        tests_requested: item.tests_requested,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      }));
+    }
+  } catch (err) {
+    console.warn('Could not fetch templates from Convex:', err);
+  }
+  return [];
+}
+
+/**
  * Save or update a prescription template
  */
 export function saveTemplate(template: Omit<PrescriptionTemplate, 'id' | 'created_at'> & { id?: string }): PrescriptionTemplate {
@@ -449,6 +523,7 @@ export function saveTemplate(template: Omit<PrescriptionTemplate, 'id' | 'create
       } catch (err) {
         console.error('Failed to persist template update:', err);
       }
+      syncTemplateToConvex(updated).catch(() => {});
       return updated;
     }
   }
@@ -467,6 +542,7 @@ export function saveTemplate(template: Omit<PrescriptionTemplate, 'id' | 'create
   } catch (err) {
     console.error('Failed to persist new template:', err);
   }
+  syncTemplateToConvex(newTemplate).catch(() => {});
   return newTemplate;
 }
 
@@ -478,6 +554,7 @@ export function deleteTemplate(id: string): boolean {
   const filtered = templates.filter(t => t.id !== id);
   try {
     localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(filtered));
+    deleteTemplateFromConvex(id).catch(() => {});
     return true;
   } catch (err) {
     console.error('Failed to delete template:', err);

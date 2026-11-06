@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { getTimingFromDosage } from '@/lib/prescriptionUtils';
 import {
   getAllTemplates,
   saveTemplate,
@@ -82,6 +85,10 @@ export default function TemplatesManagementPage() {
   const [sectionTemplates, setSectionTemplates] = useState<UnifiedSectionTemplateItem[]>([]);
   const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
 
+  // Convex clinical templates query & mutation
+  const convexTemplates = useQuery(api.clinical_templates.list);
+  const bulkSyncMutation = useMutation(api.clinical_templates.bulkSync);
+
   // Toast / feedback notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -110,6 +117,39 @@ export default function TemplatesManagementPage() {
   >([]);
   const [formTests, setFormTests] = useState<Array<{ name: string; by_when?: string }>>([]);
 
+  // Medicine helpers for template editing
+  const handleAddMedicineRow = () => {
+    setFormMedicines((prev) => [
+      ...prev,
+      {
+        name: '',
+        dosage: '1-0-1',
+        timing: 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर',
+        duration: '5 Days',
+        quantity: 10,
+        note: '',
+      },
+    ]);
+  };
+
+  const handleRemoveMedicineRow = (idx: number) => {
+    setFormMedicines((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleMedicineChange = (idx: number, field: keyof MedicineEntry, value: any) => {
+    setFormMedicines((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], [field]: value };
+      if (field === 'dosage') {
+        const autoTiming = getTimingFromDosage(value);
+        if (autoTiming) {
+          copy[idx].timing = autoTiming;
+        }
+      }
+      return copy;
+    });
+  };
+
   // Section Template Modal states
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSectionTemplate, setEditingSectionTemplate] =
@@ -118,6 +158,64 @@ export default function TemplatesManagementPage() {
   const [sectionFormName, setSectionFormName] = useState<string>('');
   const [sectionFormCategory, setSectionFormCategory] = useState<string>('Orthopaedics');
   const [sectionFormContent, setSectionFormContent] = useState<string>('');
+
+  // Real-time bidirectional sync with Convex DB
+  useEffect(() => {
+    if (convexTemplates && Array.isArray(convexTemplates)) {
+      if (convexTemplates.length > 0) {
+        const mapped: PrescriptionTemplate[] = convexTemplates.map((item: any) => ({
+          id: item.template_id || item._id,
+          name: item.name,
+          diagnosis: item.diagnosis || '',
+          category: item.category || 'General',
+          doctor_name: item.doctor_name,
+          advice: item.advice,
+          dr_notes: item.dr_notes,
+          procedure_advice: item.procedure_advice,
+          diet_exercise: item.diet_exercise,
+          followup_count: item.followup_count,
+          followup_unit: item.followup_unit,
+          medicines: item.medicines || [],
+          complaints: item.complaints,
+          tests_requested: item.tests_requested,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        }));
+
+        try {
+          const local = getAllTemplates();
+          const localMap = new Map<string, PrescriptionTemplate>();
+          for (const l of local) localMap.set(l.id, l);
+          for (const m of mapped) localMap.set(m.id, m);
+          const merged = Array.from(localMap.values());
+          localStorage.setItem('cortex_prescription_templates_v2', JSON.stringify(merged));
+          setPrescriptionTemplates(merged);
+        } catch {}
+      } else {
+        const defaultTemplates = getAllTemplates();
+        if (defaultTemplates.length > 0) {
+          bulkSyncMutation({
+            templates: defaultTemplates.map((t) => ({
+              template_id: t.id,
+              name: t.name,
+              category: t.category || 'General',
+              doctor_name: t.doctor_name,
+              diagnosis: t.diagnosis,
+              advice: t.advice,
+              dr_notes: t.dr_notes,
+              procedure_advice: t.procedure_advice,
+              diet_exercise: t.diet_exercise,
+              followup_count: t.followup_count,
+              followup_unit: t.followup_unit,
+              medicines: t.medicines || [],
+              complaints: t.complaints,
+              tests_requested: t.tests_requested,
+            })),
+          }).catch(console.warn);
+        }
+      }
+    }
+  }, [convexTemplates, bulkSyncMutation]);
 
   // Load all templates (prescription + custom section templates + clinical presets)
   const loadAllTemplates = useCallback(() => {
@@ -859,7 +957,7 @@ export default function TemplatesManagementPage() {
       {/* MODAL 2: Create / Edit Master Prescription Template */}
       {isPrescriptionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-emerald-50/50">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-600" />
@@ -916,6 +1014,162 @@ export default function TemplatesManagementPage() {
                   placeholder="e.g. Osteoarthritis Bilateral Knees (Grade II)..."
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
                 />
+              </div>
+
+              {/* MEDICINES EDITOR SECTION */}
+              <div className="space-y-2 border border-slate-200 rounded-xl p-3.5 bg-slate-50/70">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-200/80">
+                  <div className="flex items-center gap-2">
+                    <Pill className="w-4 h-4 text-emerald-600" />
+                    <label className="font-bold text-slate-800 text-sm">
+                      Medicines &amp; Prescriptions ({formMedicines.length})
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddMedicineRow}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Medicine
+                  </button>
+                </div>
+
+                {formMedicines.length === 0 ? (
+                  <div className="text-center py-4 text-slate-400 italic">
+                    No medicines in this template. Click &quot;+ Add Medicine&quot; to include prescription drugs.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    {formMedicines.map((med, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2 hover:border-emerald-300 transition"
+                      >
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          {/* Medicine Name with Datalist Autocomplete from availableMedicines */}
+                          <div className="col-span-12 sm:col-span-5">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                              Medicine Name *
+                            </label>
+                            <input
+                              type="text"
+                              list={`med-datalist-${idx}`}
+                              value={med.name}
+                              onChange={(e) => handleMedicineChange(idx, 'name', e.target.value)}
+                              placeholder="e.g. TAB ACECLOFENAC 100 MG..."
+                              className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                              required
+                            />
+                            <datalist id={`med-datalist-${idx}`}>
+                              {availableMedicines.slice(0, 50).map((m) => (
+                                <option key={m.id || m.name} value={m.name}>
+                                  {m.composition || m.company || ''}
+                                </option>
+                              ))}
+                            </datalist>
+                          </div>
+
+                          {/* Dosage Dropdown with all combinations */}
+                          <div className="col-span-6 sm:col-span-3">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                              Dosage
+                            </label>
+                            <select
+                              value={med.dosage || '1-0-1'}
+                              onChange={(e) => handleMedicineChange(idx, 'dosage', e.target.value)}
+                              className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                            >
+                              <option value="1-0-1">1-0-1 (Morning &amp; Night)</option>
+                              <option value="1-1-1">1-1-1 (Thrice daily)</option>
+                              <option value="1-0-0">1-0-0 (Morning only)</option>
+                              <option value="0-0-1">0-0-1 (Night only)</option>
+                              <option value="0-1-0">0-1-0 (Afternoon only)</option>
+                              <option value="1-1-0">1-1-0 (Morning &amp; Afternoon)</option>
+                              <option value="0-1-1">0-1-1 (Afternoon &amp; Night)</option>
+                              <option value="1/2-0-0">1/2-0-0 (Half morning)</option>
+                              <option value="0-0-1/2">0-0-1/2 (Half night)</option>
+                              <option value="1/2-0-1/2">1/2-0-1/2 (Half morning &amp; night)</option>
+                              <option value="1-0-1/2">1-0-1/2 (1 Morning, 1/2 Night)</option>
+                              <option value="1/2-0-1">1/2-0-1 (1/2 Morning, 1 Night)</option>
+                              <option value="2-0-0">2-0-0 (Two morning)</option>
+                              <option value="0-0-2">0-0-2 (Two night)</option>
+                              <option value="1-0-2">1-0-2 (1 Morning, 2 Night)</option>
+                              <option value="2-0-1">2-0-1 (2 Morning, 1 Night)</option>
+                              <option value="2-0-2">2-0-2 (Two morning &amp; night)</option>
+                              <option value="1-1-1-1">1-1-1-1 (Four times daily)</option>
+                              <option value="1-0-0-1">1-0-0-1 (Morning &amp; Bedtime)</option>
+                              <option value="SOS">SOS (When required)</option>
+                              <option value="Stat">Stat (Immediately)</option>
+                            </select>
+                          </div>
+
+                          {/* Duration */}
+                          <div className="col-span-4 sm:col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                              Duration
+                            </label>
+                            <input
+                              type="text"
+                              value={med.duration || ''}
+                              onChange={(e) => handleMedicineChange(idx, 'duration', e.target.value)}
+                              placeholder="e.g. 5 Days"
+                              className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                          </div>
+
+                          {/* Quantity */}
+                          <div className="col-span-2 sm:col-span-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                              Qty
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={med.quantity ?? ''}
+                              onChange={(e) => handleMedicineChange(idx, 'quantity', Number(e.target.value) || 0)}
+                              placeholder="10"
+                              className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                          </div>
+
+                          {/* Delete Button */}
+                          <div className="col-span-12 sm:col-span-1 text-right pt-3 sm:pt-4">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMedicineRow(idx)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                              title="Delete medicine"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Timing (Marathi with आणि) and Special Instructions */}
+                        <div className="grid grid-cols-12 gap-2 pt-1 border-t border-slate-100">
+                          <div className="col-span-12 sm:col-span-7">
+                            <input
+                              type="text"
+                              value={med.timing || ''}
+                              onChange={(e) => handleMedicineChange(idx, 'timing', e.target.value)}
+                              placeholder="Timing (e.g. सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर / After Food)"
+                              className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                            />
+                          </div>
+                          <div className="col-span-12 sm:col-span-5">
+                            <input
+                              type="text"
+                              value={med.note || ''}
+                              onChange={(e) => handleMedicineChange(idx, 'note', e.target.value)}
+                              placeholder="Special note (e.g. With warm milk/water)"
+                              className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
