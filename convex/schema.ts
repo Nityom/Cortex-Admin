@@ -76,6 +76,7 @@ export default defineSchema({
     investigation: v.optional(v.string()),
     diagnosis: v.optional(v.string()),
     treatment_plan: v.optional(v.any()), // JSON array
+    findings: v.optional(v.string()),
     oral_exam_notes: v.optional(v.string()),
     selected_teeth: v.optional(v.any()), // JSON
     medicines: v.optional(v.any()), // JSON

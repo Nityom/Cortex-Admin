@@ -39,7 +39,7 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Link href={`/admin/prescription?edit=true&id=${prescription.id}&patientName=${encodeURIComponent(prescription.patient_name)}&age=${prescription.age}&sex=${prescription.sex}&phoneNumber=${encodeURIComponent(prescription.phone_number)}&chiefComplaint=${encodeURIComponent(prescription.chief_complaint || '')}&medicalHistory=${encodeURIComponent(prescription.medical_history || '')}&diagnosis=${encodeURIComponent(prescription.diagnosis || '')}&date=${prescription.prescription_date}&advice=${encodeURIComponent(prescription.advice || '')}&followupDate=${prescription.followup_date || ''}`}>
+                  <Link href={`/admin/prescription?edit=true&id=${prescription.id}&patientName=${encodeURIComponent(prescription.patient_name)}&age=${prescription.age}&sex=${prescription.sex}&phoneNumber=${encodeURIComponent(prescription.phone_number)}&chiefComplaint=${encodeURIComponent(prescription.chief_complaint || '')}&medicalHistory=${encodeURIComponent(prescription.medical_history || '')}&diagnosis=${encodeURIComponent(prescription.diagnosis || '')}&date=${prescription.prescription_date}&advice=${encodeURIComponent(prescription.advice || '')}&followupDate=${prescription.followup_date || ''}&findings=${encodeURIComponent(prescription.findings || prescription.oral_exam_notes || '')}`}>
                     <button
                       type="button"
                       title="Edit Prescription"
@@ -91,10 +91,14 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
                     />
                   </div>
                 </div>
-                {/* Oral Examination Details */}
-                {(prescription.oral_exam_notes || (prescription.selected_teeth && prescription.selected_teeth.length > 0)) && (
+                {/* Clinical Findings & Examination Details */}
+                {(prescription.findings || prescription.oral_exam_notes || (prescription.selected_teeth && prescription.selected_teeth.length > 0)) && (
                   <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-                    <h6 className="text-sm font-semibold text-emerald-800">Oral Examination:</h6>
+                    <h6 className="text-sm font-semibold text-emerald-800">
+                      {prescription.selected_teeth && prescription.selected_teeth.length > 0
+                        ? "Oral Examination & Clinical Findings:"
+                        : "Clinical Examination & Findings:"}
+                    </h6>
 
                     {prescription.selected_teeth && prescription.selected_teeth.length > 0 && (
                       <div className="mt-2">
@@ -112,10 +116,10 @@ const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ prescriptions
                       </div>
                     )}
 
-                    {prescription.oral_exam_notes && (
+                    {(prescription.findings || prescription.oral_exam_notes) && (
                       <div className="mt-2">
-                        <p className="text-sm font-medium text-emerald-700">Notes:</p>
-                        <p className="text-gray-700">{prescription.oral_exam_notes}</p>
+                        <p className="text-sm font-medium text-emerald-700">Clinical Findings:</p>
+                        <p className="text-gray-700 whitespace-pre-line">{prescription.findings || prescription.oral_exam_notes}</p>
                       </div>
                     )}
                   </div>

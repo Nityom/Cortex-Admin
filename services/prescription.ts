@@ -84,6 +84,7 @@ export interface Prescription {
   investigation?: string;
   diagnosis?: string;
   treatment_plan?: any; // can be string[] (legacy) or TreatmentPlanItem[]
+  findings?: string;
   oral_exam_notes?: string;
   dr_notes?: string;
   selected_teeth?: ToothData[];

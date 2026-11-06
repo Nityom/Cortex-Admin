@@ -675,8 +675,8 @@ export function usePrescriptionForm() {
       if (pastRx.advice) {
         setFormData((prev) => ({ ...prev, advice: pastRx.advice }));
       }
-      if (pastRx.findings) {
-        setFindingsText(pastRx.findings);
+      if (pastRx.findings || pastRx.oral_exam_notes) {
+        setFindingsText(pastRx.findings || pastRx.oral_exam_notes);
       }
       if (pastRx.dr_notes) {
         setDrNotes(pastRx.dr_notes);
@@ -794,8 +794,9 @@ export function usePrescriptionForm() {
       showTemplateToast('No previous prescription records found for this patient.');
       return;
     }
-    if (prev.findings) {
-      setFindingsText(prev.findings);
+    const pastFindings = (prev as any).findings || prev.oral_exam_notes;
+    if (pastFindings) {
+      setFindingsText(pastFindings);
       showTemplateToast(`Restored clinical findings from previous visit (${prev.prescription_date || ''})`);
     } else {
       showTemplateToast('No findings found in previous prescription.');
@@ -1154,6 +1155,7 @@ export function usePrescriptionForm() {
         medical_history: formData.mh,
         investigation: allInvestigations || undefined,
         diagnosis: allDiagnoses,
+        findings: allFindings || undefined,
         oral_exam_notes: allFindings || undefined,
         dr_notes: drNotes || undefined,
         medicines: medicinesWithQuantity,
@@ -1621,6 +1623,13 @@ export function usePrescriptionForm() {
               followupDate: existing.followup_date || '',
               reference_number: existing.reference_number,
             });
+            const existingFindings = (existing as any).findings || existing.oral_exam_notes;
+            if (existingFindings) {
+              setFindingsText(existingFindings);
+            }
+            if (existing.dr_notes) {
+              setDrNotes(existing.dr_notes);
+            }
             if (existing.medicines) {
               const parsedMeds = typeof existing.medicines === 'string' ? JSON.parse(existing.medicines) : existing.medicines;
               if (Array.isArray(parsedMeds)) setMedicines(parsedMeds);
@@ -1658,6 +1667,8 @@ export function usePrescriptionForm() {
             }));
           }
           if (qReference) setPatientReferenceNumber(qReference);
+          const qFindings = params.get('findings');
+          if (qFindings) setFindingsText(qFindings);
           const qBp = params.get('bp');
           if (qBp) {
             const parts = qBp.split('/');

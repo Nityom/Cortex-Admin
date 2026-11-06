@@ -240,6 +240,7 @@ export const create = mutation({
         investigation: v.optional(v.string()),
         diagnosis: v.optional(v.string()),
         treatment_plan: v.optional(v.any()), // JSON
+        findings: v.optional(v.string()),
         oral_exam_notes: v.optional(v.string()),
         selected_teeth: v.optional(v.any()), // JSON
         medicines: v.optional(v.any()), // JSON
@@ -339,6 +340,7 @@ export const update = mutation({
         investigation: v.optional(v.string()),
         diagnosis: v.optional(v.string()),
         treatment_plan: v.optional(v.any()), // JSON
+        findings: v.optional(v.string()),
         oral_exam_notes: v.optional(v.string()),
         selected_teeth: v.optional(v.any()), // JSON
         medicines: v.optional(v.any()), // JSON

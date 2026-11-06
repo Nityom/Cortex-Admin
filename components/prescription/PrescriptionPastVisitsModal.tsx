@@ -176,6 +176,11 @@ export default function PrescriptionPastVisitsModal({
                         CC: {visit.chief_complaint}
                       </p>
                     )}
+                    {(visit.findings || visit.oral_exam_notes) && (
+                      <p className="text-[10px] text-emerald-700 font-medium line-clamp-1 mt-0.5">
+                        Findings: {visit.findings || visit.oral_exam_notes}
+                      </p>
+                    )}
                   </div>
                 );
               })
@@ -198,7 +203,10 @@ export default function PrescriptionPastVisitsModal({
                   <button
                     type="button"
                     onClick={() => {
-                      onLoadPastPrescription(selectedVisit);
+                      onLoadPastPrescription({
+                        ...selectedVisit,
+                        findings: selectedVisit.findings || selectedVisit.oral_exam_notes,
+                      });
                       onClose();
                     }}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer text-xs"
@@ -227,6 +235,18 @@ export default function PrescriptionPastVisitsModal({
                     </p>
                   </div>
                 </div>
+
+                {/* Clinical Examination & Findings */}
+                {(selectedVisit.findings || selectedVisit.oral_exam_notes) && (
+                  <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block mb-1">
+                      Clinical Examination & Findings
+                    </span>
+                    <p className="font-medium text-slate-800 whitespace-pre-line text-xs">
+                      {selectedVisit.findings || selectedVisit.oral_exam_notes}
+                    </p>
+                  </div>
+                )}
 
                 {/* Vitals Summary */}
                 {selectedVisit.vitals && (
