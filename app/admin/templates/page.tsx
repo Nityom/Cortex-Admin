@@ -158,6 +158,7 @@ export default function TemplatesManagementPage() {
   const [sectionFormName, setSectionFormName] = useState<string>('');
   const [sectionFormCategory, setSectionFormCategory] = useState<string>('Orthopaedics');
   const [sectionFormContent, setSectionFormContent] = useState<string>('');
+  const [sectionFormMedicines, setSectionFormMedicines] = useState<MedicineEntry[]>([]);
 
   // Real-time bidirectional sync with Convex DB
   useEffect(() => {
@@ -342,6 +343,35 @@ export default function TemplatesManagementPage() {
     showToast(`Prescription template "${saved.name}" saved!`);
   };
 
+  // Section Medicines Row Handlers (When section is 'medicines')
+  const handleAddSectionMedicineRow = () => {
+    setSectionFormMedicines((prev) => [
+      ...prev,
+      {
+        name: '',
+        dosage: '1-0-1',
+        duration: '5 Days',
+        timing: 'After food',
+      },
+    ]);
+  };
+
+  const handleSectionMedicineChange = (
+    index: number,
+    field: keyof MedicineEntry,
+    value: any
+  ) => {
+    setSectionFormMedicines((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleRemoveSectionMedicineRow = (index: number) => {
+    setSectionFormMedicines((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // Open Section Template Modal
   const handleOpenCreateSectionModal = (targetKey?: string) => {
     const key =
@@ -356,6 +386,9 @@ export default function TemplatesManagementPage() {
     setSectionFormName('');
     setSectionFormCategory(selectedSpecialty !== 'All' ? selectedSpecialty : 'Orthopaedics');
     setSectionFormContent('');
+    setSectionFormMedicines([
+      { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
+    ]);
     setIsSectionModalOpen(true);
   };
 
@@ -364,6 +397,24 @@ export default function TemplatesManagementPage() {
     setSectionFormKey(item.sectionKey);
     setSectionFormName(item.name);
     setSectionFormCategory(item.category || 'Orthopaedics');
+
+    if (item.sectionKey === 'medicines' || Array.isArray(item.data)) {
+      if (Array.isArray(item.data)) {
+        setSectionFormMedicines(item.data);
+      } else if (typeof item.data === 'string') {
+        try {
+          const parsed = JSON.parse(item.data);
+          setSectionFormMedicines(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setSectionFormMedicines([]);
+        }
+      }
+    } else {
+      setSectionFormMedicines([
+        { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
+      ]);
+    }
+
     const contentString =
       typeof item.data === 'string'
         ? item.data
@@ -380,20 +431,32 @@ export default function TemplatesManagementPage() {
       alert('Please enter a template name');
       return;
     }
-    if (!sectionFormContent.trim()) {
-      alert('Please enter template content or instructions');
-      return;
-    }
 
-    let parsedData: any = sectionFormContent.trim();
-    if (
-      (sectionFormContent.trim().startsWith('[') && sectionFormContent.trim().endsWith(']')) ||
-      (sectionFormContent.trim().startsWith('{') && sectionFormContent.trim().endsWith('}'))
-    ) {
-      try {
-        parsedData = JSON.parse(sectionFormContent.trim());
-      } catch {
-        // Fall back to plain string
+    let parsedData: any;
+
+    if (sectionFormKey === 'medicines') {
+      const validMedicines = sectionFormMedicines.filter((m) => m.name.trim().length > 0);
+      if (validMedicines.length === 0) {
+        alert('Please add at least one medicine with a name to this template.');
+        return;
+      }
+      parsedData = validMedicines;
+    } else {
+      if (!sectionFormContent.trim()) {
+        alert('Please enter template content or instructions');
+        return;
+      }
+
+      parsedData = sectionFormContent.trim();
+      if (
+        (sectionFormContent.trim().startsWith('[') && sectionFormContent.trim().endsWith(']')) ||
+        (sectionFormContent.trim().startsWith('{') && sectionFormContent.trim().endsWith('}'))
+      ) {
+        try {
+          parsedData = JSON.parse(sectionFormContent.trim());
+        } catch {
+          // Fall back to plain string
+        }
       }
     }
 
@@ -429,6 +492,7 @@ export default function TemplatesManagementPage() {
   const SECTION_TABS = [
     { key: 'all', title: 'All Templates', count: prescriptionTemplates.length + sectionTemplates.length },
     { key: 'prescription', title: 'Master Prescriptions', count: prescriptionTemplates.length },
+    { key: 'medicines', title: 'Medicines & Rx Sets', count: sectionTemplates.filter((s) => s.sectionKey === 'medicines').length },
     { key: 'diagnosis', title: 'Diagnosis', count: sectionTemplates.filter((s) => s.sectionKey === 'diagnosis').length },
     { key: 'complaints', title: 'Complaints', count: sectionTemplates.filter((s) => s.sectionKey === 'complaints').length },
     { key: 'findings', title: 'Findings', count: sectionTemplates.filter((s) => s.sectionKey === 'findings').length },
@@ -753,16 +817,23 @@ export default function TemplatesManagementPage() {
                   {item.data}
                 </p>
               ) : Array.isArray(item.data) ? (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <span className="font-bold text-slate-500 uppercase text-[10px] block mb-1">
-                    Items ({item.data.length}):
+                    {item.sectionKey === 'medicines' ? 'Medicines' : 'Items'} ({item.data.length}):
                   </span>
                   {item.data.slice(0, 3).map((sub: any, i: number) => (
                     <div
                       key={i}
-                      className="p-1.5 rounded-md bg-white border border-slate-200 text-slate-800 text-[11px] font-medium truncate"
+                      className="p-1.5 rounded-md bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold flex items-center justify-between gap-1 shadow-2xs"
                     >
-                      {sub.complaint || sub.name || sub.diagnosis || JSON.stringify(sub)}
+                      <span className="truncate">
+                        {sub.name || sub.complaint || sub.diagnosis || JSON.stringify(sub)}
+                      </span>
+                      {sub.dosage && (
+                        <span className="shrink-0 px-1.5 py-0.2 bg-emerald-50 text-emerald-800 text-[10px] font-mono font-bold rounded border border-emerald-200">
+                          {sub.dosage}
+                        </span>
+                      )}
                     </div>
                   ))}
                   {item.data.length > 3 && (
@@ -859,12 +930,26 @@ export default function TemplatesManagementPage() {
       {/* MODAL 1: Create / Edit Section Template */}
       {isSectionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95">
+          <div
+            className={`bg-white rounded-2xl border border-slate-200 shadow-2xl ${
+              sectionFormKey === 'medicines' ? 'max-w-4xl max-h-[92vh] flex flex-col' : 'max-w-lg'
+            } w-full overflow-hidden animate-in fade-in zoom-in-95`}
+          >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-emerald-50/50">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
+                {sectionFormKey === 'medicines' ? (
+                  <Pill className="w-5 h-5 text-emerald-600" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                )}
                 <h3 className="text-base font-bold text-slate-900">
-                  {editingSectionTemplate ? 'Edit Section Template' : 'Create Clinical Section Template'}
+                  {editingSectionTemplate
+                    ? sectionFormKey === 'medicines'
+                      ? 'Edit Medicine Set Template'
+                      : 'Edit Section Template'
+                    : sectionFormKey === 'medicines'
+                    ? 'Create Medicine Set Template'
+                    : 'Create Clinical Section Template'}
                 </h3>
               </div>
               <button
@@ -876,63 +961,213 @@ export default function TemplatesManagementPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveSectionModal} className="p-5 space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Clinical Section *</label>
-                <select
-                  value={sectionFormKey}
-                  onChange={(e) => setSectionFormKey(e.target.value)}
-                  disabled={!!editingSectionTemplate}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  {ALL_CLINICAL_SECTION_KEYS.map((key) => (
-                    <option key={key} value={key}>
-                      {SECTION_METADATA[key]?.title || key}
-                    </option>
-                  ))}
-                </select>
+            <form
+              onSubmit={handleSaveSectionModal}
+              className={`p-5 space-y-4 text-xs ${
+                sectionFormKey === 'medicines' ? 'overflow-y-auto' : ''
+              }`}
+            >
+              <div className={sectionFormKey === 'medicines' ? 'grid grid-cols-1 md:grid-cols-3 gap-3' : 'space-y-4'}>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Clinical Section *</label>
+                  <select
+                    value={sectionFormKey}
+                    onChange={(e) => {
+                      setSectionFormKey(e.target.value);
+                      if (e.target.value === 'medicines' && sectionFormMedicines.length === 0) {
+                        setSectionFormMedicines([
+                          { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
+                        ]);
+                      }
+                    }}
+                    disabled={!!editingSectionTemplate}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {ALL_CLINICAL_SECTION_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {SECTION_METADATA[key]?.title || key}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={sectionFormKey === 'medicines' ? 'md:col-span-1' : ''}>
+                  <label className="block font-bold text-slate-700 mb-1">Template Name *</label>
+                  <input
+                    type="text"
+                    value={sectionFormName}
+                    onChange={(e) => setSectionFormName(e.target.value)}
+                    placeholder={
+                      sectionFormKey === 'medicines'
+                        ? 'e.g. Post-op Knee Protocol, Fever Kit...'
+                        : 'e.g. Lumbar Spondylosis Protocol, Viral Fever Advice...'
+                    }
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Medical Specialty</label>
+                  <select
+                    value={sectionFormCategory}
+                    onChange={(e) => setSectionFormCategory(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {SPECIALTIES.filter((s) => s !== 'All').map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Template Name *</label>
-                <input
-                  type="text"
-                  value={sectionFormName}
-                  onChange={(e) => setSectionFormName(e.target.value)}
-                  placeholder="e.g. Lumbar Spondylosis Protocol, Viral Fever Advice..."
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-              </div>
+              {sectionFormKey === 'medicines' ? (
+                <div className="space-y-2 border border-slate-200 rounded-xl p-3.5 bg-slate-50/70">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <Pill className="w-4 h-4 text-emerald-600" />
+                      <label className="font-bold text-slate-800 text-sm">
+                        Medicines Table ({sectionFormMedicines.length})
+                      </label>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddSectionMedicineRow}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Medicine
+                    </button>
+                  </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Medical Specialty</label>
-                <select
-                  value={sectionFormCategory}
-                  onChange={(e) => setSectionFormCategory(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  {SPECIALTIES.filter((s) => s !== 'All').map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  {sectionFormMedicines.length === 0 ? (
+                    <div className="text-center py-4 text-slate-400 italic">
+                      No medicines in this template. Click &quot;+ Add Medicine&quot; to include prescription drugs.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                      {sectionFormMedicines.map((med, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs space-y-2 hover:border-emerald-300 transition"
+                        >
+                          <div className="grid grid-cols-12 gap-2 items-center">
+                            {/* Medicine Name with Autocomplete */}
+                            <div className="col-span-12 sm:col-span-5">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                                Medicine Name *
+                              </label>
+                              <input
+                                type="text"
+                                list={`section-med-datalist-${idx}`}
+                                value={med.name}
+                                onChange={(e) => handleSectionMedicineChange(idx, 'name', e.target.value)}
+                                placeholder="e.g. TAB ACECLOFENAC 100 MG..."
+                                className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                                required
+                              />
+                              <datalist id={`section-med-datalist-${idx}`}>
+                                {availableMedicines.slice(0, 50).map((m) => (
+                                  <option key={m.id || m.name} value={m.name}>
+                                    {m.composition || m.company || ''}
+                                  </option>
+                                ))}
+                              </datalist>
+                            </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  Template Content / Clinical Text *
-                </label>
-                <textarea
-                  value={sectionFormContent}
-                  onChange={(e) => setSectionFormContent(e.target.value)}
-                  rows={6}
-                  placeholder={`Enter standard clinical text, advice, findings, or notes for this template...`}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 font-sans leading-relaxed text-xs"
-                  required
-                />
-              </div>
+                            {/* Dosage Dropdown */}
+                            <div className="col-span-6 sm:col-span-3">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                                Dosage
+                              </label>
+                              <select
+                                value={med.dosage || '1-0-1'}
+                                onChange={(e) => handleSectionMedicineChange(idx, 'dosage', e.target.value)}
+                                className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none"
+                              >
+                                <option value="1-0-1">1-0-1 (Morning & Night)</option>
+                                <option value="1-1-1">1-1-1 (Thrice daily)</option>
+                                <option value="1-0-0">1-0-0 (Morning only)</option>
+                                <option value="0-0-1">0-0-1 (Night only)</option>
+                                <option value="0-1-0">0-1-0 (Afternoon only)</option>
+                                <option value="1-1-0">1-1-0 (Morning & Afternoon)</option>
+                                <option value="0-1-1">0-1-1 (Afternoon & Night)</option>
+                                <option value="1-1-1-1">1-1-1-1 (Four times daily)</option>
+                                <option value="1-0-0-1">1-0-0-1 (Morning & Bedtime)</option>
+                                <option value="SOS">SOS (When required)</option>
+                                <option value="Stat">Stat (Immediately)</option>
+                              </select>
+                            </div>
+
+                            {/* Duration */}
+                            <div className="col-span-4 sm:col-span-2">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                                Duration
+                              </label>
+                              <input
+                                type="text"
+                                value={med.duration || ''}
+                                onChange={(e) => handleSectionMedicineChange(idx, 'duration', e.target.value)}
+                                placeholder="5 Days"
+                                className="w-full p-2 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                              />
+                            </div>
+
+                            {/* Remove Row Button */}
+                            <div className="col-span-2 sm:col-span-2 flex items-end justify-end">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSectionMedicineRow(idx)}
+                                className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                title="Remove Medicine"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Timing (Marathi with आणि) and Special Instructions */}
+                          <div className="grid grid-cols-12 gap-2 pt-1 border-t border-slate-100">
+                            <div className="col-span-12 sm:col-span-7">
+                              <input
+                                type="text"
+                                value={med.timing || ''}
+                                onChange={(e) => handleSectionMedicineChange(idx, 'timing', e.target.value)}
+                                placeholder="Timing (e.g. सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर / After Food)"
+                                className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                              />
+                            </div>
+                            <div className="col-span-12 sm:col-span-5">
+                              <input
+                                type="text"
+                                value={med.note || ''}
+                                onChange={(e) => handleSectionMedicineChange(idx, 'note', e.target.value)}
+                                placeholder="Special note (e.g. With warm water/milk)"
+                                className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Template Content / Clinical Text *
+                  </label>
+                  <textarea
+                    value={sectionFormContent}
+                    onChange={(e) => setSectionFormContent(e.target.value)}
+                    rows={6}
+                    placeholder="Enter standard clinical text, advice, findings, or notes for this template..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 font-sans leading-relaxed text-xs"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
