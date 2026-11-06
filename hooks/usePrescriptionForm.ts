@@ -332,6 +332,12 @@ export function usePrescriptionForm() {
     };
   }, [opdVisitId, selectedDoctorName]);
 
+  // Detect if current doctor is Gynae specialist
+  const isGynaeDoc = useMemo(() => {
+    const doc = (selectedDoctorName || '').toLowerCase();
+    return doc.includes('shilpa') || doc.includes('shillpa') || doc.includes('gyn');
+  }, [selectedDoctorName]);
+
   // Auto-calculate EDD (Naegele's rule: LMP + 280 days) & Gestational Age (from LMP to visit date)
   useEffect(() => {
     if (!lmpDate) {
@@ -625,54 +631,61 @@ export function usePrescriptionForm() {
   };
 
   // Load Past Prescription into Form
-  const handleLoadPastPrescription = (pastRx: any) => {
-    if (!pastRx) return;
+  const handleLoadPastPrescription = useCallback(
+    (pastRx: any, isGynaeAutoFill: boolean = false) => {
+      if (!pastRx) return;
 
-    if (pastRx.diagnosis) {
-      setFormData((prev) => ({ ...prev, de: pastRx.diagnosis }));
-      setDiagnosesList([{ id: 'd_past_1', diagnosis: pastRx.diagnosis, snomed_code: '', duration: '', date: '' }]);
-    }
-    if (pastRx.chief_complaint) {
-      setFormData((prev) => ({ ...prev, cc: pastRx.chief_complaint }));
-      setComplaintsList([
-        { id: 'c_past_1', complaint: pastRx.chief_complaint, frequency: 'Regular', severity: 'Moderate', duration: '' },
-      ]);
-    }
-    if (pastRx.medicines) {
-      const meds = Array.isArray(pastRx.medicines)
-        ? pastRx.medicines
-        : typeof pastRx.medicines === 'string'
-        ? JSON.parse(pastRx.medicines)
-        : [];
-      if (meds.length > 0) setMedicines(meds);
-    }
-    if (pastRx.advice) {
-      setFormData((prev) => ({ ...prev, advice: pastRx.advice }));
-    }
-    if (pastRx.vitals) {
-      const v = pastRx.vitals;
-      if (v.bp_systolic) setBpSystolic(v.bp_systolic);
-      if (v.bp_diastolic) setBpDiastolic(v.bp_diastolic);
-      if (v.pulse) setPulseVal(v.pulse);
-      if (v.spo2) setSpo2Val(v.spo2);
-      if (v.weight) setWeightVal(v.weight);
-      if (v.height) setHeightVal(v.height);
-      if (v.temperature) setTempVal(v.temperature);
-      if (v.lmp || v.edd) {
-        autoPopulateAntenatalFromPastRx([pastRx], formData.date || todayDate);
-      } else if (v.gestational_age) {
-        const parts = String(v.gestational_age).split(' ');
-        if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
-        if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
+      if (pastRx.diagnosis) {
+        setFormData((prev) => ({ ...prev, de: pastRx.diagnosis }));
+        setDiagnosesList([{ id: 'd_past_1', diagnosis: pastRx.diagnosis, snomed_code: '', duration: '', date: '' }]);
       }
-    }
+      if (pastRx.chief_complaint) {
+        setFormData((prev) => ({ ...prev, cc: pastRx.chief_complaint }));
+        setComplaintsList([
+          { id: 'c_past_1', complaint: pastRx.chief_complaint, frequency: 'Regular', severity: 'Moderate', duration: '' },
+        ]);
+      }
+      if (pastRx.medicines) {
+        const meds = Array.isArray(pastRx.medicines)
+          ? pastRx.medicines
+          : typeof pastRx.medicines === 'string'
+          ? JSON.parse(pastRx.medicines)
+          : [];
+        if (meds.length > 0) setMedicines(meds);
+      }
+      if (pastRx.advice) {
+        setFormData((prev) => ({ ...prev, advice: pastRx.advice }));
+      }
+      if (pastRx.vitals) {
+        const v = pastRx.vitals;
+        if (v.bp_systolic) setBpSystolic(v.bp_systolic);
+        if (v.bp_diastolic) setBpDiastolic(v.bp_diastolic);
+        if (v.pulse) setPulseVal(v.pulse);
+        if (v.spo2) setSpo2Val(v.spo2);
+        if (v.weight) setWeightVal(v.weight);
+        if (v.height) setHeightVal(v.height);
+        if (v.temperature) setTempVal(v.temperature);
+        if (v.lmp || v.edd) {
+          autoPopulateAntenatalFromPastRx([pastRx], formData.date || todayDate);
+        } else if (v.gestational_age) {
+          const parts = String(v.gestational_age).split(' ');
+          if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
+          if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
+        }
+      }
 
-    setIsNewPatient(false);
-    setConsultationCharge(200);
+      setIsNewPatient(false);
+      setConsultationCharge(200);
 
-    const visitDateStr = pastRx.prescription_date || 'past consultation';
-    showTemplateToast(`Loaded records from visit (${visitDateStr}) into active prescription!`);
-  };
+      const visitDateStr = pastRx.prescription_date || 'past consultation';
+      if (isGynaeAutoFill) {
+        showTemplateToast(`Gynae Repeat Visit: Auto-filled previous prescription (${visitDateStr})`);
+      } else {
+        showTemplateToast(`Loaded records from visit (${visitDateStr}) into active prescription!`);
+      }
+    },
+    [autoPopulateAntenatalFromPastRx, formData.date, todayDate]
+  );
 
   // Apply Master Prescription Template
   const applyPrescriptionTemplate = useCallback(
@@ -813,6 +826,8 @@ export function usePrescriptionForm() {
           }
           setIsNewPatient(false);
 
+          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
+
           // Check if patient visited within 10 days
           let isWithin10Days = false;
           if (existingPatient.reference_number) {
@@ -824,20 +839,28 @@ export function usePrescriptionForm() {
                 const diffDays = (new Date().getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24);
                 isWithin10Days = diffDays >= 0 && diffDays <= 10;
 
-                // Auto-populate & recalculate antenatal EDD / LMP / GA for 2nd / repeat visit
-                autoPopulateAntenatalFromPastRx(pastRx, formData.date || todayDate);
+                if (isGynae && sorted[0] && !isEditMode && !prescriptionId) {
+                  // Auto-fill entire previous prescription for Gynae repeat patient
+                  handleLoadPastPrescription(sorted[0], true);
+                } else {
+                  // Auto-populate & recalculate antenatal EDD / LMP / GA for 2nd / repeat visit
+                  autoPopulateAntenatalFromPastRx(pastRx, formData.date || todayDate);
+                }
               }
             } catch {}
           } else {
             try {
               const latestRx = await getLatestPrescriptionByPhone(phoneNumber);
               if (latestRx) {
-                autoPopulateAntenatalFromPastRx([latestRx], formData.date || todayDate);
+                if (isGynae && !isEditMode && !prescriptionId) {
+                  handleLoadPastPrescription(latestRx, true);
+                } else {
+                  autoPopulateAntenatalFromPastRx([latestRx], formData.date || todayDate);
+                }
               }
             } catch {}
           }
 
-          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
           const fee = isGynae
             ? (isWithin10Days ? 100 : 200)
             : (isWithin10Days ? 200 : 400);
@@ -964,17 +987,13 @@ export function usePrescriptionForm() {
         }
       }
 
-      // Update OPD status if visit was linked
-      if (opdVisitId && (api as any).opd?.updateVisitStatus) {
+      // Update OPD status if visit was linked (both in Convex DB and local cache)
+      if (opdVisitId) {
         try {
-          await convexClient.mutation((api as any).opd.updateVisitStatus, {
-            id: opdVisitId as any,
-            status: 'Completed',
-            doctor_name: selectedDoctorName || 'Dr. Vipeen Raut',
-            notes: 'Consultation completed & prescription recorded',
-            staff_name: selectedDoctorName || 'Doctor',
-          });
-        } catch {}
+          await opdQueueService.updateStatus(opdVisitId, 'Completed');
+        } catch (queueErr) {
+          console.warn('Could not update opdQueueService status to Completed:', queueErr);
+        }
       }
 
       updateLocalOpdQueue(opdVisitId || undefined, patient.reference_number, formData.phoneNumber);
@@ -1430,6 +1449,8 @@ export function usePrescriptionForm() {
           const qLmp = params.get('lmp');
           if (qLmp) setLmpDate(qLmp);
 
+          const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('shilpa') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('shillpa');
+
           if (qPhone && qPhone.length === 10) {
             const existingPatient = await getPatientByPhoneNumber(qPhone);
             if (existingPatient) {
@@ -1443,7 +1464,12 @@ export function usePrescriptionForm() {
                 try {
                   const pastRx = await getPrescriptionsByPatient(targetRef);
                   if (pastRx && pastRx.length > 0) {
-                    autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+                    const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
+                    if (isGynaeDoc && sortedPast[0]) {
+                      handleLoadPastPrescription(sortedPast[0], true);
+                    } else {
+                      autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+                    }
                   }
                 } catch (e) {
                   console.warn('Could not auto-populate antenatal data by reference in initPage:', e);
@@ -1453,7 +1479,11 @@ export function usePrescriptionForm() {
               try {
                 const latestRx = await getLatestPrescriptionByPhone(qPhone);
                 if (latestRx) {
-                  autoPopulateAntenatalFromPastRx([latestRx], todayDate);
+                  if (isGynaeDoc) {
+                    handleLoadPastPrescription(latestRx, true);
+                  } else {
+                    autoPopulateAntenatalFromPastRx([latestRx], todayDate);
+                  }
                 }
               } catch (e) {
                 console.warn('Could not auto-populate antenatal data by phone in initPage:', e);
@@ -1463,7 +1493,12 @@ export function usePrescriptionForm() {
             try {
               const pastRx = await getPrescriptionsByPatient(qReference);
               if (pastRx && pastRx.length > 0) {
-                autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+                const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
+                if (isGynaeDoc && sortedPast[0]) {
+                  handleLoadPastPrescription(sortedPast[0], true);
+                } else {
+                  autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+                }
               }
             } catch (e) {
               console.warn('Could not auto-populate antenatal data by qReference in initPage:', e);
@@ -1480,7 +1515,7 @@ export function usePrescriptionForm() {
     };
 
     initPage();
-  }, [applyPrescriptionTemplate, autoPopulateAntenatalFromPastRx, todayDate]);
+  }, [applyPrescriptionTemplate, autoPopulateAntenatalFromPastRx, handleLoadPastPrescription, todayDate]);
 
   return {
     // Basic Form
@@ -1504,6 +1539,7 @@ export function usePrescriptionForm() {
     handleDoctorSelect,
     includeSignature,
     setIncludeSignature,
+    isGynaeDoc,
 
     // Consultation & Billing
     isNewPatient,

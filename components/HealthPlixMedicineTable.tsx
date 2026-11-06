@@ -41,7 +41,30 @@ interface HealthPlixMedicineTableProps {
   onAutoSaveMedicine?: (name: string, composition?: string) => void;
 }
 
-const DOSAGE_OPTIONS = ['0-0-1', '1-0-0', '1-0-1', '1-1-1', '0-1-0', '1-1-0', '0-0-2', '1-0-2', 'Stat', 'SOS', 'As Directed'];
+const DOSAGE_OPTIONS = [
+  '1-0-0',
+  '0-1-0',
+  '0-0-1',
+  '1-0-1',
+  '1-1-0',
+  '0-1-1',
+  '1-1-1',
+  '1/2-0-0',
+  '0-0-1/2',
+  '1/2-0-1/2',
+  '1-0-1/2',
+  '1/2-0-1',
+  '2-0-0',
+  '0-0-2',
+  '1-0-2',
+  '2-0-1',
+  '2-0-2',
+  '1-1-1-1',
+  '1-0-0-1',
+  'Stat',
+  'SOS',
+  'As Directed',
+];
 const UNIT_OPTIONS = ['tab', 'cap', 'ml', 'lotion', 'ointment', 'drops', 'sachet', 'spray', 'syrup', 'inj'];
 const TIME_OPTIONS = ['', 'Morning', 'Afternoon', 'Night', 'Bedtime', 'Morning & Night', '8 Hourly', '12 Hourly'];
 const WHEN_OPTIONS = ['After Food', 'Before Food', 'With Food', 'Empty Stomach', 'At Bedtime', 'As Directed'];
@@ -132,17 +155,19 @@ const getLinkedMedicineDefaults = (name: string): LinkedMedicineProfile => {
 };
 
 const NOTE_PRESETS = [
-  'नाश्त्यानंतर',
+  'सकाळी नाश्त्यानंतर',
   'दुपारी जेवणानंतर',
   'रात्री जेवणानंतर',
-  'नाश्त्यानंतर व रात्री जेवणानंतर',
-  'नाश्त्यानंतर, दुपारी व रात्री जेवणानंतर',
+  'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर',
+  'सकाळी नाश्त्यानंतर आणि दुपारी जेवणानंतर',
+  'दुपारी जेवणानंतर आणि रात्री जेवणानंतर',
+  'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर',
   'सकाळी उपाशीपोटी',
   'जेवणाआधी',
   'जेवणानंतर',
   'पाण्यासोबत घ्यावे',
   'दूधासोबत घ्यावे',
-  'गरज भासल्यास',
+  'गरज भासल्यास (SOS)',
   'केसांच्या मुळाशी',
   'Take with plenty of water',
   'Apply gently on affected area',
@@ -534,7 +559,7 @@ export default function HealthPlixMedicineTable({
 
       if (isDefaultOrEmptyNote) {
         if (dClean === '1-0-0') {
-          sch.notes = 'नाश्त्यानंतर';
+          sch.notes = 'सकाळी नाश्त्यानंतर';
           sch.time = 'Morning';
           sch.when = 'After Food';
         } else if (dClean === '0-1-0') {
@@ -546,13 +571,41 @@ export default function HealthPlixMedicineTable({
           sch.time = 'Night';
           sch.when = 'After Food';
         } else if (dClean === '1-0-1') {
-          sch.notes = 'नाश्त्यानंतर व रात्री जेवणानंतर';
+          sch.notes = 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर';
           sch.time = 'Morning & Night';
           sch.when = 'After Food';
+        } else if (dClean === '1-1-0') {
+          sch.notes = 'सकाळी नाश्त्यानंतर आणि दुपारी जेवणानंतर';
+          sch.time = 'Morning & Afternoon';
+          sch.when = 'After Food';
+        } else if (dClean === '0-1-1') {
+          sch.notes = 'दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
+          sch.time = 'Afternoon & Night';
+          sch.when = 'After Food';
         } else if (dClean === '1-1-1') {
-          sch.notes = 'नाश्त्यानंतर, दुपारी व रात्री जेवणानंतर';
+          sch.notes = 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
           sch.time = 'Morning, Afternoon & Night';
           sch.when = 'After Food';
+        } else if (dClean === '1/2-0-1/2' || dClean === '0.5-0-0.5') {
+          sch.notes = 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर (अर्धी गोळी)';
+          sch.time = 'Morning & Night';
+          sch.when = 'After Food';
+        } else if (dClean === '2-0-2') {
+          sch.notes = 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर (२ गोळ्या)';
+          sch.time = 'Morning & Night';
+          sch.when = 'After Food';
+        } else if (dClean === '1-1-1-1') {
+          sch.notes = 'दिवसातून ४ वेळा (सकाळी, दुपारी, संध्याकाळी आणि रात्री जेवणानंतर)';
+          sch.time = '4 Times a Day';
+          sch.when = 'After Food';
+        } else if (dClean === 'sos') {
+          sch.notes = 'गरज भासल्यास (SOS)';
+          sch.time = 'SOS';
+          sch.when = 'As Directed';
+        } else if (dClean === 'stat') {
+          sch.notes = 'तातडीने (STAT)';
+          sch.time = 'Stat';
+          sch.when = 'Immediate';
         }
       }
     }

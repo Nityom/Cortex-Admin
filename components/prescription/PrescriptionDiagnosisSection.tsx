@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Plus, Undo2, Trash2, Check, Loader2, Search } from 'lucide-react';
+import { Plus, Undo2, Trash2, Check, Loader2, Search, Sparkles } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 import {
   getDiagnosisSuggestions,
   saveMultipleDiagnoses,
   autoSavePrescriptionDiagnosis,
 } from '@/services/prescription';
+import { getAllTemplates, PrescriptionTemplate } from '@/services/templates';
+import { CLINICAL_SECTION_PRESETS, getSectionCustomTemplates } from '@/services/clinicalSectionPresets';
 
 export interface DiagnosisRow {
   id: string;
@@ -18,10 +20,13 @@ export interface DiagnosisRow {
 }
 
 export interface LinkedDiagnosis {
+  type?: 'catalog' | 'template' | 'preset' | 'db';
   name: string;
   snomed_code: string;
   duration: string;
   category?: string;
+  label?: string;
+  templateObj?: PrescriptionTemplate;
 }
 
 // Built-in clinical catalog linking Diagnosis + SNOMED/ICD + Duration
@@ -99,6 +104,7 @@ interface PrescriptionDiagnosisSectionProps {
   date?: string;
   prescriptionId?: string;
   isGynae?: boolean;
+  onApplyMasterTemplate?: (tmpl: PrescriptionTemplate) => void;
 }
 
 export default function PrescriptionDiagnosisSection({
@@ -109,6 +115,7 @@ export default function PrescriptionDiagnosisSection({
   date = new Date().toISOString().slice(0, 10),
   prescriptionId,
   isGynae = false,
+  onApplyMasterTemplate,
 }: PrescriptionDiagnosisSectionProps) {
   // Inline Add Row state
   const [newDiagnosis, setNewDiagnosis] = useState('');
@@ -118,6 +125,11 @@ export default function PrescriptionDiagnosisSection({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Gynae mode template & diagnosis suggestions state
+  const [gynaeQuery, setGynaeQuery] = useState('');
+  const [showGynaeSuggestions, setShowGynaeSuggestions] = useState(false);
+  const gynaeBoxRef = useRef<HTMLDivElement>(null);
 
   const inlineInputRef = useRef<HTMLInputElement>(null);
   const suggestionsBoxRef = useRef<HTMLDivElement>(null);
@@ -205,26 +217,78 @@ export default function PrescriptionDiagnosisSection({
       ) {
         setShowSuggestions(false);
       }
+      if (
+        gynaeBoxRef.current &&
+        !gynaeBoxRef.current.contains(e.target as Node)
+      ) {
+        setShowGynaeSuggestions(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Merge built-in catalog + saved custom linkages + Convex DB suggestions
+  // Merge built-in catalog + saved custom linkages + master templates + section presets + Convex DB suggestions
   const mergedSuggestions = useMemo(() => {
     const q = newDiagnosis.trim().toLowerCase();
     const customLinks = getCustomDiagnosisLinks();
     const map = new Map<string, LinkedDiagnosis>();
 
-    // 1. Add from built-in clinical catalog
+    // 1. Add Master Templates matching query
+    try {
+      const allTemplates = getAllTemplates();
+      for (const tmpl of allTemplates) {
+        const matchName = tmpl.name.toLowerCase();
+        const matchDiag = (tmpl.diagnosis || '').toLowerCase();
+        if (!q || matchName.includes(q) || matchDiag.includes(q)) {
+          const key = `tmpl_${tmpl.id}`;
+          map.set(key, {
+            type: 'template',
+            name: tmpl.diagnosis ? tmpl.diagnosis.split(',')[0].trim() || tmpl.name : tmpl.name,
+            label: `⭐ [Template] ${tmpl.name}${tmpl.diagnosis ? ` (${tmpl.diagnosis})` : ''}`,
+            snomed_code: '',
+            duration: '',
+            category: tmpl.category || 'Template',
+            templateObj: tmpl,
+          });
+        }
+      }
+    } catch {}
+
+    // 2. Add Section Presets
+    try {
+      const presets = [
+        ...(CLINICAL_SECTION_PRESETS.diagnosis || []),
+        ...getSectionCustomTemplates('diagnosis'),
+      ];
+      for (const p of presets) {
+        const pDataStr = typeof p.data === 'string' ? p.data : p.name;
+        if (!q || p.name.toLowerCase().includes(q) || pDataStr.toLowerCase().includes(q)) {
+          const key = `preset_${p.id}`;
+          map.set(key, {
+            type: 'preset',
+            name: pDataStr,
+            label: `⚡ [Preset] ${p.name}`,
+            snomed_code: '',
+            duration: '',
+            category: p.category || 'Preset',
+          });
+        }
+      }
+    } catch {}
+
+    // 3. Add from built-in clinical catalog
     for (const item of CLINICAL_DIAGNOSES_CATALOG) {
-      map.set(item.name.toLowerCase(), item);
+      if (!map.has(item.name.toLowerCase())) {
+        map.set(item.name.toLowerCase(), { ...item, type: 'catalog' });
+      }
     }
 
-    // 2. Add from custom linkages
+    // 4. Add from custom linkages
     for (const [key, val] of Object.entries(customLinks)) {
       if (!map.has(key)) {
         map.set(key, {
+          type: 'catalog',
           name: key.toUpperCase(),
           snomed_code: val.snomed || '',
           duration: val.duration || '',
@@ -236,11 +300,12 @@ export default function PrescriptionDiagnosisSection({
       }
     }
 
-    // 3. Add from Convex DB suggestions
+    // 5. Add from Convex DB suggestions
     for (const name of dbSuggestions) {
       const key = name.trim().toLowerCase();
       if (!map.has(key)) {
         map.set(key, {
+          type: 'db',
           name: name.trim(),
           snomed_code: '',
           duration: '',
@@ -254,25 +319,37 @@ export default function PrescriptionDiagnosisSection({
     }
 
     return all
-      .filter((item) => item.name.toLowerCase().includes(q))
+      .filter((item) => {
+        const n = (item.label || item.name).toLowerCase();
+        return n.includes(q);
+      })
       .sort((a, b) => {
-        const aStarts = a.name.toLowerCase().startsWith(q);
-        const bStarts = b.name.toLowerCase().startsWith(q);
+        if (a.type === 'template' && b.type !== 'template') return -1;
+        if (b.type === 'template' && a.type !== 'template') return 1;
+        if (a.type === 'preset' && b.type !== 'preset') return -1;
+        if (b.type === 'preset' && a.type !== 'preset') return 1;
+        const aStarts = (a.label || a.name).toLowerCase().startsWith(q);
+        const bStarts = (b.label || b.name).toLowerCase().startsWith(q);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
-        return a.name.localeCompare(b.name);
+        return (a.label || a.name).localeCompare(b.label || b.name);
       })
       .slice(0, 15);
   }, [newDiagnosis, dbSuggestions]);
 
-  // When selecting a suggestion, auto-fill all 3 linked fields and add to table!
+  // When selecting a suggestion, auto-fill linked fields or apply template!
   const handleSelectSuggestion = (item: LinkedDiagnosis) => {
+    if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
+      onApplyMasterTemplate(item.templateObj);
+    }
+
+    const diagText = item.templateObj?.diagnosis || item.name;
     const snomed = item.snomed_code || newSnomed.trim();
     const duration = item.duration || newDuration.trim();
 
     const newRow: DiagnosisRow = {
       id: 'diag_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      diagnosis: item.name,
+      diagnosis: diagText,
       snomed_code: snomed,
       duration: duration,
       date: date || new Date().toISOString().slice(0, 10),
@@ -283,13 +360,106 @@ export default function PrescriptionDiagnosisSection({
     onUpdateDiagnosisSummary(updated.map((d) => d.diagnosis).filter(Boolean).join(', '));
     scheduleAutoSave(updated);
 
-    // Save custom link of all 3 fields together
-    saveCustomDiagnosisLink(item.name, snomed, duration);
+    if (item.type === 'catalog' || item.type === 'db') {
+      saveCustomDiagnosisLink(item.name, snomed, duration);
+    }
 
     setNewDiagnosis('');
     setNewSnomed('');
     setNewDuration('');
     setShowSuggestions(false);
+  };
+
+  // Suggestions for Gynae mode (templates, presets, diagnoses)
+  const gynaeSuggestions = useMemo(() => {
+    const q = gynaeQuery.trim().toLowerCase();
+    const list: LinkedDiagnosis[] = [];
+
+    // Master templates
+    try {
+      const allTemplates = getAllTemplates();
+      for (const tmpl of allTemplates) {
+        const matchName = tmpl.name.toLowerCase();
+        const matchDiag = (tmpl.diagnosis || '').toLowerCase();
+        if (!q || matchName.includes(q) || matchDiag.includes(q)) {
+          list.push({
+            type: 'template',
+            name: tmpl.diagnosis || tmpl.name,
+            label: `⭐ [Template] ${tmpl.name}${tmpl.diagnosis ? ` (${tmpl.diagnosis})` : ''}`,
+            snomed_code: '',
+            duration: '',
+            category: tmpl.category || 'Template',
+            templateObj: tmpl,
+          });
+        }
+      }
+    } catch {}
+
+    // Presets
+    try {
+      const presets = [
+        ...(CLINICAL_SECTION_PRESETS.diagnosis || []),
+        ...getSectionCustomTemplates('diagnosis'),
+      ];
+      for (const p of presets) {
+        const pDataStr = typeof p.data === 'string' ? p.data : p.name;
+        if (!q || p.name.toLowerCase().includes(q) || pDataStr.toLowerCase().includes(q)) {
+          list.push({
+            type: 'preset',
+            name: pDataStr,
+            label: `⚡ [Preset] ${p.name}`,
+            snomed_code: '',
+            duration: '',
+            category: p.category || 'Preset',
+          });
+        }
+      }
+    } catch {}
+
+    // Built-in catalog & Convex suggestions
+    for (const c of CLINICAL_DIAGNOSES_CATALOG) {
+      if (!q || c.name.toLowerCase().includes(q)) {
+        list.push({ ...c, type: 'catalog' });
+      }
+    }
+    for (const d of dbSuggestions) {
+      if (!q || d.toLowerCase().includes(q)) {
+        list.push({ name: d, snomed_code: '', duration: '', type: 'db' });
+      }
+    }
+
+    if (!q) return list.slice(0, 10);
+    return list
+      .sort((a, b) => {
+        if (a.type === 'template' && b.type !== 'template') return -1;
+        if (b.type === 'template' && a.type !== 'template') return 1;
+        if (a.type === 'preset' && b.type !== 'preset') return -1;
+        if (b.type === 'preset' && a.type !== 'preset') return 1;
+        return 0;
+      })
+      .slice(0, 15);
+  }, [gynaeQuery, dbSuggestions]);
+
+  const handleSelectGynaeSuggestion = (item: LinkedDiagnosis) => {
+    if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
+      onApplyMasterTemplate(item.templateObj);
+    }
+
+    const diagText = item.templateObj?.diagnosis || item.name;
+    const current = (diagnosisSummary || '').trim();
+    const updatedText = current ? `${current}, ${diagText}` : diagText;
+
+    onUpdateDiagnosisSummary(updatedText);
+    const singleRow: DiagnosisRow = {
+      id: 'diag_gynae_1',
+      diagnosis: updatedText,
+      snomed_code: '',
+      duration: '',
+      date: date || new Date().toISOString().slice(0, 10),
+    };
+    setDiagnosesList([singleRow]);
+    scheduleAutoSave([singleRow]);
+    setShowGynaeSuggestions(false);
   };
 
   const handleAddDiagnosis = () => {
@@ -466,12 +636,16 @@ export default function PrescriptionDiagnosisSection({
       </div>
 
       {isGynae ? (
-        <div>
+        <div className="relative">
           <textarea
             value={diagnosisSummary !== undefined ? diagnosisSummary : (diagnosesList.map((d) => d.diagnosis).join(', '))}
             onChange={(e) => {
               const val = e.target.value;
               onUpdateDiagnosisSummary(val);
+              const parts = val.split(',');
+              const currentTyping = parts[parts.length - 1].trim();
+              setGynaeQuery(currentTyping);
+              setShowGynaeSuggestions(true);
               if (val.trim()) {
                 const singleRow: DiagnosisRow = {
                   id: 'diag_gynae_1',
@@ -487,10 +661,72 @@ export default function PrescriptionDiagnosisSection({
                 scheduleAutoSave([]);
               }
             }}
+            onFocus={() => {
+              const parts = (diagnosisSummary || '').split(',');
+              setGynaeQuery(parts[parts.length - 1]?.trim() || '');
+              setShowGynaeSuggestions(true);
+            }}
             rows={3}
-            placeholder="Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility)..."
+            placeholder="Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility) or start typing to search templates..."
             className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
           />
+
+          {/* Autocomplete suggestions dropdown for Gynae */}
+          {showGynaeSuggestions && gynaeSuggestions.length > 0 && (
+            <div
+              ref={gynaeBoxRef}
+              className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]"
+            >
+              <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  Auto-suggest (Templates & Diagnoses)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowGynaeSuggestions(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕ Close
+                </button>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {gynaeSuggestions.map((item, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelectGynaeSuggestion(item);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {item.type === 'template' ? (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
+                          ⭐ Template
+                        </span>
+                      ) : item.type === 'preset' ? (
+                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
+                          ⚡ Preset
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
+                          Diagnosis
+                        </span>
+                      )}
+                      <span className="font-semibold text-slate-800 truncate">
+                        {item.label || item.name}
+                      </span>
+                    </div>
+                    {item.category && (
+                      <span className="text-[10px] text-slate-400 shrink-0 font-medium">{item.category}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* HealthPlix Diagnosis Table - Fully Editable with Auto-save */
@@ -625,8 +861,24 @@ export default function PrescriptionDiagnosisSection({
                       }}
                       className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
                     >
-                      <span className="font-bold text-slate-800">{item.name}</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {item.type === 'template' ? (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
+                            ⭐ Template
+                          </span>
+                        ) : item.type === 'preset' ? (
+                          <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
+                            ⚡ Preset
+                          </span>
+                        ) : null}
+                        <span className="font-bold text-slate-800 truncate">{item.label || item.name}</span>
+                      </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        {item.category && (
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {item.category}
+                          </span>
+                        )}
                         {item.snomed_code && (
                           <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-200">
                             {item.snomed_code}

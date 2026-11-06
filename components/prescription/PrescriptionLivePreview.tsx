@@ -3,6 +3,7 @@
 import React from 'react';
 import { DosageSchedule, MedicineEntry } from '@/services/prescription';
 import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
+import { getTimingFromDosage } from '@/lib/prescriptionUtils';
 import { DoctorOption } from './PrescriptionDoctorSignatureCard';
 import { hospitalConfig, getDoctorProfile } from '@/config/hospital';
 
@@ -88,43 +89,6 @@ function formatFollowup(followupDate?: string, prescriptionDate?: string): strin
     return `${formatted} (${diffDays} दिवसानंतर)`;
   }
   return formatted;
-}
-
-function getTimingFromDosage(dosage: string): string {
-  if (!dosage) return '';
-  const clean = dosage.trim().toLowerCase();
-
-  // Standard clinical dosages mapped to Marathi instructions (Pure Marathi/Hindi, no English text)
-  if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर';
-  if (clean === '0-1-0') return 'दुपारी जेवणानंतर';
-  if (clean === '0-0-1') return 'रात्री जेवणानंतर';
-  if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर, रात्री जेवणानंतर';
-  if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर, रात्री जेवणानंतर';
-  if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर';
-  if (clean === '0-1-1') return 'दुपारी जेवणानंतर, रात्री जेवणानंतर';
-  if (clean === 'stat') return 'तातडीने';
-  if (clean === 'sos') return 'गरज भासल्यास (SOS)';
-
-  // General quantity handling (e.g. 2-0-0, 2-0-2, 1/2-0-1/2)
-  const parts = dosage.trim().split('-').map((p) => p.trim());
-  if (parts.length === 3) {
-    const [m, a, n] = parts;
-    const segments: string[] = [];
-    if (m && m !== '0') {
-      segments.push(m === '1' ? 'सकाळी नाश्त्यानंतर' : `${m} - सकाळी नाश्त्यानंतर`);
-    }
-    if (a && a !== '0') {
-      segments.push(a === '1' ? 'दुपारी जेवणानंतर' : `${a} - दुपारी जेवणानंतर`);
-    }
-    if (n && n !== '0') {
-      segments.push(n === '1' ? 'रात्री जेवणानंतर' : `${n} - रात्री जेवणानंतर`);
-    }
-    if (segments.length > 0) {
-      return segments.join(', ');
-    }
-  }
-
-  return '';
 }
 
 const DEFAULT_PRINT_ORDER = [
@@ -374,9 +338,9 @@ export default function PrescriptionLivePreview({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
-                <th className={`py-2 px-1 text-left ${isGyno ? 'w-[47%]' : 'w-[58%]'}`}>Medicine</th>
-                <th className={`py-2 px-1 text-center ${isGyno ? 'w-[13%]' : 'w-[8%]'}`}>Dosage</th>
-                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[28%]' : 'w-[34%]'}`}>Timing - Freq. - Duration</th>
+                <th className={`py-2 px-1 text-left ${isGyno ? 'w-[36%]' : 'w-[42%]'}`}>Medicine</th>
+                <th className={`py-2 px-1 text-center ${isGyno ? 'w-[14%]' : 'w-[12%]'}`}>Dosage</th>
+                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[38%]' : 'w-[46%]'}`}>Timing - Freq. - Duration</th>
                 {isGyno && <th className="py-2 px-1 text-center w-[12%]">Qty</th>}
               </tr>
             </thead>

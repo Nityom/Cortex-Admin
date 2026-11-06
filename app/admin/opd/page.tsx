@@ -171,6 +171,7 @@ export default function OPDManagementPage() {
   const allAppointments = useQuery(api.appointments.list);
   const convexPatients = useQuery(api.patients.list);
   const allBills = useQuery(api.bills.list, {});
+  const allPrescriptions = useQuery(api.prescriptions.list);
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
   const liveOpdQueue = useQuery(api.opd_queue.list, {});
@@ -179,6 +180,97 @@ export default function OPDManagementPage() {
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
   const syncLocalOpdQueueMutation = useMutation(api.opd_queue.syncLocalItems);
   const clearOpdQueueMutation = useMutation(api.opd_queue.clearAll);
+
+  // Map of opd_visit_id / reference_number / phone to prescription & last visit tracking
+  const { prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, patientLastVisitMap } = useMemo(() => {
+    const byVisit = new Map<string, any>();
+    const byUhid = new Map<string, any>();
+    const byPhone = new Map<string, any>();
+    const lastVisit = new Map<string, { date: string; daysAgo: number }>();
+
+    if (allPrescriptions && Array.isArray(allPrescriptions)) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Sort chronological descending
+      const sorted = [...allPrescriptions].sort((a: any, b: any) => {
+        const da = new Date(a.prescription_date || a.created_at || a._creationTime || 0).getTime();
+        const db = new Date(b.prescription_date || b.created_at || b._creationTime || 0).getTime();
+        return db - da;
+      });
+
+      for (const rx of sorted as any[]) {
+        if (rx.opd_visit_id && !byVisit.has(rx.opd_visit_id)) {
+          byVisit.set(rx.opd_visit_id, rx);
+        }
+        const uhid = (rx.reference_number || "").trim().toUpperCase();
+        if (uhid && !byUhid.has(uhid)) {
+          byUhid.set(uhid, rx);
+        }
+        const rawPhone = (rx.phone_number || rx.phone || "").replace(/\D/g, "").slice(-10);
+        if (rawPhone && !byPhone.has(rawPhone)) {
+          byPhone.set(rawPhone, rx);
+        }
+
+        // For last visit, find the most recent visit before today
+        const rxDateStr = rx.prescription_date || (rx.created_at ? String(rx.created_at).split("T")[0] : "");
+        if (rxDateStr) {
+          const rxDate = new Date(rxDateStr);
+          rxDate.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((today.getTime() - rxDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays > 0) {
+            if (uhid && !lastVisit.has(uhid)) {
+              lastVisit.set(uhid, { date: rxDateStr, daysAgo: diffDays });
+            }
+            if (rawPhone && !lastVisit.has(rawPhone)) {
+              lastVisit.set(rawPhone, { date: rxDateStr, daysAgo: diffDays });
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback: check past appointments for prior visit records
+    if (allAppointments && Array.isArray(allAppointments)) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (const appt of allAppointments as any[]) {
+        if (appt.date) {
+          const apptDate = new Date(appt.date);
+          apptDate.setHours(0, 0, 0, 0);
+          const diffDays = Math.round((today.getTime() - apptDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays > 0) {
+            const uhid = (appt.uhid || appt.reference_number || "").trim().toUpperCase();
+            const rawPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
+            if (uhid && !lastVisit.has(uhid)) {
+              lastVisit.set(uhid, { date: appt.date, daysAgo: diffDays });
+            }
+            if (rawPhone && !lastVisit.has(rawPhone)) {
+              lastVisit.set(rawPhone, { date: appt.date, daysAgo: diffDays });
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      prescriptionByVisitId: byVisit,
+      prescriptionByUhid: byUhid,
+      prescriptionByPhone: byPhone,
+      patientLastVisitMap: lastVisit,
+    };
+  }, [allPrescriptions, allAppointments]);
+
+  const formatVisitDate = (isoStr?: string) => {
+    if (!isoStr) return "";
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return isoStr;
+    }
+  };
 
   // Set of patient UHIDs with confirmed paid bills
   const paidUhidSet = useMemo(() => {
@@ -846,7 +938,7 @@ export default function OPDManagementPage() {
   };
 
   // Launch Digital Prescription pre-filled
-  const startPrescription = (item: OPDQueueItem) => {
+  const startPrescription = (item: OPDQueueItem, prescriptionId?: string) => {
     const params = new URLSearchParams({
       patientName: item.name,
       phoneNumber: item.phone,
@@ -872,8 +964,12 @@ export default function OPDManagementPage() {
       params.append("opdVisitId", item.id);
     }
 
-    // Mark as In Consultation if currently waiting
-    if (item.status === "Waiting" || item.status === "Ready") {
+    if (prescriptionId) {
+      params.append("id", prescriptionId);
+    }
+
+    // Mark as In Consultation if currently waiting and creating a new rx
+    if (!prescriptionId && (item.status === "Waiting" || item.status === "Ready")) {
       updateStatus(item.id, "In Consultation");
     }
 
@@ -1353,8 +1449,8 @@ export default function OPDManagementPage() {
                 </button>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] text-left">
-                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
+                <table className="w-full min-w-[1040px] text-left">
+                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
                   <tbody className="divide-y divide-[#edf2ee]">
                     {displayedQueue.map((item, index) => {
                       const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
@@ -1364,16 +1460,39 @@ export default function OPDManagementPage() {
                           : item.status === "Completed"
                           ? "bg-slate-100 text-slate-700 border-slate-200"
                           : "bg-emerald-50 text-emerald-800 border-emerald-100";
+
+                      const uhidNorm = (item.uhid || "").trim().toUpperCase();
+                      const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
+                      const linkedRx =
+                        (item.id && prescriptionByVisitId.get(item.id)) ||
+                        (uhidNorm && prescriptionByUhid.get(uhidNorm)) ||
+                        (phoneNorm && prescriptionByPhone.get(phoneNorm));
+
+                      const hasPrescription = item.status === "Completed" || !!linkedRx;
+                      const lastVisitInfo = (uhidNorm && patientLastVisitMap.get(uhidNorm)) || (phoneNorm && patientLastVisitMap.get(phoneNorm));
+
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(index + 1).padStart(2, "0")}</td>
                         <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
                         <td className="px-4 py-4"><span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span><span className="mt-1 block text-sm text-slate-500">{item.vitals.bp ? `BP ${item.vitals.bp}` : "Vitals not recorded"}{item.vitals.pulse ? ` · ${item.vitals.pulse} bpm` : ""}{item.vitals.spo2 ? ` · SpO₂ ${item.vitals.spo2}%` : ""}</span></td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {lastVisitInfo ? (
+                            <div>
+                              <span className="block text-xs font-bold text-slate-700">{formatVisitDate(lastVisitInfo.date)}</span>
+                              <span className="text-[11px] text-slate-400">{lastVisitInfo.daysAgo === 1 ? "Yesterday" : `${lastVisitInfo.daysAgo} days ago`}</span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-100">
+                              1st Visit
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-4"><span className="block whitespace-nowrap text-sm font-semibold text-[#577464]">{item.doctor}</span><span className="mt-1 block text-sm text-slate-500">{item.department || "General consultation"}</span></td>
                         <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>
-                          <button type="button" onClick={() => startPrescription(item)} title={item.status === "Completed" ? "View prescription" : "Create prescription"} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#176e56] px-3 text-xs font-semibold text-white transition hover:bg-[#155944]"><FileText className="h-4 w-4"/>{item.status === "Completed" ? "View Rx" : "Prescription"}</button>
+                          <button type="button" onClick={() => startPrescription(item, linkedRx?._id || linkedRx?.id)} title={hasPrescription ? "View prescription" : "Create prescription"} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#176e56] px-3 text-xs font-semibold text-white transition hover:bg-[#155944]"><FileText className="h-4 w-4"/>{hasPrescription ? "View Rx" : "Prescription"}</button>
                         </div></td>
                       </tr>;
                     })}

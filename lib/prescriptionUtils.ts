@@ -1,35 +1,90 @@
+function formatSegmentsWithAani(segments: string[]): string {
+  if (segments.length === 0) return '';
+  if (segments.length === 1) return segments[0];
+  if (segments.length === 2) return `${segments[0]} आणि ${segments[1]}`;
+  return `${segments.slice(0, -1).join(', ')} आणि ${segments[segments.length - 1]}`;
+}
+
+function formatDoseCount(val: string): string {
+  const v = val.trim();
+  if (v === '1/2' || v === '0.5' || v === '½') return 'अर्धी गोळी (½)';
+  if (v === '1') return '';
+  if (v === '2') return '२ गोळ्या';
+  if (v === '3') return '३ गोळ्या';
+  return `${v} -`;
+}
+
 export function getTimingFromDosage(dosage?: string): string {
   if (!dosage || typeof dosage !== 'string') return '';
   const trimmed = dosage.trim();
-  const clean = trimmed.toLowerCase();
+  const clean = trimmed.toLowerCase().replace(/\s+/g, '');
 
-  // Standard clinical dosages mapped to Marathi instructions (Pure Marathi/Hindi, no English text)
+  // Exact standard clinical dosages mapped to Marathi instructions with "आणि"
   if (clean === '1-0-0') return 'सकाळी नाश्त्यानंतर';
   if (clean === '0-1-0') return 'दुपारी जेवणानंतर';
   if (clean === '0-0-1') return 'रात्री जेवणानंतर';
-  if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर, रात्री जेवणानंतर';
-  if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर, रात्री जेवणानंतर';
-  if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर';
-  if (clean === '0-1-1') return 'दुपारी जेवणानंतर, रात्री जेवणानंतर';
-  if (clean === 'stat') return 'तातडीने';
+  if (clean === '1-0-1') return 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर';
+  if (clean === '1-1-1') return 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
+  if (clean === '1-1-0') return 'सकाळी नाश्त्यानंतर आणि दुपारी जेवणानंतर';
+  if (clean === '0-1-1') return 'दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
+
+  // Fractions & multiple combinations
+  if (clean === '1/2-0-0' || clean === '0.5-0-0') return 'अर्धी गोळी (½) सकाळी नाश्त्यानंतर';
+  if (clean === '0-1/2-0' || clean === '0-0.5-0') return 'अर्धी गोळी (½) दुपारी जेवणानंतर';
+  if (clean === '0-0-1/2' || clean === '0-0-0.5') return 'अर्धी गोळी (½) रात्री जेवणानंतर';
+  if (clean === '1/2-0-1/2' || clean === '0.5-0-0.5') return 'अर्धी गोळी (½) सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर';
+  if (clean === '1/2-1/2-0') return 'अर्धी गोळी (½) सकाळी नाश्त्यानंतर आणि दुपारी जेवणानंतर';
+  if (clean === '0-1/2-1/2') return 'अर्धी गोळी (½) दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
+  if (clean === '1/2-1/2-1/2') return 'अर्धी गोळी (½) सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
+  if (clean === '1-0-1/2' || clean === '1-0-0.5') return '१ गोळी सकाळी नाश्त्यानंतर आणि अर्धी गोळी (½) रात्री जेवणानंतर';
+  if (clean === '1/2-0-1' || clean === '0.5-0-1') return 'अर्धी गोळी (½) सकाळी नाश्त्यानंतर आणि १ गोळी रात्री जेवणानंतर';
+
+  if (clean === '2-0-0') return '२ गोळ्या सकाळी नाश्त्यानंतर';
+  if (clean === '0-2-0') return '२ गोळ्या दुपारी जेवणानंतर';
+  if (clean === '0-0-2') return '२ गोळ्या रात्री जेवणानंतर';
+  if (clean === '1-0-2') return '१ गोळी सकाळी नाश्त्यानंतर आणि २ गोळ्या रात्री जेवणानंतर';
+  if (clean === '2-0-1') return '२ गोळ्या सकाळी नाश्त्यानंतर आणि १ गोळी रात्री जेवणानंतर';
+  if (clean === '2-0-2') return '२ गोळ्या सकाळी नाश्त्यानंतर आणि २ गोळ्या रात्री जेवणानंतर';
+  if (clean === '2-2-2') return '२ गोळ्या सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
+
+  // 4 times a day / special patterns
+  if (clean === '1-1-1-1') return 'दिवसातून ४ वेळा (सकाळी, दुपारी, संध्याकाळी आणि रात्री जेवणानंतर)';
+  if (clean === '1-0-0-1') return 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर';
+  if (clean === 'stat') return 'तातडीने (STAT)';
   if (clean === 'sos') return 'गरज भासल्यास (SOS)';
 
-  // General quantity handling (e.g. 2-0-0, 2-0-2, 1/2-0-1/2)
+  // General 3-part quantity handling (e.g. 1.5-0-1.5, 3-0-3, etc.)
   const parts = trimmed.split('-').map((p) => p.trim());
   if (parts.length === 3) {
     const [m, a, n] = parts;
     const segments: string[] = [];
     if (m && m !== '0') {
-      segments.push(m === '1' ? 'सकाळी नाश्त्यानंतर' : `${m} - सकाळी नाश्त्यानंतर`);
+      const pfx = formatDoseCount(m);
+      segments.push(pfx ? `${pfx} सकाळी नाश्त्यानंतर` : 'सकाळी नाश्त्यानंतर');
     }
     if (a && a !== '0') {
-      segments.push(a === '1' ? 'दुपारी जेवणानंतर' : `${a} - दुपारी जेवणानंतर`);
+      const pfx = formatDoseCount(a);
+      segments.push(pfx ? `${pfx} दुपारी जेवणानंतर` : 'दुपारी जेवणानंतर');
     }
     if (n && n !== '0') {
-      segments.push(n === '1' ? 'रात्री जेवणानंतर' : `${n} - रात्री जेवणानंतर`);
+      const pfx = formatDoseCount(n);
+      segments.push(pfx ? `${pfx} रात्री जेवणानंतर` : 'रात्री जेवणानंतर');
     }
     if (segments.length > 0) {
-      return segments.join(', ');
+      return formatSegmentsWithAani(segments);
+    }
+  }
+
+  // 4-part dosages (Morning, Afternoon, Evening, Night)
+  if (parts.length === 4) {
+    const [m, a, e, n] = parts;
+    const segments: string[] = [];
+    if (m && m !== '0') segments.push('सकाळी नाश्त्यानंतर');
+    if (a && a !== '0') segments.push('दुपारी जेवणानंतर');
+    if (e && e !== '0') segments.push('संध्याकाळी');
+    if (n && n !== '0') segments.push('रात्री जेवणानंतर');
+    if (segments.length > 0) {
+      return formatSegmentsWithAani(segments);
     }
   }
 

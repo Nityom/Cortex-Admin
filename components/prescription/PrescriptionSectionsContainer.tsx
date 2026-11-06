@@ -340,7 +340,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             onUpdateDiagnosisSummary={(summary) => form.setFormData((prev: any) => ({ ...prev, de: summary }))}
             date={form.formData.date}
             prescriptionId={form.prescriptionId || undefined}
-            isGynae={true}
+            isGynae={form.isGynaeDoc}
+            onApplyMasterTemplate={form.applyPrescriptionTemplate}
           />
         );
       case 'procedure':
