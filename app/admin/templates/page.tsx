@@ -1086,16 +1086,6 @@ export default function TemplatesManagementPage() {
                               <option value="0-1-0">0-1-0 (Afternoon only)</option>
                               <option value="1-1-0">1-1-0 (Morning &amp; Afternoon)</option>
                               <option value="0-1-1">0-1-1 (Afternoon &amp; Night)</option>
-                              <option value="1/2-0-0">1/2-0-0 (Half morning)</option>
-                              <option value="0-0-1/2">0-0-1/2 (Half night)</option>
-                              <option value="1/2-0-1/2">1/2-0-1/2 (Half morning &amp; night)</option>
-                              <option value="1-0-1/2">1-0-1/2 (1 Morning, 1/2 Night)</option>
-                              <option value="1/2-0-1">1/2-0-1 (1/2 Morning, 1 Night)</option>
-                              <option value="2-0-0">2-0-0 (Two morning)</option>
-                              <option value="0-0-2">0-0-2 (Two night)</option>
-                              <option value="1-0-2">1-0-2 (1 Morning, 2 Night)</option>
-                              <option value="2-0-1">2-0-1 (2 Morning, 1 Night)</option>
-                              <option value="2-0-2">2-0-2 (Two morning &amp; night)</option>
                               <option value="1-1-1-1">1-1-1-1 (Four times daily)</option>
                               <option value="1-0-0-1">1-0-0-1 (Morning &amp; Bedtime)</option>
                               <option value="SOS">SOS (When required)</option>
