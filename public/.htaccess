@@ -34,6 +34,11 @@ DirectoryIndex index.html
   RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
   RewriteRule ^(.*)$ $1/index.html [L]
 
-  # Fallback to root index.html
+  # Do NOT rewrite missing _next/ assets or static files to index.html (prevent SyntaxError: Unexpected token '<')
+  RewriteCond %{REQUEST_URI} ^/_next/ [OR]
+  RewriteCond %{REQUEST_URI} \.(js|css|json|map|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$ [NC]
+  RewriteRule ^ - [R=404,L]
+
+  # Fallback to root index.html for client-side routing
   RewriteRule ^ index.html [L]
 </IfModule>
