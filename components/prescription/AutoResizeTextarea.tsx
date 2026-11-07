@@ -48,3 +48,4 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
 
 AutoResizeTextarea.displayName = 'AutoResizeTextarea';
 export default AutoResizeTextarea;
+
