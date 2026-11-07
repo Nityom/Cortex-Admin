@@ -11,6 +11,77 @@ export interface TestRequestedItem {
   by_when: string;
 }
 
+export function parseTestsFromTemplate(val: any): Array<{ id: string; name: string; by_when: string }> {
+  if (!val) return [];
+
+  let rawList: any[] = [];
+
+  if (Array.isArray(val)) {
+    rawList = val;
+  } else if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          rawList = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed.tests_requested)) rawList = parsed.tests_requested;
+          else if (Array.isArray(parsed.tests)) rawList = parsed.tests;
+          else rawList = [parsed];
+        }
+      } catch {
+        // Fall back to splitting
+      }
+    }
+
+    if (rawList.length === 0 && trimmed) {
+      const lines = trimmed.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+      rawList = lines.map((line) => {
+        const byMatch = line.match(/\((?:by:?\s*)([^)]+)\)/i);
+        if (byMatch) {
+          const testName = line.replace(/\((?:by:?\s*)([^)]+)\)/i, '').trim();
+          return { name: testName, by_when: byMatch[1].trim() };
+        }
+        return { name: line, by_when: 'Next Visit' };
+      });
+    }
+  } else if (typeof val === 'object') {
+    if (Array.isArray(val.tests_requested)) rawList = val.tests_requested;
+    else if (Array.isArray(val.tests)) rawList = val.tests;
+    else if (val.name) rawList = [val];
+  }
+
+  const result: Array<{ id: string; name: string; by_when: string }> = [];
+  const now = Date.now();
+
+  rawList.forEach((item: any, idx: number) => {
+    if (!item) return;
+    if (typeof item === 'string') {
+      const cleanName = item.trim();
+      if (cleanName) {
+        result.push({
+          id: `tt_${now}_${idx}`,
+          name: cleanName,
+          by_when: 'Next Visit',
+        });
+      }
+    } else if (typeof item === 'object') {
+      const testName = String(item.name || item.test_name || item.test || item.title || '').trim();
+      const byWhen = String(item.by_when || item.byWhen || item.timing || 'Next Visit').trim();
+      if (testName) {
+        result.push({
+          id: `tt_${now}_${idx}`,
+          name: testName,
+          by_when: byWhen || 'Next Visit',
+        });
+      }
+    }
+  });
+
+  return result;
+}
+
 interface PrescriptionClinicalNotesSectionProps {
   drNotes: string;
   setDrNotes: React.Dispatch<React.SetStateAction<string>>;
@@ -159,19 +230,24 @@ export default function PrescriptionClinicalNotesSection({
             <SectionTemplatePicker
               sectionKey="tests_requested"
               sectionTitle="Tests Requested"
-              currentValue={testsRequested}
+              currentValue={
+                testsRequested.length > 0
+                  ? testsRequested.map((t) => ({ name: t.name, by_when: t.by_when || 'Next Visit' }))
+                  : newTestName.trim()
+                  ? [{ name: newTestName.trim(), by_when: newTestByWhen || 'Next Visit' }]
+                  : []
+              }
               category={docCategory}
               align="left"
               onApplyPreset={(val) => {
-                if (Array.isArray(val)) {
-                  setTestsRequested((prev) => [
-                    ...prev,
-                    ...val.map((t: any, i: number) => ({
-                      id: 'tt_' + Date.now() + '_' + i,
-                      name: t.name,
-                      by_when: t.by_when || 'Next Visit',
-                    })),
-                  ]);
+                const parsed = parseTestsFromTemplate(val);
+                if (parsed.length > 0) {
+                  setTestsRequested((prev) => {
+                    const existingNames = new Set(prev.map((t) => t.name.toLowerCase().trim()));
+                    const newItems = parsed.filter((t) => !existingNames.has(t.name.toLowerCase().trim()));
+                    if (prev.length === 0) return parsed;
+                    return [...prev, ...newItems];
+                  });
                 }
               }}
             />
@@ -466,19 +542,24 @@ export default function PrescriptionClinicalNotesSection({
             <SectionTemplatePicker
               sectionKey="tests_requested"
               sectionTitle="Tests Requested"
-              currentValue={testsRequested}
+              currentValue={
+                testsRequested.length > 0
+                  ? testsRequested.map((t) => ({ name: t.name, by_when: t.by_when || 'Next Visit' }))
+                  : newTestName.trim()
+                  ? [{ name: newTestName.trim(), by_when: newTestByWhen || 'Next Visit' }]
+                  : []
+              }
               category={docCategory}
               align="left"
               onApplyPreset={(val) => {
-                if (Array.isArray(val)) {
-                  setTestsRequested((prev) => [
-                    ...prev,
-                    ...val.map((t: any, i: number) => ({
-                      id: 'tt_' + Date.now() + '_' + i,
-                      name: t.name,
-                      by_when: t.by_when || 'Next Visit',
-                    })),
-                  ]);
+                const parsed = parseTestsFromTemplate(val);
+                if (parsed.length > 0) {
+                  setTestsRequested((prev) => {
+                    const existingNames = new Set(prev.map((t) => t.name.toLowerCase().trim()));
+                    const newItems = parsed.filter((t) => !existingNames.has(t.name.toLowerCase().trim()));
+                    if (prev.length === 0) return parsed;
+                    return [...prev, ...newItems];
+                  });
                 }
               }}
             />

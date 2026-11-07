@@ -224,11 +224,25 @@ export function saveSectionCustomTemplate(
   category = 'Custom'
 ): ClinicalSectionPreset {
   const current = getSectionCustomTemplates(sectionKey);
+
+  // Normalize tests_requested data into clean array of { name, by_when }
+  let normalizedData = data;
+  if (sectionKey === 'tests_requested') {
+    if (Array.isArray(data)) {
+      normalizedData = data
+        .map((t: any) => ({
+          name: String(t.name || (typeof t === 'string' ? t : '')).trim(),
+          by_when: String(t.by_when || 'Next Visit').trim(),
+        }))
+        .filter((t: any) => t.name.length > 0);
+    }
+  }
+
   const newPreset: ClinicalSectionPreset = {
     id: `tmpl_${sectionKey}_${Date.now()}`,
     name,
     category,
-    data,
+    data: normalizedData,
   };
   const updated = [newPreset, ...current];
   try {
@@ -244,15 +258,15 @@ export function saveSectionCustomTemplate(
       name,
       category,
       section_key: sectionKey,
-      medicines: sectionKey === 'medicines' ? data : undefined,
+      medicines: sectionKey === 'medicines' ? normalizedData : undefined,
       is_preset: false,
-      diagnosis: sectionKey === 'diagnosis' ? (typeof data === 'string' ? data : JSON.stringify(data)) : undefined,
-      complaints: sectionKey === 'complaints' ? data : undefined,
-      advice: sectionKey === 'advice' ? (typeof data === 'string' ? data : JSON.stringify(data)) : undefined,
-      dr_notes: sectionKey === 'dr_notes' ? (typeof data === 'string' ? data : JSON.stringify(data)) : undefined,
-      procedure_advice: sectionKey === 'procedure_advice' ? (typeof data === 'string' ? data : JSON.stringify(data)) : undefined,
-      diet_exercise: sectionKey === 'diet_exercise' ? (typeof data === 'string' ? data : JSON.stringify(data)) : undefined,
-      tests_requested: sectionKey === 'tests_requested' || sectionKey === 'investigations' ? data : undefined,
+      diagnosis: sectionKey === 'diagnosis' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      complaints: sectionKey === 'complaints' ? normalizedData : undefined,
+      advice: sectionKey === 'advice' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      dr_notes: sectionKey === 'dr_notes' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      procedure_advice: sectionKey === 'procedure_advice' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      diet_exercise: sectionKey === 'diet_exercise' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      tests_requested: sectionKey === 'tests_requested' || sectionKey === 'investigations' ? normalizedData : undefined,
     }).catch((err: any) => console.warn('Could not sync section template to Convex:', err));
   }
 
@@ -286,13 +300,23 @@ export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promi
     if (list && Array.isArray(list)) {
       const sectionItems = list
         .filter((item: any) => item.section_key === sectionKey)
-        .map((item: any) => ({
-          id: item.template_id || item._id,
-          name: item.name,
-          category: item.category || 'General',
-          data: item.section_key === 'medicines' ? (item.medicines || []) : (item.data || item.diagnosis || item.complaints || item.advice || ''),
-          description: item.description,
-        }));
+        .map((item: any) => {
+          let templateData: any;
+          if (item.section_key === 'medicines') {
+            templateData = item.medicines || [];
+          } else if (item.section_key === 'tests_requested') {
+            templateData = item.tests_requested || item.data || [];
+          } else {
+            templateData = item.data || item.diagnosis || item.complaints || item.advice || item.tests_requested || '';
+          }
+          return {
+            id: item.template_id || item._id,
+            name: item.name,
+            category: item.category || 'General',
+            data: templateData,
+            description: item.description,
+          };
+        });
       if (sectionItems.length > 0) {
         const local = getSectionCustomTemplates(sectionKey);
         const map = new Map<string, ClinicalSectionPreset>();

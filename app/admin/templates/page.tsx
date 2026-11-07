@@ -159,6 +159,9 @@ export default function TemplatesManagementPage() {
   const [sectionFormCategory, setSectionFormCategory] = useState<string>('Orthopaedics');
   const [sectionFormContent, setSectionFormContent] = useState<string>('');
   const [sectionFormMedicines, setSectionFormMedicines] = useState<MedicineEntry[]>([]);
+  const [sectionFormTests, setSectionFormTests] = useState<Array<{ name: string; by_when: string }>>([
+    { name: '', by_when: 'Next Visit' },
+  ]);
 
   // Real-time bidirectional sync with Convex DB
   useEffect(() => {
@@ -372,6 +375,30 @@ export default function TemplatesManagementPage() {
     setSectionFormMedicines((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Section Tests Requested Row Handlers (When section is 'tests_requested')
+  const handleAddSectionTestRow = () => {
+    setSectionFormTests((prev) => [...prev, { name: '', by_when: 'Next Visit' }]);
+  };
+
+  const handleSectionTestChange = (
+    index: number,
+    field: 'name' | 'by_when',
+    value: string
+  ) => {
+    setSectionFormTests((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleRemoveSectionTestRow = (index: number) => {
+    setSectionFormTests((prev) => {
+      const filtered = prev.filter((_, i) => i !== index);
+      return filtered.length > 0 ? filtered : [{ name: '', by_when: 'Next Visit' }];
+    });
+  };
+
   // Open Section Template Modal
   const handleOpenCreateSectionModal = (targetKey?: string) => {
     const key =
@@ -389,6 +416,9 @@ export default function TemplatesManagementPage() {
     setSectionFormMedicines([
       { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
     ]);
+    setSectionFormTests([
+      { name: '', by_when: 'Next Visit' },
+    ]);
     setIsSectionModalOpen(true);
   };
 
@@ -398,7 +428,7 @@ export default function TemplatesManagementPage() {
     setSectionFormName(item.name);
     setSectionFormCategory(item.category || 'Orthopaedics');
 
-    if (item.sectionKey === 'medicines' || Array.isArray(item.data)) {
+    if (item.sectionKey === 'medicines' || (Array.isArray(item.data) && item.sectionKey !== 'tests_requested')) {
       if (Array.isArray(item.data)) {
         setSectionFormMedicines(item.data);
       } else if (typeof item.data === 'string') {
@@ -413,6 +443,32 @@ export default function TemplatesManagementPage() {
       setSectionFormMedicines([
         { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
       ]);
+    }
+
+    if (item.sectionKey === 'tests_requested') {
+      let testsList: Array<{ name: string; by_when: string }> = [];
+      if (Array.isArray(item.data)) {
+        testsList = item.data.map((t: any) => ({
+          name: typeof t === 'string' ? t : t.name || '',
+          by_when: typeof t === 'object' && t.by_when ? t.by_when : 'Next Visit',
+        }));
+      } else if (typeof item.data === 'string') {
+        try {
+          const parsed = JSON.parse(item.data);
+          if (Array.isArray(parsed)) {
+            testsList = parsed.map((t: any) => ({
+              name: typeof t === 'string' ? t : t.name || '',
+              by_when: typeof t === 'object' && t.by_when ? t.by_when : 'Next Visit',
+            }));
+          }
+        } catch {
+          const lines = item.data.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+          testsList = lines.map((l) => ({ name: l, by_when: 'Next Visit' }));
+        }
+      }
+      setSectionFormTests(testsList.length > 0 ? testsList : [{ name: '', by_when: 'Next Visit' }]);
+    } else {
+      setSectionFormTests([{ name: '', by_when: 'Next Visit' }]);
     }
 
     const contentString =
@@ -441,6 +497,16 @@ export default function TemplatesManagementPage() {
         return;
       }
       parsedData = validMedicines;
+    } else if (sectionFormKey === 'tests_requested') {
+      const validTests = sectionFormTests.filter((t) => t.name.trim().length > 0);
+      if (validTests.length === 0) {
+        alert('Please add at least one test with a name to this template.');
+        return;
+      }
+      parsedData = validTests.map((t) => ({
+        name: t.name.trim(),
+        by_when: (t.by_when || 'Next Visit').trim(),
+      }));
     } else {
       if (!sectionFormContent.trim()) {
         alert('Please enter template content or instructions');
@@ -819,7 +885,7 @@ export default function TemplatesManagementPage() {
               ) : Array.isArray(item.data) ? (
                 <div className="space-y-1.5">
                   <span className="font-bold text-slate-500 uppercase text-[10px] block mb-1">
-                    {item.sectionKey === 'medicines' ? 'Medicines' : 'Items'} ({item.data.length}):
+                    {item.sectionKey === 'medicines' ? 'Medicines' : item.sectionKey === 'tests_requested' ? 'Tests' : 'Items'} ({item.data.length}):
                   </span>
                   {item.data.slice(0, 3).map((sub: any, i: number) => (
                     <div
@@ -827,11 +893,16 @@ export default function TemplatesManagementPage() {
                       className="p-1.5 rounded-md bg-white border border-slate-200 text-slate-800 text-[11px] font-semibold flex items-center justify-between gap-1 shadow-2xs"
                     >
                       <span className="truncate">
-                        {sub.name || sub.complaint || sub.diagnosis || JSON.stringify(sub)}
+                        {sub.name || sub.complaint || sub.diagnosis || (typeof sub === 'string' ? sub : JSON.stringify(sub))}
                       </span>
                       {sub.dosage && (
                         <span className="shrink-0 px-1.5 py-0.2 bg-emerald-50 text-emerald-800 text-[10px] font-mono font-bold rounded border border-emerald-200">
                           {sub.dosage}
+                        </span>
+                      )}
+                      {sub.by_when && (
+                        <span className="shrink-0 px-1.5 py-0.2 bg-slate-100 text-slate-700 text-[10px] font-medium rounded border border-slate-200">
+                          {sub.by_when}
                         </span>
                       )}
                     </div>
@@ -932,7 +1003,9 @@ export default function TemplatesManagementPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div
             className={`bg-white rounded-2xl border border-slate-200 shadow-2xl ${
-              sectionFormKey === 'medicines' ? 'max-w-4xl max-h-[92vh] flex flex-col' : 'max-w-lg'
+              sectionFormKey === 'medicines' || sectionFormKey === 'tests_requested'
+                ? 'max-w-4xl max-h-[92vh] flex flex-col'
+                : 'max-w-lg'
             } w-full overflow-hidden animate-in fade-in zoom-in-95`}
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-emerald-50/50">
@@ -946,9 +1019,13 @@ export default function TemplatesManagementPage() {
                   {editingSectionTemplate
                     ? sectionFormKey === 'medicines'
                       ? 'Edit Medicine Set Template'
+                      : sectionFormKey === 'tests_requested'
+                      ? 'Edit Tests Requested Template'
                       : 'Edit Section Template'
                     : sectionFormKey === 'medicines'
                     ? 'Create Medicine Set Template'
+                    : sectionFormKey === 'tests_requested'
+                    ? 'Create Tests Requested Template'
                     : 'Create Clinical Section Template'}
                 </h3>
               </div>
@@ -964,19 +1041,33 @@ export default function TemplatesManagementPage() {
             <form
               onSubmit={handleSaveSectionModal}
               className={`p-5 space-y-4 text-xs ${
-                sectionFormKey === 'medicines' ? 'overflow-y-auto' : ''
+                sectionFormKey === 'medicines' || sectionFormKey === 'tests_requested'
+                  ? 'overflow-y-auto'
+                  : ''
               }`}
             >
-              <div className={sectionFormKey === 'medicines' ? 'grid grid-cols-1 md:grid-cols-3 gap-3' : 'space-y-4'}>
+              <div
+                className={
+                  sectionFormKey === 'medicines' || sectionFormKey === 'tests_requested'
+                    ? 'grid grid-cols-1 md:grid-cols-3 gap-3'
+                    : 'space-y-4'
+                }
+              >
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Clinical Section *</label>
                   <select
                     value={sectionFormKey}
                     onChange={(e) => {
-                      setSectionFormKey(e.target.value);
-                      if (e.target.value === 'medicines' && sectionFormMedicines.length === 0) {
+                      const newKey = e.target.value;
+                      setSectionFormKey(newKey);
+                      if (newKey === 'medicines' && sectionFormMedicines.length === 0) {
                         setSectionFormMedicines([
                           { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
+                        ]);
+                      }
+                      if (newKey === 'tests_requested' && sectionFormTests.length === 0) {
+                        setSectionFormTests([
+                          { name: '', by_when: 'Next Visit' },
                         ]);
                       }
                     }}
@@ -991,7 +1082,13 @@ export default function TemplatesManagementPage() {
                   </select>
                 </div>
 
-                <div className={sectionFormKey === 'medicines' ? 'md:col-span-1' : ''}>
+                <div
+                  className={
+                    sectionFormKey === 'medicines' || sectionFormKey === 'tests_requested'
+                      ? 'md:col-span-1'
+                      : ''
+                  }
+                >
                   <label className="block font-bold text-slate-700 mb-1">Template Name *</label>
                   <input
                     type="text"
@@ -1000,6 +1097,8 @@ export default function TemplatesManagementPage() {
                     placeholder={
                       sectionFormKey === 'medicines'
                         ? 'e.g. Post-op Knee Protocol, Fever Kit...'
+                        : sectionFormKey === 'tests_requested'
+                        ? 'e.g. Pre-op Blood Panel, Spine Workup...'
                         : 'e.g. Lumbar Spondylosis Protocol, Viral Fever Advice...'
                     }
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"
@@ -1152,6 +1251,86 @@ export default function TemplatesManagementPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              ) : sectionFormKey === 'tests_requested' ? (
+                <div className="space-y-3 border border-slate-200 rounded-xl p-4 bg-slate-50/70">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      <label className="font-bold text-slate-800 text-sm">
+                        Tests Requested ({sectionFormTests.length})
+                      </label>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddSectionTestRow}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Test
+                    </button>
+                  </div>
+
+                  <div className="border border-slate-200 rounded-lg overflow-hidden text-xs bg-white shadow-2xs">
+                    <div className="grid grid-cols-12 bg-slate-50 text-slate-600 font-semibold py-2.5 px-3 border-b border-slate-200 text-xs">
+                      <div className="col-span-1">#</div>
+                      <div className="col-span-6">Tests Requested</div>
+                      <div className="col-span-4">By When</div>
+                      <div className="col-span-1 text-right">Action</div>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                      {sectionFormTests.map((t, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-12 items-center py-2 px-3 gap-2 hover:bg-slate-50/50"
+                        >
+                          <div className="col-span-1 text-slate-400 font-mono font-semibold text-xs">
+                            {idx + 1}
+                          </div>
+                          <div className="col-span-6">
+                            <input
+                              type="text"
+                              value={t.name}
+                              onChange={(e) => handleSectionTestChange(idx, 'name', e.target.value)}
+                              placeholder="Add Tests (e.g. CBC, Blood Sugar, X-Ray Knee)..."
+                              className="w-full p-2 border border-slate-200 rounded-lg text-slate-800 bg-white outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-xs"
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <input
+                              type="text"
+                              value={t.by_when}
+                              onChange={(e) => handleSectionTestChange(idx, 'by_when', e.target.value)}
+                              placeholder="e.g. Next Visit or Before Monday"
+                              className="w-full p-2 border border-slate-200 rounded-lg text-slate-800 bg-white outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-xs"
+                            />
+                          </div>
+                          <div className="col-span-1 text-right flex items-center justify-end gap-1">
+                            {idx === sectionFormTests.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={handleAddSectionTestRow}
+                                className="w-7 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center justify-center transition shadow-2xs cursor-pointer"
+                                title="Add another test"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            )}
+                            {sectionFormTests.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSectionTestRow(idx)}
+                                className="w-7 h-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md flex items-center justify-center font-bold transition cursor-pointer text-sm"
+                                title="Remove test"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div>
