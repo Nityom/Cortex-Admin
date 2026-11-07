@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 interface PrescriptionHistorySectionProps {
   value: string;
@@ -67,12 +68,12 @@ export default function PrescriptionHistorySection({
         </div>
       </div>
 
-      <textarea
+      <AutoResizeTextarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={3}
+        minRows={1}
         placeholder="Record patient medical, surgical, allergy and drug history (e.g. Hypertension 5 yrs on Telmisartan, Type 2 Diabetes, NKDA, Previous appendectomy 2021)..."
-        className="w-full min-h-[90px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-2xs outline-none"
+        className="w-full p-2.5 text-sm leading-relaxed border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 bg-white outline-none"
       />
 
       {/* History Quick-Select Chips */}

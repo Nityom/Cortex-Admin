@@ -109,8 +109,8 @@ export default function PrescriptionVitalsSection({
       </div>
 
       <div className="space-y-3.5 text-xs">
-        {/* Row 1: BP, Pulse, Height, Weight */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Row: BP, Pulse, Height, Weight, Temperature, BMI */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* BP */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">
@@ -136,7 +136,7 @@ export default function PrescriptionVitalsSection({
                 title="Diastolic BP (mmHg)"
                 className="w-1/2 min-w-0 py-2 px-2.5 text-center text-sm font-bold text-slate-800 outline-none"
               />
-              <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
                 mmHg
               </span>
             </div>
@@ -154,7 +154,7 @@ export default function PrescriptionVitalsSection({
                 title="Pulse Rate (bpm)"
                 className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
               />
-              <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
                 bpm
               </span>
             </div>
@@ -172,7 +172,7 @@ export default function PrescriptionVitalsSection({
                 title="Height (cm)"
                 className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
               />
-              <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
                 cm
               </span>
             </div>
@@ -190,15 +190,13 @@ export default function PrescriptionVitalsSection({
                 title="Weight (kg)"
                 className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
               />
-              <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
                 kg
               </span>
             </div>
           </div>
-        </div>
 
-        {/* Row 2: Temperature, BMI, Waist/Hip, SPO2, LMP */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
+          {/* Temperature */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">
               Temperature
@@ -212,12 +210,13 @@ export default function PrescriptionVitalsSection({
                 title="Body Temperature (°F)"
                 className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
               />
-              <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
+              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
                 °F
               </span>
             </div>
           </div>
 
+          {/* BMI */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 mb-1">BMI</label>
             <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-slate-50/80 overflow-hidden shadow-xs">
@@ -231,57 +230,6 @@ export default function PrescriptionVitalsSection({
               />
               <span className="inline-flex items-center px-2 py-2 bg-slate-100 border-l border-slate-200 text-xs font-semibold text-slate-500 select-none">
                 Kg/m²
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Waist/Hip</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-              <input
-                type="text"
-                value={waistHipVal}
-                onChange={(e) => setWaistHipVal(e.target.value)}
-                placeholder="0.85"
-                title="Waist to Hip Ratio"
-                className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
-              />
-              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
-                ratio
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">SPO2</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-              <input
-                type="text"
-                value={spo2Val}
-                onChange={(e) => setSpo2Val(e.target.value)}
-                placeholder="98"
-                title="Blood Oxygen Saturation (SPO2 %)"
-                className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
-              />
-              <span className="inline-flex items-center px-2.5 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
-                %
-              </span>
-            </div>
-          </div>
-
-          <div className="col-span-2 sm:col-span-1">
-            <label className="block text-[11px] font-semibold text-slate-500 mb-1">Waist/Hip</label>
-            <div className="flex items-stretch w-full rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-              <input
-                type="text"
-                value={waistHipVal}
-                onChange={(e) => setWaistHipVal(e.target.value)}
-                placeholder="0.85"
-                title="Waist to Hip Ratio"
-                className="flex-1 min-w-0 py-2 px-3 text-center text-sm font-bold text-slate-800 outline-none"
-              />
-              <span className="inline-flex items-center px-2 py-2 bg-slate-50 border-l border-slate-100 text-xs font-semibold text-slate-500 select-none">
-                ratio
               </span>
             </div>
           </div>

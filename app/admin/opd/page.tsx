@@ -1180,27 +1180,6 @@ export default function OPDManagementPage() {
         </div>
       </header>
 
-      {activeTab === "queue" && <section aria-label="Today at a glance" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {[
-          { label: "Patients", value: todayQueueCount, note: "Registered today", icon: Users, tone: "mint" },
-          { label: "Waiting", value: todayQueueSummary.waiting, note: "Awaiting consultation", icon: Clock, tone: "amber" },
-          { label: "In consultation", value: todayQueueSummary.inConsultation, note: "With a doctor now", icon: Activity, tone: "blue" },
-          { label: "Completed visits", value: todayQueueSummary.completed, note: "Today’s OPD queue", icon: CheckCircle2, tone: "peach" },
-        ].map((stat) => {
-          const Icon = stat.icon;
-          const tone = {
-            mint: "bg-[#e9f5ee] text-[#4a9c79]",
-            amber: "bg-[#fbf3e9] text-[#c08b57]",
-            blue: "bg-[#eaf1f7] text-[#668eae]",
-            peach: "bg-[#fff1e8] text-[#d99363]",
-          }[stat.tone];
-          return <article key={stat.label} className="flex min-h-[112px] items-start justify-between rounded-2xl border border-[#e4ece5] bg-white p-4 shadow-[0_4px_16px_rgb(27_74_52_/_4%)] sm:p-5">
-            <div><p className="text-xs font-bold uppercase tracking-[0.1em] text-[#809087]">{stat.label}</p><strong className="mt-2 block text-[32px] font-extrabold leading-none tracking-tight text-[#315b48]">{stat.value}</strong><span className="mt-2 block text-xs text-[#5b9876]">{stat.note}</span></div>
-            <span className={`grid h-10 w-10 place-items-center rounded-xl ${tone}`}><Icon className="h-[18px] w-[18px]"/></span>
-          </article>;
-        })}
-      </section>}
-
       {/* SUCCESS NOTIFICATION BANNER */}
       {successNotification && (
         <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 flex items-center justify-between text-emerald-900 shadow-sm animate-in fade-in duration-200">
@@ -1226,70 +1205,6 @@ export default function OPDManagementPage() {
       {/* TAB 1: OPD PATIENT QUEUE */}
       {(activeTab === "queue" || activeTab === "billingQueue") && (
         <div className="space-y-4">
-          {/* Quick Today's Appointments Bar */}
-          {activeTab === "queue" && todayAppointments.length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-xs">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Today&apos;s Scheduled Appointments ({todayAppointments.length})
-                  </span>
-                  <span className="text-[11px] text-slate-600 font-medium hidden sm:inline">
-                    · {todayAppointments.filter((a) => isApptInQueue(a)).length} checked in
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("appointments")}
-                  className="text-xs font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1"
-                >
-                  View All Appointments <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
-
-              {/* Horizontal scroll of today's appointment chips */}
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-                {todayAppointments.map((appt) => {
-                  const inQueue = isApptInQueue(appt);
-                  return (
-                    <div
-                      key={appt._id}
-                      className="bg-white rounded-lg border border-emerald-100 p-2.5 min-w-[250px] shrink-0 shadow-xs flex items-center justify-between gap-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-slate-900 truncate">{appt.name}</span>
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
-                            {appt.time}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {appt.doctor_name || DOCTORS[0].name}
-                        </p>
-                      </div>
-
-                      {inQueue ? (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md shrink-0">
-                          #{inQueue.token} In Queue
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={submitting}
-                          onClick={() => handleCheckInAppointment(appt)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold transition shrink-0 shadow-xs disabled:opacity-50"
-                        >
-                          + Check In
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Controls Bar */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-3 items-center justify-between">
             <div className="relative w-full lg:w-72">
@@ -1474,7 +1389,14 @@ export default function OPDManagementPage() {
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(index + 1).padStart(2, "0")}</td>
                         <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
-                        <td className="px-4 py-4"><span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span><span className="mt-1 block text-sm text-slate-500">{item.vitals.bp ? `BP ${item.vitals.bp}` : "Vitals not recorded"}{item.vitals.pulse ? ` · ${item.vitals.pulse} bpm` : ""}{item.vitals.spo2 ? ` · SpO₂ ${item.vitals.spo2}%` : ""}</span></td>
+                        <td className="px-4 py-4">
+                          <span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span>
+                          {(item.vitals?.bp || item.vitals?.pulse) ? (
+                            <span className="mt-1 block text-sm text-slate-500">
+                              {[item.vitals.bp ? `BP ${item.vitals.bp}` : '', item.vitals.pulse ? `${item.vitals.pulse} bpm` : ''].filter(Boolean).join(' · ')}
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           {lastVisitInfo ? (
                             <div>

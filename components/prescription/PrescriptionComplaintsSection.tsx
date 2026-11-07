@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Edit2, Plus, Undo2 } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 export interface ComplaintRow {
   id: string;
@@ -153,7 +154,7 @@ export default function PrescriptionComplaintsSection({
 
       {isGynae ? (
         <div>
-          <textarea
+          <AutoResizeTextarea
             value={ccSummary !== undefined ? ccSummary : (complaintsList.map((c) => c.complaint).join(', '))}
             onChange={(e) => {
               const val = e.target.value;
@@ -173,9 +174,9 @@ export default function PrescriptionComplaintsSection({
                 setComplaintsList([]);
               }
             }}
-            rows={3}
+            minRows={1}
             placeholder="Enter chief complaints (e.g. Pain in abdomen, fever, nausea)..."
-            className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
+            className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
           />
         </div>
       ) : (

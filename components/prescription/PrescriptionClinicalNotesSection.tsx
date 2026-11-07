@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Edit2, Undo2 } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 export interface TestRequestedItem {
   id: string;
@@ -129,12 +130,12 @@ export default function PrescriptionClinicalNotesSection({
             </button>
           </div>
         </div>
-        <textarea
+        <AutoResizeTextarea
           value={advice}
           onChange={(e) => onUpdateAdvice(e.target.value)}
-          rows={3}
+          minRows={1}
           placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids, rest)..."
-          className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
+          className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
         />
         <p className="mt-2 text-xs font-semibold text-slate-700 flex items-center gap-1">
           <span>*</span> Medicine can be purchased from any medical store and in a generic form also
@@ -296,17 +297,17 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={drNotes}
             onChange={(e) => setDrNotes(e.target.value)}
-            rows={3}
+            minRows={1}
             placeholder="Doctor private remarks / internal clinical notes (e.g. Patient reluctant for surgery, follow up in OPD personally)..."
-            className="w-full min-h-[85px] p-3 text-sm leading-relaxed border border-slate-200 rounded-xl text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white outline-none"
+            className="w-full p-2.5 text-xs sm:text-sm leading-relaxed border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 bg-white outline-none"
           />
         </div>
 
         {/* Quick Notes */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
               Quick Notes
@@ -337,10 +338,10 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={quickNotes}
             onChange={(e) => setQuickNotes(e.target.value)}
-            rows={3}
+            minRows={1}
             placeholder="Brief clinical quick notes..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
@@ -389,17 +390,17 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={procedureAdvice}
             onChange={(e) => setProcedureAdvice(e.target.value)}
-            rows={3}
+            minRows={1}
             placeholder="Pre/post procedure advice..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
         </div>
 
         {/* General Advice */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
               Advice
@@ -430,10 +431,10 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={advice}
             onChange={(e) => onUpdateAdvice(e.target.value)}
-            rows={3}
+            minRows={1}
             placeholder="General advice for patient (e.g. warm saline rinses, drink plenty of fluids)..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
@@ -676,17 +677,17 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={dietExercise}
             onChange={(e) => setDietExercise(e.target.value)}
-            rows={3}
+            minRows={1}
             placeholder="Soft diet, avoid sugary snacks, 30 min daily walk..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
         </div>
 
         {/* Investigations */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
               Investigations
@@ -719,10 +720,10 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={investigationText}
             onChange={(e) => setInvestigationText(e.target.value)}
-            rows={2}
+            minRows={1}
             placeholder="e.g. OPG, IOPAR wrt 16, CBCT, Blood sugar..."
             className="w-full p-2.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
           />
@@ -763,17 +764,17 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={pastMedication}
             onChange={(e) => setPastMedication(e.target.value)}
-            rows={2}
+            minRows={1}
             placeholder="Past Medications..."
             className="w-full p-2 text-xs border border-slate-200 rounded-lg text-slate-800 outline-none"
           />
         </div>
 
         {/* Systemic Examination */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-bold text-slate-800">Systemic Examination</label>
             <div className="flex items-center gap-1 text-slate-400">
@@ -802,17 +803,17 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={systemicExam}
             onChange={(e) => setSystemicExam(e.target.value)}
-            rows={2}
+            minRows={1}
             placeholder="CVS, RS, CNS findings..."
             className="w-full p-2 text-xs border border-slate-200 rounded-lg text-slate-800 outline-none"
           />
         </div>
 
         {/* General Examinations */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-bold text-slate-800">General Examinations</label>
             <div className="flex items-center gap-1 text-slate-400">
@@ -841,10 +842,10 @@ export default function PrescriptionClinicalNotesSection({
               </button>
             </div>
           </div>
-          <textarea
+          <AutoResizeTextarea
             value={generalExam}
             onChange={(e) => setGeneralExam(e.target.value)}
-            rows={2}
+            minRows={1}
             placeholder="Pallor, Icterus, Cyanosis, Clubbing, Lymphadenopathy, Edema..."
             className="w-full p-2 text-xs border border-slate-200 rounded-lg text-slate-800 outline-none"
           />

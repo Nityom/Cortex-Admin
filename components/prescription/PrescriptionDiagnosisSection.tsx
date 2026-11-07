@@ -10,6 +10,7 @@ import {
 } from '@/services/prescription';
 import { getAllTemplates, PrescriptionTemplate } from '@/services/templates';
 import { CLINICAL_SECTION_PRESETS, getSectionCustomTemplates } from '@/services/clinicalSectionPresets';
+import AutoResizeTextarea from './AutoResizeTextarea';
 
 export interface DiagnosisRow {
   id: string;
@@ -659,7 +660,7 @@ export default function PrescriptionDiagnosisSection({
 
       {isGynae ? (
         <div className="relative">
-          <textarea
+          <AutoResizeTextarea
             value={diagnosisSummary !== undefined ? diagnosisSummary : (diagnosesList.map((d) => d.diagnosis).join(', '))}
             onChange={(e) => {
               const val = e.target.value;
@@ -688,9 +689,9 @@ export default function PrescriptionDiagnosisSection({
               setGynaeQuery(parts[parts.length - 1]?.trim() || '');
               setShowGynaeSuggestions(true);
             }}
-            rows={3}
+            minRows={1}
             placeholder="Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility) or start typing to search templates..."
-            className="w-full p-3 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
+            className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
           />
 
           {/* Autocomplete suggestions dropdown for Gynae */}
