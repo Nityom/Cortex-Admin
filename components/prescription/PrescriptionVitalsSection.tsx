@@ -86,9 +86,6 @@ export default function PrescriptionVitalsSection({
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
       <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          Vitals
-        </label>
         <div className="flex items-center gap-1 text-slate-400">
           <button
             type="button"

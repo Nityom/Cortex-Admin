@@ -21,9 +21,6 @@ export default function PrescriptionFindingsSection({
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          Findings
-        </label>
         <div className="flex items-center gap-1 text-slate-400">
           <button
             type="button"
