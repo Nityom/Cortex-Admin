@@ -557,9 +557,7 @@ export default function PrescriptionDiagnosisSection({
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-            Diagnosis
-          </label>
+          {/* Removed repeated "Diagnosis" label text as requested */}
 
           {/* Auto-save status indicator */}
           {saveStatus === 'saving' && (
