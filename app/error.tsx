@@ -42,7 +42,13 @@ export default function ErrorPage({
             onClick={() => {
               sessionStorage.removeItem("chunk_reload_ts");
               if (isChunkError) {
-                window.location.reload();
+                try {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("_v", String(Date.now()));
+                  window.location.href = url.toString();
+                } catch {
+                  window.location.reload();
+                }
               } else {
                 reset();
               }

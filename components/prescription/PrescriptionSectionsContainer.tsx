@@ -37,7 +37,7 @@ export type PrescriptionSectionKey =
 
 export const DEFAULT_RX_SECTION_ORDER: PrescriptionSectionKey[] = [
   'vitals',
-  // 'complaints',
+  'complaints',
   'diagnosis',
   'history',
   'findings',
@@ -316,9 +316,6 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
         // Medical history commented out / hidden as requested for both doctors
         return null;
       case 'complaints':
-        // Chief complaints commented out as requested
-        return null;
-        /*
         return (
           <PrescriptionComplaintsSection
             complaintsList={form.complaintsList}
@@ -330,7 +327,6 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             onRestorePreviousComplaints={form.restorePreviousComplaints}
           />
         );
-        */
       case 'findings':
         return (
           <PrescriptionFindingsSection
@@ -505,7 +501,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
       {/* Main Clinical Stacked Layout */}
       <div className="space-y-4">
         {rxSectionOrder
-          .filter((sectionKey) => sectionKey !== 'history' && sectionKey !== 'complaints')
+          .filter((sectionKey) => sectionKey !== 'history')
           .map((sectionKey, idx) => {
           const isBeingDragged = draggedSection === sectionKey;
           const isOver = dragOverSection === sectionKey && !isBeingDragged;

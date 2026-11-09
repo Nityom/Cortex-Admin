@@ -12,6 +12,7 @@ import {
   PrescriptionLivePreview,
   PrescriptionPrintModal,
   PrescriptionEmailModal,
+  PrescriptionPastVisitsSection,
 } from '@/components/prescription';
 import { Mail, X } from 'lucide-react';
 
@@ -101,6 +102,15 @@ export default function PrescriptionPage() {
           gestationalDays={form.gestationalDays}
           rxSectionOrder={form.rxSectionOrder}
           enabledSections={form.enabledPrintSections}
+        />
+
+        {/* 3b. Past Visits Section (Quick review right below prescription preview) */}
+        <PrescriptionPastVisitsSection
+          patientPhone={form.formData.phoneNumber}
+          patientName={form.formData.patientName}
+          patientReference={form.formData.reference_number || form.patientReferenceNumber}
+          currentPrescriptionId={form.prescriptionId}
+          onLoadPastPrescription={form.handleLoadPastPrescription}
         />
 
         {/* 4. Master Template Modals */}

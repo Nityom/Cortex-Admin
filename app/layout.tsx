@@ -44,7 +44,13 @@ export default function RootLayout({
                     var now = Date.now();
                     if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
                       sessionStorage.setItem('chunk_reload_ts', String(now));
-                      window.location.reload();
+                      try {
+                        var u = new URL(window.location.href);
+                        u.searchParams.set('_v', String(now));
+                        window.location.replace(u.toString());
+                      } catch (_) {
+                        window.location.reload();
+                      }
                     }
                   }
                 }

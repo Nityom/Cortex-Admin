@@ -128,15 +128,15 @@ const STORAGE_KEY = "cortex_opd_queue_v1";
 export default function OPDManagementPage() {
   const router = useRouter();
 
-  // Tab State: OPD queue, billing queue, registration, appointments, and directory
-  const [activeTab, setActiveTab] = useState<"queue" | "billingQueue" | "register" | "appointments" | "directory">("queue");
+  // Tab State: OPD queue, waiting queue, billing queue, registration, appointments, and directory
+  const [activeTab, setActiveTab] = useState<"queue" | "waitingQueue" | "billingQueue" | "register" | "appointments" | "directory">("queue");
 
   // Check URL search parameters for initial tab (e.g. ?tab=billingQueue)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
-      if (tabParam === "billingQueue" || tabParam === "queue" || tabParam === "register" || tabParam === "appointments" || tabParam === "directory") {
+      if (tabParam === "waitingQueue" || tabParam === "billingQueue" || tabParam === "queue" || tabParam === "register" || tabParam === "appointments" || tabParam === "directory") {
         setActiveTab(tabParam as any);
       }
     }
@@ -148,7 +148,20 @@ export default function OPDManagementPage() {
 
   // Queue state persisted in localStorage
   const [queue, setQueue] = useState<OPDQueueItem[]>([]);
-  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>("All");
+  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("cortex_opd_doctor_filter");
+        if (saved && (saved.includes("Shilpa") || saved.includes("Shillpa"))) {
+          return "Dr. Shillpa Raut";
+        }
+        if (saved && saved.includes("Vipeen")) {
+          return "Dr. Vipeen Raut";
+        }
+      } catch {}
+    }
+    return "Dr. Vipeen Raut";
+  });
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>("All");
   const [queueSearch, setQueueSearch] = useState<string>("");
 
@@ -1073,7 +1086,11 @@ export default function OPDManagementPage() {
         }
       }
       // 3. Status Filter
-      if (activeTab !== "billingQueue" && selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) return false;
+      if (activeTab === "waitingQueue") {
+        if (item.status === "Completed") return false;
+      } else if (activeTab !== "billingQueue" && selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) {
+        return false;
+      }
       // 4. Search Filter
       if (queueSearch.trim()) {
         const q = queueSearch.toLowerCase();
@@ -1099,9 +1116,30 @@ export default function OPDManagementPage() {
     });
   }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch, activeTab]);
 
-  const displayedQueue = activeTab === "billingQueue"
-    ? filteredQueue.filter((item) => item.status === "Completed")
-    : filteredQueue;
+  const displayedQueue = useMemo(() => {
+    if (activeTab === "billingQueue") {
+      return filteredQueue.filter((item) => item.status === "Completed");
+    }
+    if (activeTab === "waitingQueue") {
+      return filteredQueue.filter((item) => item.status === "Waiting" || item.status === "Ready" || item.status === "In Consultation");
+    }
+    return filteredQueue;
+  }, [activeTab, filteredQueue]);
+
+  const waitingQueueCount = useMemo(() => {
+    return queue.filter((item) => {
+      const itemDate = getItemLocalDate(item.registeredAt);
+      if (selectedQueueDate && itemDate !== selectedQueueDate) return false;
+      if (selectedDoctorFilter !== "All") {
+        const itemDoc = (item.doctor || "").toLowerCase().replace(/l+/g, "l");
+        const filterDoc = selectedDoctorFilter.toLowerCase().replace(/l+/g, "l");
+        if (!itemDoc.includes(filterDoc) && !filterDoc.includes(itemDoc)) {
+          return false;
+        }
+      }
+      return item.status === "Waiting" || item.status === "Ready" || item.status === "In Consultation";
+    }).length;
+  }, [queue, selectedQueueDate, selectedDoctorFilter]);
 
   // Quick select patient from Directory to Register
   const handleSelectFromDirectory = (pt: Patient) => {
@@ -1125,8 +1163,8 @@ export default function OPDManagementPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{activeTab === "queue" ? "Today at a glance" : activeTab === "billingQueue" ? "Billing queue" : activeTab === "appointments" ? "Appointments" : activeTab === "register" ? "Register a patient" : "Patient directory"}</h1>
-            <p className="mt-1 text-base text-slate-500">{activeTab === "queue" ? `${hospitalConfig.legalName} · Your clinic is running smoothly. Here’s today’s OPD snapshot.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{activeTab === "waitingQueue" ? "Waiting queue" : activeTab === "queue" ? "Today at a glance" : activeTab === "billingQueue" ? "Billing queue" : activeTab === "appointments" ? "Appointments" : activeTab === "register" ? "Register a patient" : "Patient directory"}</h1>
+            <p className="mt-1 text-base text-slate-500">{activeTab === "waitingQueue" ? "Patients currently in clinic awaiting consultation." : activeTab === "queue" ? `${hospitalConfig.legalName} · Your clinic is running smoothly. Here’s today’s OPD snapshot.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setActiveTab("register")} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
@@ -1145,6 +1183,7 @@ export default function OPDManagementPage() {
           <div className="flex gap-1 overflow-x-auto">
             {([
               ["queue", <Clock key="queue" className="h-4 w-4" />, `OPD queue${todayQueueCount ? ` · ${todayQueueCount}` : ""}`],
+              ["waitingQueue", <Clock key="waitingQueue" className="h-4 w-4 text-amber-600" />, `Waiting queue${waitingQueueCount ? ` · ${waitingQueueCount}` : ""}`],
               ["billingQueue", <Receipt key="billingQueue" className="h-4 w-4" />, `Billing queue${todayQueueSummary.completed ? ` · ${todayQueueSummary.completed}` : ""}`],
               ["appointments", <Calendar key="appointments" className="h-4 w-4" />, `Appointments${todayAppointments.length ? ` · ${todayAppointments.length}` : ""}`],
               ["register", <UserPlus key="register" className="h-4 w-4" />, "Walk-in registration"],
@@ -1155,28 +1194,38 @@ export default function OPDManagementPage() {
               </button>
             ))}
           </div>
-          {(activeTab === "queue" || activeTab === "billingQueue") && <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs">
-            <span className="px-2 font-semibold uppercase tracking-wide text-slate-400">Doctor</span>
-            {[["All", "All"], ["Dr. Vipeen Raut", "Dr. Vipeen Raut"], ["Dr. Shillpa Raut", "Dr. Shillpa Raut"]].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => {
-                  setSelectedDoctorFilter(value);
-                  try {
-                    localStorage.setItem("cortex_opd_doctor_filter", value);
-                    if (value !== "All") {
-                      localStorage.setItem("cortex_active_doctor", value);
-                      handleDoctorChange(value);
-                    }
-                  } catch (_) {}
-                }}
-                className={`rounded-md px-2 py-1.5 font-semibold transition ${selectedDoctorFilter === value ? "bg-emerald-50 text-emerald-800" : "text-slate-500 hover:bg-slate-50"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>}
+          {(activeTab === "queue" || activeTab === "waitingQueue" || activeTab === "billingQueue") && (
+            <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs">
+              <span className="px-2 font-semibold uppercase tracking-wide text-slate-400">Doctor</span>
+              {[
+                ["Dr. Vipeen Raut", "Dr. Vipeen Raut"],
+                ["Dr. Shillpa Raut", "Dr. Shilpa Raut"],
+              ].map(([value, label]) => {
+                const isSelected = selectedDoctorFilter.toLowerCase().includes(value.toLowerCase().replace(/dr\.?\s*/i, '').slice(0, 5));
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDoctorFilter(value);
+                      try {
+                        localStorage.setItem("cortex_opd_doctor_filter", value);
+                        localStorage.setItem("cortex_active_doctor", value);
+                        handleDoctorChange(value);
+                      } catch (_) {}
+                    }}
+                    className={`rounded-md px-2.5 py-1.5 font-semibold transition cursor-pointer ${
+                      isSelected
+                        ? "bg-emerald-50 text-emerald-800 shadow-2xs font-bold"
+                        : "text-slate-500 hover:bg-slate-50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </header>
 
@@ -1203,7 +1252,7 @@ export default function OPDManagementPage() {
       )}
 
       {/* TAB 1: OPD PATIENT QUEUE */}
-      {(activeTab === "queue" || activeTab === "billingQueue") && (
+      {(activeTab === "queue" || activeTab === "waitingQueue" || activeTab === "billingQueue") && (
         <div className="space-y-4">
           {/* Controls Bar */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-3 items-center justify-between">
@@ -1305,7 +1354,7 @@ export default function OPDManagementPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>
-                  Viewing {activeTab === "billingQueue" ? "Billing Queue" : "OPD Queue"} for <strong>{selectedQueueDate}</strong> ({displayedQueue.length} {displayedQueue.length === 1 ? 'patient' : 'patients'}). Not showing today.
+                  Viewing {activeTab === "waitingQueue" ? "Waiting Queue" : activeTab === "billingQueue" ? "Billing Queue" : "OPD Queue"} for <strong>{selectedQueueDate}</strong> ({displayedQueue.length} {displayedQueue.length === 1 ? 'patient' : 'patients'}). Not showing today.
                 </span>
               </div>
               <button
@@ -1325,12 +1374,16 @@ export default function OPDManagementPage() {
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900">
-                {activeTab === "billingQueue"
+                {activeTab === "waitingQueue"
+                  ? (selectedQueueDate === todayStr ? "No Patients Waiting in Queue Today" : `No Patients Waiting on ${selectedQueueDate}`)
+                  : activeTab === "billingQueue"
                   ? (selectedQueueDate === todayStr ? "No Patients in Billing Queue Today" : `No Patients in Billing Queue on ${selectedQueueDate}`)
                   : (selectedQueueDate === todayStr ? "No Patients in Queue Today" : `No Patients in Queue on ${selectedQueueDate}`)}
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-                {activeTab === "billingQueue"
+                {activeTab === "waitingQueue"
+                  ? "All patients have completed consultation or no patients are waiting."
+                  : activeTab === "billingQueue"
                   ? "Completed consultations will appear here for billing."
                   : selectedQueueDate === todayStr
                   ? "There are currently no patients waiting for OPD consultation today."
@@ -1358,7 +1411,7 @@ export default function OPDManagementPage() {
           ) : (
             <div className="overflow-hidden rounded-2xl border border-[#e4ece5] bg-white shadow-[0_5px_18px_rgb(27_74_52_/_4%)]">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                <div><h2 className="text-lg font-bold text-[#3f5f50]">{activeTab === "billingQueue" ? "Billing queue" : "OPD queue"} <span className="ml-1 font-normal text-slate-500">{activeTab === "billingQueue" ? "Completed consultations ready for billing" : "A live snapshot of your clinic"}</span></h2></div>
+                <div><h2 className="text-lg font-bold text-[#3f5f50]">{activeTab === "waitingQueue" ? "Waiting queue" : activeTab === "billingQueue" ? "Billing queue" : "OPD queue"} <span className="ml-1 font-normal text-slate-500">{activeTab === "waitingQueue" ? "Patients currently waiting for consultation" : activeTab === "billingQueue" ? "Completed consultations ready for billing" : "A live snapshot of your clinic"}</span></h2></div>
                 <button type="button" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600" onClick={() => setSelectedQueueDate(todayStr)}>
                   {selectedQueueDate === todayStr ? "Today" : selectedQueueDate}<Calendar className="h-3.5 w-3.5 text-slate-400" />
                 </button>

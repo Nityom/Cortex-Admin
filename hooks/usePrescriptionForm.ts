@@ -348,7 +348,18 @@ export function usePrescriptionForm() {
       return;
     }
     try {
-      const lmp = new Date(lmpDate);
+      const parseNoon = (dStr?: string) => {
+        if (!dStr) return new Date();
+        const parts = dStr.split('-').map(Number);
+        if (parts.length === 3 && !isNaN(parts[0])) {
+          return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+        }
+        const d = new Date(dStr);
+        d.setHours(12, 0, 0, 0);
+        return d;
+      };
+
+      const lmp = parseNoon(lmpDate);
       if (isNaN(lmp.getTime())) return;
 
       // EDD = LMP + 280 days (40 weeks)
@@ -358,10 +369,10 @@ export function usePrescriptionForm() {
       const dd = String(edd.getDate()).padStart(2, '0');
       setEddDate(`${yyyy}-${mm}-${dd}`);
 
-      // Gestational Age = difference from LMP to visit date (or today)
-      const visitDate = formData.date ? new Date(formData.date) : new Date();
+      // Gestational Age = calendar difference from LMP to visit date (or today)
+      const visitDate = parseNoon(formData.date);
       const diffMs = visitDate.getTime() - lmp.getTime();
-      const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+      const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
       if (diffDays >= 0) {
         const weeks = Math.floor(diffDays / 7);
         const days = diffDays % 7;
@@ -382,7 +393,10 @@ export function usePrescriptionForm() {
       setEddDate(newEdd);
       if (!newEdd) return;
       try {
-        const edd = new Date(newEdd);
+        const parts = newEdd.split('-').map(Number);
+        const edd = parts.length === 3 && !isNaN(parts[0])
+          ? new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0)
+          : new Date(newEdd);
         if (isNaN(edd.getTime())) return;
 
         // Derive LMP = EDD - 280 days
@@ -393,9 +407,12 @@ export function usePrescriptionForm() {
         const lmpStr = `${yyyy}-${mm}-${dd}`;
         setLmpDate(lmpStr);
 
-        const visitDate = formData.date ? new Date(formData.date) : new Date();
+        const vParts = (formData.date || '').split('-').map(Number);
+        const visitDate = vParts.length === 3 && !isNaN(vParts[0])
+          ? new Date(vParts[0], vParts[1] - 1, vParts[2], 12, 0, 0)
+          : new Date();
         const diffMs = visitDate.getTime() - derivedLmp.getTime();
-        const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+        const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
         if (diffDays >= 0) {
           setGestationalWeeks(String(Math.floor(diffDays / 7)));
           setGestationalDays(String(diffDays % 7));
@@ -412,42 +429,79 @@ export function usePrescriptionForm() {
     (pastPrescriptions: any[], currentVisitDateStr?: string) => {
       if (!Array.isArray(pastPrescriptions) || pastPrescriptions.length === 0) return false;
 
-      // Find the most recent prescription with LMP or EDD
+      // Find the most recent prescription with LMP, EDD, or gestational_age
       const rxWithAntenatal = pastPrescriptions
-        .filter((rx) => rx && rx.vitals && (rx.vitals.lmp || rx.vitals.edd))
+        .filter((rx) => rx && ((rx.vitals && (rx.vitals.lmp || rx.vitals.edd || rx.vitals.gestational_age || rx.vitals.gestational_weeks)) || rx.gestational_age))
         .sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime())[0];
 
-      if (!rxWithAntenatal || !rxWithAntenatal.vitals) return false;
+      if (!rxWithAntenatal) return false;
 
-      const v = rxWithAntenatal.vitals;
+      const v = rxWithAntenatal.vitals || {};
       let effectiveLmp = v.lmp;
       let effectiveEdd = v.edd;
 
       // If EDD is present but LMP is missing, derive LMP = EDD - 280 days
       if (!effectiveLmp && effectiveEdd) {
-        const eddDateObj = new Date(effectiveEdd);
+        const eddParts = String(effectiveEdd).split('-').map(Number);
+        const eddDateObj = eddParts.length === 3 && !isNaN(eddParts[0])
+          ? new Date(eddParts[0], eddParts[1] - 1, eddParts[2], 12, 0, 0)
+          : new Date(effectiveEdd);
         if (!isNaN(eddDateObj.getTime())) {
           const lmpDateObj = new Date(eddDateObj.getTime() - 280 * 24 * 60 * 60 * 1000);
-          effectiveLmp = lmpDateObj.toISOString().slice(0, 10);
+          effectiveLmp = `${lmpDateObj.getFullYear()}-${String(lmpDateObj.getMonth() + 1).padStart(2, '0')}-${String(lmpDateObj.getDate()).padStart(2, '0')}`;
         }
       }
 
       // If LMP is present but EDD is missing, derive EDD = LMP + 280 days
       if (effectiveLmp && !effectiveEdd) {
-        const lmpDateObj = new Date(effectiveLmp);
+        const lmpParts = String(effectiveLmp).split('-').map(Number);
+        const lmpDateObj = lmpParts.length === 3 && !isNaN(lmpParts[0])
+          ? new Date(lmpParts[0], lmpParts[1] - 1, lmpParts[2], 12, 0, 0)
+          : new Date(effectiveLmp);
         if (!isNaN(lmpDateObj.getTime())) {
           const eddDateObj = new Date(lmpDateObj.getTime() + 280 * 24 * 60 * 60 * 1000);
-          effectiveEdd = eddDateObj.toISOString().slice(0, 10);
+          effectiveEdd = `${eddDateObj.getFullYear()}-${String(eddDateObj.getMonth() + 1).padStart(2, '0')}-${String(eddDateObj.getDate()).padStart(2, '0')}`;
+        }
+      }
+
+      // If neither LMP nor EDD is directly recorded, but gestational_age was recorded on past visit date:
+      if (!effectiveLmp && !effectiveEdd) {
+        const rawGa = v.gestational_age || rxWithAntenatal.gestational_age || '';
+        const matchWeeks = String(rawGa).match(/(\d+)\s*(?:w|week|weeks)/i);
+        const matchDays = String(rawGa).match(/(\d+)\s*(?:d|day|days)/i);
+        const wVal = matchWeeks ? Number(matchWeeks[1]) : (Number(v.gestational_weeks) || 0);
+        const dVal = matchDays ? Number(matchDays[1]) : (Number(v.gestational_days) || 0);
+        const totalPastDays = wVal * 7 + dVal;
+
+        if (totalPastDays > 0 && rxWithAntenatal.prescription_date) {
+          const pastParts = String(rxWithAntenatal.prescription_date).split('-').map(Number);
+          const pastDateObj = new Date(pastParts[0], pastParts[1] - 1, pastParts[2], 12, 0, 0);
+          const derivedLmpObj = new Date(pastDateObj.getTime() - totalPastDays * 24 * 60 * 60 * 1000);
+          effectiveLmp = `${derivedLmpObj.getFullYear()}-${String(derivedLmpObj.getMonth() + 1).padStart(2, '0')}-${String(derivedLmpObj.getDate()).padStart(2, '0')}`;
+          const derivedEddObj = new Date(derivedLmpObj.getTime() + 280 * 24 * 60 * 60 * 1000);
+          effectiveEdd = `${derivedEddObj.getFullYear()}-${String(derivedEddObj.getMonth() + 1).padStart(2, '0')}-${String(derivedEddObj.getDate()).padStart(2, '0')}`;
         }
       }
 
       if (!effectiveLmp && !effectiveEdd) return false;
 
+      const parseNoon = (dStr?: string) => {
+        if (!dStr) return new Date();
+        const parts = dStr.split('-').map(Number);
+        if (parts.length === 3 && !isNaN(parts[0])) {
+          return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+        }
+        const d = new Date(dStr);
+        d.setHours(12, 0, 0, 0);
+        return d;
+      };
+
+      const visitDate = parseNoon(currentVisitDateStr || formData.date);
+
       // Ensure pregnancy is from an ongoing gestation (within ~315 days of LMP)
-      const visitDate = currentVisitDateStr ? new Date(currentVisitDateStr) : new Date();
       if (effectiveLmp) {
-        const lmpObj = new Date(effectiveLmp);
-        const daysSinceLmp = (visitDate.getTime() - lmpObj.getTime()) / (24 * 60 * 60 * 1000);
+        const lmpObj = parseNoon(effectiveLmp);
+        const daysSinceLmp = Math.round((visitDate.getTime() - lmpObj.getTime()) / (24 * 60 * 60 * 1000));
         if (daysSinceLmp > 315 || daysSinceLmp < -30) {
           return false;
         }
@@ -456,11 +510,10 @@ export function usePrescriptionForm() {
       if (effectiveLmp) setLmpDate(effectiveLmp);
       if (effectiveEdd) setEddDate(effectiveEdd);
 
-      // Auto-calculate Gestational Age as of current visit date
+      // Auto-calculate Gestational Age as of current visit date (+1 day if tomorrow, etc.)
       if (effectiveLmp) {
-        const lmpObj = new Date(effectiveLmp);
-        const diffMs = visitDate.getTime() - lmpObj.getTime();
-        const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+        const lmpObj = parseNoon(effectiveLmp);
+        const diffDays = Math.round((visitDate.getTime() - lmpObj.getTime()) / (24 * 60 * 60 * 1000));
         if (diffDays >= 0) {
           const weeks = Math.floor(diffDays / 7);
           const days = diffDays % 7;
@@ -471,7 +524,7 @@ export function usePrescriptionForm() {
 
       return true;
     },
-    []
+    [formData.date]
   );
   const [diagnosesList, setDiagnosesList] = useState<any[]>([]);
 
@@ -659,9 +712,10 @@ export function usePrescriptionForm() {
         setDiagnosesList([{ id: 'd_past_1', diagnosis: pastRx.diagnosis, snomed_code: '', duration: '', date: '' }]);
       }
       if (pastRx.chief_complaint) {
-        setFormData((prev) => ({ ...prev, cc: pastRx.chief_complaint }));
+        const cleanCc = String(pastRx.chief_complaint).replace(/^[\s,]+/, '').trim();
+        setFormData((prev) => ({ ...prev, cc: cleanCc }));
         setComplaintsList([
-          { id: 'c_past_1', complaint: pastRx.chief_complaint, frequency: 'Regular', severity: 'Moderate', duration: '' },
+          { id: 'c_past_1', complaint: cleanCc, frequency: 'Regular', severity: 'Moderate', duration: '' },
         ]);
       }
       if (pastRx.medicines) {
@@ -714,12 +768,8 @@ export function usePrescriptionForm() {
         if (v.weight) setWeightVal(v.weight);
         if (v.height) setHeightVal(v.height);
         if (v.temperature) setTempVal(v.temperature);
-        if (v.lmp || v.edd) {
+        if (v.lmp || v.edd || v.gestational_age || v.gestational_weeks || pastRx.gestational_age) {
           autoPopulateAntenatalFromPastRx([pastRx], formData.date || todayDate);
-        } else if (v.gestational_age) {
-          const parts = String(v.gestational_age).split(' ');
-          if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
-          if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
         }
       }
 
@@ -773,11 +823,15 @@ export function usePrescriptionForm() {
       showTemplateToast('No previous prescription records found for this patient.');
       return;
     }
-    const prevCc = prev.chief_complaint || prev.cc;
+    const prevCc = String(prev.chief_complaint || prev.cc || '').replace(/^[\s,]+/, '').trim();
     const prevList = prev.complaints || prev.complaints_list;
     if (prevList && Array.isArray(prevList) && prevList.length > 0) {
-      setComplaintsList(prevList);
-      setFormData((f) => ({ ...f, cc: prevCc || prevList.map((c: any) => c.complaint).join(', ') }));
+      const sanitizedList = prevList.map((c: any) => ({
+        ...c,
+        complaint: String(c.complaint || '').replace(/^[\s,]+/, '').trim(),
+      }));
+      setComplaintsList(sanitizedList);
+      setFormData((f) => ({ ...f, cc: prevCc || sanitizedList.map((c: any) => c.complaint).filter(Boolean).join(', ') }));
       showTemplateToast(`Restored complaints from previous visit (${prev.prescription_date || ''})`);
     } else if (prevCc) {
       setFormData((f) => ({ ...f, cc: prevCc }));

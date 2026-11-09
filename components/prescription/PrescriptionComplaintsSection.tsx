@@ -78,10 +78,10 @@ export default function PrescriptionComplaintsSection({
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-bold text-slate-800">Complaints</label>
-          <div className="flex items-center gap-1 text-slate-400">
+          {/* Removed repeated "Complaints" label text as requested */}
+          <div className="flex items-center gap-1.5 text-slate-400">
             <button
               type="button"
               title="Edit Complaints"
@@ -108,8 +108,8 @@ export default function PrescriptionComplaintsSection({
               onApplyPreset={(val) => {
                 if (isGynae) {
                   const text = typeof val === 'string' ? val : Array.isArray(val) ? val.map((x: any) => x.complaint || x).join(', ') : String(val);
-                  const currentVal = ccSummary !== undefined ? ccSummary : (complaintsList[0]?.complaint || '');
-                  const updatedText = currentVal ? `${currentVal}, ${text}` : text;
+                  const currentVal = (ccSummary !== undefined ? ccSummary : (complaintsList[0]?.complaint || '')).replace(/^[\s,]+/, '').trim();
+                  const updatedText = currentVal ? `${currentVal.replace(/,\s*$/, '')}, ${text.trim()}` : text.trim();
                   if (onUpdateCcSummary) onUpdateCcSummary(updatedText);
                   setComplaintsList([
                     {
@@ -155,9 +155,17 @@ export default function PrescriptionComplaintsSection({
       {isGynae ? (
         <div>
           <AutoResizeTextarea
-            value={ccSummary !== undefined ? ccSummary : (complaintsList.map((c) => c.complaint).join(', '))}
+            value={
+              (ccSummary !== undefined
+                ? ccSummary
+                : complaintsList
+                    .map((c) => c.complaint)
+                    .filter(Boolean)
+                    .join(', ')
+              ).replace(/^[\s,]+/, '')
+            }
             onChange={(e) => {
-              const val = e.target.value;
+              const val = e.target.value.replace(/^[\s,]+/, '');
               if (onUpdateCcSummary) onUpdateCcSummary(val);
               if (val.trim()) {
                 setComplaintsList([
