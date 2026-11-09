@@ -60,11 +60,76 @@ const DOSAGE_OPTIONS = [
   'As Directed',
 ];
 const UNIT_OPTIONS = ['tab', 'cap', 'ml', 'lotion', 'ointment', 'drops', 'sachet', 'spray', 'syrup', 'inj'];
-const TIME_OPTIONS = ['', 'Morning', 'Afternoon', 'Night', 'Bedtime', 'Morning & Night', '8 Hourly', '12 Hourly'];
+const TIME_OPTIONS = [
+  '',
+  'Morning',
+  'Afternoon',
+  'Night',
+  'Bedtime',
+  'Morning & Night',
+  'Morning & Afternoon',
+  'Afternoon & Night',
+  'Morning, Afternoon & Night',
+  '4 Times a Day',
+  '8 Hourly',
+  '12 Hourly',
+  'SOS',
+  'Stat',
+];
 const WHEN_OPTIONS = ['After Food', 'Before Food', 'With Food', 'Empty Stomach', 'At Bedtime', 'As Directed'];
 const WHERE_OPTIONS = ['', 'oral', 'face', 'scalp', 'affected area', 'skin', 'left eye', 'right eye', 'throat', 'joints', 'chest', 'back'];
-const FREQUENCY_OPTIONS = ['daily', 'alternate day', 'twice a week', 'thrice a week', 'weekly', 'once a month', 'SOS'];
+const FREQUENCY_OPTIONS = ['daily', 'alternate day', 'twice a week', 'thrice a week', 'weekly', 'once a month', 'SOS', 'STAT'];
 const DURATION_OPTIONS = ['3 days', '5 days', '7 days', '10 days', '15 days', '21 days', '25 days', '1 month', '2 months', '3 months'];
+
+export function getTimeFromDosage(dosage?: string): string {
+  if (!dosage) return '';
+  const d = dosage.trim().toLowerCase().replace(/\s+/g, '');
+  if (d === '1-0-0') return 'Morning';
+  if (d === '0-1-0') return 'Afternoon';
+  if (d === '0-0-1') return 'Night';
+  if (d === '1-0-1') return 'Morning & Night';
+  if (d === '1-1-0') return 'Morning & Afternoon';
+  if (d === '0-1-1') return 'Afternoon & Night';
+  if (d === '1-1-1') return 'Morning, Afternoon & Night';
+  if (d === '1-1-1-1') return '4 Times a Day';
+  if (d === '1-0-0-1') return 'Morning & Night';
+  if (d === '1/2-0-1/2' || d === '0.5-0-0.5') return 'Morning & Night';
+  if (d === '2-0-2') return 'Morning & Night';
+  if (d === 'sos') return 'SOS';
+  if (d === 'stat') return 'Stat';
+  return '';
+}
+
+export function getMarathiNoteForDosage(dosage?: string, when: string = 'After Food'): string {
+  if (!dosage) return '';
+  const dClean = dosage.trim().toLowerCase().replace(/\s+/g, '');
+  const wLower = (when || '').toLowerCase();
+  const isBefore = wLower.includes('before') || (when || '').includes('आधी') || (when || '').includes('पूर्वी');
+  const isEmpty = wLower.includes('empty') || (when || '').includes('उपाशी');
+  const isBedtime = wLower.includes('bedtime') || (when || '').includes('झोपण्या');
+
+  if (isEmpty) return 'सकाळी उपाशीपोटी';
+  if (isBedtime) return 'रात्री झोपण्यापूर्वी';
+
+  const mealSuffix = isBefore ? 'जेवणाआधी' : 'जेवणानंतर';
+  const breakfastSuffix = isBefore ? 'नाश्त्याआधी' : 'नाश्त्यानंतर';
+
+  if (dClean === '1-0-0') return `सकाळी ${breakfastSuffix}`;
+  if (dClean === '0-1-0') return `दुपारी ${mealSuffix}`;
+  if (dClean === '0-0-1') return `रात्री ${mealSuffix}`;
+  if (dClean === '1-0-1') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === '1-1-0') return `सकाळी ${breakfastSuffix} आणि दुपारी ${mealSuffix}`;
+  if (dClean === '0-1-1') return `दुपारी ${mealSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === '1-1-1') return `सकाळी ${breakfastSuffix}, दुपारी ${mealSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === '1/2-0-1/2' || dClean === '0.5-0-0.5') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix} (अर्धी गोळी)`;
+  if (dClean === '2-0-2') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix} (२ गोळ्या)`;
+  if (dClean === '1-1-1-1') return `दिवसातून ४ वेळा (सकाळी, दुपारी, संध्याकाळी आणि रात्री ${mealSuffix})`;
+  if (dClean === '1-0-0-1') return `सकाळी ${breakfastSuffix} आणि रात्री ${mealSuffix}`;
+  if (dClean === 'sos') return 'गरज भासल्यास (SOS)';
+  if (dClean === 'stat') return 'तातडीने (STAT)';
+
+  return '';
+}
 
 export interface LinkedMedicineProfile {
   name?: string;
@@ -548,63 +613,52 @@ export default function HealthPlixMedicineTable({
       sch.to_date = calculateEndDate(start, dur);
     }
 
-    // Auto-suggest Marathi notes and timing when dosage is changed (e.g. 1-0-0 -> नाश्त्यानंतर)
+    // Auto-suggest Marathi notes and timing when dosage is changed (e.g. 1-1-1 -> Morning, Afternoon & Night)
     if (field === 'dosage') {
-      const dClean = value.trim().toLowerCase();
-      const currentNotes = (sch.notes || '').trim();
-      const isDefaultOrEmptyNote =
-        !currentNotes ||
-        ['नाश्त्यानंतर', 'दुपारी जेवणानंतर', 'रात्री जेवणानंतर', 'नाश्त्यानंतर व रात्री जेवणानंतर', 'नाश्त्यानंतर, दुपारी व रात्री जेवणानंतर', 'नाश्ता नंतर', 'नाश्ता / जेवणानंतर'].includes(currentNotes);
+      const autoTime = getTimeFromDosage(value);
+      if (autoTime) {
+        sch.time = autoTime;
+      }
 
-      if (isDefaultOrEmptyNote) {
-        if (dClean === '1-0-0') {
-          sch.notes = 'सकाळी नाश्त्यानंतर';
-          sch.time = 'Morning';
-          sch.when = 'After Food';
-        } else if (dClean === '0-1-0') {
-          sch.notes = 'दुपारी जेवणानंतर';
-          sch.time = 'Afternoon';
-          sch.when = 'After Food';
-        } else if (dClean === '0-0-1') {
-          sch.notes = 'रात्री जेवणानंतर';
-          sch.time = 'Night';
-          sch.when = 'After Food';
-        } else if (dClean === '1-0-1') {
-          sch.notes = 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर';
-          sch.time = 'Morning & Night';
-          sch.when = 'After Food';
-        } else if (dClean === '1-1-0') {
-          sch.notes = 'सकाळी नाश्त्यानंतर आणि दुपारी जेवणानंतर';
-          sch.time = 'Morning & Afternoon';
-          sch.when = 'After Food';
-        } else if (dClean === '0-1-1') {
-          sch.notes = 'दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
-          sch.time = 'Afternoon & Night';
-          sch.when = 'After Food';
-        } else if (dClean === '1-1-1') {
-          sch.notes = 'सकाळी नाश्त्यानंतर, दुपारी जेवणानंतर आणि रात्री जेवणानंतर';
-          sch.time = 'Morning, Afternoon & Night';
-          sch.when = 'After Food';
-        } else if (dClean === '1/2-0-1/2' || dClean === '0.5-0-0.5') {
-          sch.notes = 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर (अर्धी गोळी)';
-          sch.time = 'Morning & Night';
-          sch.when = 'After Food';
-        } else if (dClean === '2-0-2') {
-          sch.notes = 'सकाळी नाश्त्यानंतर आणि रात्री जेवणानंतर (२ गोळ्या)';
-          sch.time = 'Morning & Night';
-          sch.when = 'After Food';
-        } else if (dClean === '1-1-1-1') {
-          sch.notes = 'दिवसातून ४ वेळा (सकाळी, दुपारी, संध्याकाळी आणि रात्री जेवणानंतर)';
-          sch.time = '4 Times a Day';
-          sch.when = 'After Food';
-        } else if (dClean === 'sos') {
-          sch.notes = 'गरज भासल्यास (SOS)';
-          sch.time = 'SOS';
-          sch.when = 'As Directed';
-        } else if (dClean === 'stat') {
-          sch.notes = 'तातडीने (STAT)';
-          sch.time = 'Stat';
-          sch.when = 'Immediate';
+      const currentNotes = (sch.notes || '').trim();
+      const isAutoNote =
+        !currentNotes ||
+        currentNotes.includes('जेवण') ||
+        currentNotes.includes('नाश्त्या') ||
+        currentNotes.includes('उपाशी') ||
+        currentNotes.includes('झोपण्या') ||
+        currentNotes.includes('SOS') ||
+        currentNotes.includes('STAT');
+
+      if (isAutoNote) {
+        const autoNote = getMarathiNoteForDosage(value, sch.when || 'After Food');
+        if (autoNote) {
+          sch.notes = autoNote;
+        }
+      }
+    }
+
+    if (field === 'when') {
+      const isBefore = value.toLowerCase().includes('before') || value.includes('आधी') || value.includes('पूर्वी');
+      const isAfter = value.toLowerCase().includes('after') || value.includes('नंतर');
+      const currentNotes = (sch.notes || '').trim();
+      const isAutoNote =
+        !currentNotes ||
+        currentNotes.includes('जेवण') ||
+        currentNotes.includes('नाश्त्या') ||
+        currentNotes.includes('उपाशी') ||
+        currentNotes.includes('झोपण्या');
+
+      if (isAutoNote) {
+        const autoNote = getMarathiNoteForDosage(sch.dosage || '', value);
+        if (autoNote) {
+          sch.notes = autoNote;
+        }
+      } else {
+        if (isBefore) {
+          sch.notes = (sch.notes || '').replace(/जेवणानंतर/g, 'जेवणाआधी').replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी').replace(/जेवणापूर्वी/g, 'जेवणाआधी').replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
+        } else if (isAfter) {
+          sch.notes = (sch.notes || '').replace(/जेवणाआधी/g, 'जेवणानंतर').replace(/नाश्त्याआधी/g, 'नाश्त्यानंतर').replace(/जेवणापूर्वी/g, 'जेवणानंतर').replace(/नाश्त्यापूर्वी/g, 'नाश्त्यानंतर');
         }
       }
     }
@@ -621,11 +675,19 @@ export default function HealthPlixMedicineTable({
 
     // Sync primary fields for backwards compatibility with letterhead & billing
     if (schIndex === 0) {
-      if (field === 'dosage') target.dosage = value;
+      if (field === 'dosage') {
+        target.dosage = value;
+        target.time = sch.time;
+        target.note = sch.notes;
+      }
       if (field === 'frequency') target.frequency = value;
       if (field === 'duration') target.duration = value;
+      if (field === 'time') target.time = value;
       if (field === 'notes') target.note = value;
-      if (field === 'when') target.when = value;
+      if (field === 'when') {
+        target.when = value;
+        target.note = sch.notes;
+      }
       if (field === 'where') target.where = value;
       if (field === 'unit') target.unit = value;
     } else {

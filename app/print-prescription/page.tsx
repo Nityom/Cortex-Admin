@@ -704,7 +704,15 @@ function PrintPrescriptionContent() {
                             ) {
                               parts.push(`(${med.duration})`);
                             }
-                            const timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage);
+                            const isBefore = (med.when || '').toLowerCase().includes('before') || (med.when || '').includes('आधी') || (med.when || '').includes('पूर्वी');
+                            let timing = med.timing || med.note || med.time || getTimingFromDosage(med.dosage, med.when);
+                            if (isBefore && timing) {
+                              timing = timing
+                                .replace(/जेवणानंतर/g, 'जेवणाआधी')
+                                .replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी')
+                                .replace(/जेवणापूर्वी/g, 'जेवणाआधी')
+                                .replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
+                            }
                             const scheduleText = parts.length > 0
                               ? parts.join(' • ')
                               : med.freq_duration ? String(med.freq_duration) : (med.duration ? String(med.duration) : (med.frequency ? String(med.frequency) : '—'));

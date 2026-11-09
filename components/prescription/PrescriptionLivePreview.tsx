@@ -374,7 +374,15 @@ export default function PrescriptionLivePreview({
                           notes: med.note,
                         }];
                         return <div className="space-y-1">{schedules.map((schedule, scheduleIndex) => {
-                          const timing = schedule.notes || [schedule.time, schedule.when].filter(Boolean).join(' • ') || med.timing || getTimingFromDosage(schedule.dosage || med.dosage);
+                          const isBefore = (schedule.when || med.when || '').toLowerCase().includes('before') || (schedule.when || med.when || '').includes('आधी') || (schedule.when || med.when || '').includes('पूर्वी');
+                          let timing = schedule.notes || [schedule.time, schedule.when].filter(Boolean).join(' • ') || med.timing || getTimingFromDosage(schedule.dosage || med.dosage, schedule.when || med.when);
+                          if (isBefore && timing) {
+                            timing = timing
+                              .replace(/जेवणानंतर/g, 'जेवणाआधी')
+                              .replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी')
+                              .replace(/जेवणापूर्वी/g, 'जेवणाआधी')
+                              .replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
+                          }
                           const frequency = schedule.frequency;
                           const duration = schedule.duration;
                           return <div key={scheduleIndex}>

@@ -35,11 +35,16 @@ export function calculateMedicineQuantity(medicine: QuantityMedicine): number | 
   let total = 0;
 
   for (const schedule of schedules) {
+    const frequency = (schedule.frequency || 'daily').toLowerCase();
+    if (/stat/.test(frequency)) {
+      total += 1;
+      continue;
+    }
+
     const dosageCount = dosesPerDay(schedule.dosage);
     const durationDays = parseDurationDays(schedule.duration);
     if (dosageCount === undefined || durationDays === undefined) return undefined;
 
-    const frequency = (schedule.frequency || 'daily').toLowerCase();
     let frequencyCount: number;
     if (/alternate/.test(frequency)) frequencyCount = Math.ceil(durationDays / 2);
     else if (/twice/.test(frequency)) frequencyCount = (durationDays / 7) * 2;
