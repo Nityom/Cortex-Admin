@@ -253,20 +253,28 @@ export function saveSectionCustomTemplate(
 
   // Persist to Convex DB
   if (convexClient) {
+    const stringified = typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData);
     convexClient.mutation(api.clinical_templates.upsert, {
       template_id: newPreset.id,
       name,
       category,
       section_key: sectionKey,
+      data: normalizedData,
       medicines: sectionKey === 'medicines' ? normalizedData : undefined,
       is_preset: false,
-      diagnosis: sectionKey === 'diagnosis' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      diagnosis: sectionKey === 'diagnosis' ? stringified : undefined,
       complaints: sectionKey === 'complaints' ? normalizedData : undefined,
-      advice: sectionKey === 'advice' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
-      dr_notes: sectionKey === 'dr_notes' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
-      procedure_advice: sectionKey === 'procedure_advice' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
-      diet_exercise: sectionKey === 'diet_exercise' ? (typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData)) : undefined,
+      findings: sectionKey === 'findings' ? stringified : undefined,
+      advice: sectionKey === 'advice' ? stringified : undefined,
+      dr_notes: sectionKey === 'dr_notes' ? stringified : undefined,
+      quick_notes: sectionKey === 'quick_notes' ? stringified : undefined,
+      procedure_advice: sectionKey === 'procedure_advice' ? stringified : undefined,
+      diet_exercise: sectionKey === 'diet_exercise' ? stringified : undefined,
       tests_requested: sectionKey === 'tests_requested' || sectionKey === 'investigations' ? normalizedData : undefined,
+      investigations: sectionKey === 'investigations' ? stringified : undefined,
+      general_examinations: sectionKey === 'general_examinations' ? stringified : undefined,
+      systemic_examinations: sectionKey === 'systemic_examinations' ? stringified : undefined,
+      past_medications: sectionKey === 'past_medications' ? stringified : undefined,
     }).catch((err: any) => console.warn('Could not sync section template to Convex:', err));
   }
 
@@ -302,12 +310,20 @@ export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promi
         .filter((item: any) => item.section_key === sectionKey)
         .map((item: any) => {
           let templateData: any;
-          if (item.section_key === 'medicines') {
+          if (item.data !== undefined && item.data !== null) {
+            templateData = item.data;
+          } else if (item.section_key === 'medicines') {
             templateData = item.medicines || [];
           } else if (item.section_key === 'tests_requested') {
-            templateData = item.tests_requested || item.data || [];
+            templateData = item.tests_requested || [];
+          } else if (item.section_key === 'findings') {
+            templateData = item.findings || '';
+          } else if (item.section_key === 'quick_notes') {
+            templateData = item.quick_notes || '';
+          } else if (item.section_key === 'complaints') {
+            templateData = item.complaints || [];
           } else {
-            templateData = item.data || item.diagnosis || item.complaints || item.advice || item.tests_requested || '';
+            templateData = item.advice || item.diagnosis || item.dr_notes || item.diet_exercise || item.procedure_advice || '';
           }
           return {
             id: item.template_id || item._id,

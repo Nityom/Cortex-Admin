@@ -1387,7 +1387,7 @@ export default function OPDManagementPage() {
                       const lastVisitInfo = (uhidNorm && patientLastVisitMap.get(uhidNorm)) || (phoneNorm && patientLastVisitMap.get(phoneNorm));
 
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
-                        <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(index + 1).padStart(2, "0")}</td>
+                        <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(displayedQueue.length - index).padStart(2, "0")}</td>
                         <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
                         <td className="px-4 py-4">
                           <span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span>

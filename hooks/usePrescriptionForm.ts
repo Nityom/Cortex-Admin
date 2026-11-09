@@ -972,14 +972,17 @@ export function usePrescriptionForm() {
 
   // Save Master Template
   const handleSavePrescriptionTemplate = () => {
-    if (!templateNameInput.trim()) {
-      alert('Please enter a template name.');
-      return;
-    }
+    const diagText =
+      formData.de ||
+      (diagnosesList && diagnosesList.length > 0
+        ? diagnosesList.map((d) => d.diagnosis).filter(Boolean).join(', ')
+        : '');
+    const finalName = templateNameInput.trim() || (diagText ? `${diagText} Protocol` : 'Prescription Template');
+
     const saved = saveTemplateService({
-      name: templateNameInput.trim(),
-      diagnosis: formData.de || diagnosesList.map((d) => d.diagnosis).join(', '),
-      category: templateCategoryInput || 'Orthopaedics',
+      name: finalName,
+      diagnosis: diagText,
+      category: templateCategoryInput || (isGynaeDoc ? 'Gynaecology' : 'Orthopaedics'),
       doctor_name: selectedDoctorName,
       complaints: complaintsList.map((c) => ({
         complaint: c.complaint,
@@ -995,6 +998,10 @@ export function usePrescriptionForm() {
       procedure_advice: procedureAdvice,
       diet_exercise: dietExercise,
       investigations: investigationText,
+      tests_requested: testsRequested.map((t) => ({
+        name: t.name,
+        by_when: t.by_when || 'Next Visit',
+      })),
       general_examinations: generalExam,
       past_medications: pastMedication,
       followup_count: followupCount,

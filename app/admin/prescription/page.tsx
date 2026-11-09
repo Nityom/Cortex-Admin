@@ -49,7 +49,12 @@ export default function PrescriptionPage() {
               form.setIsLoadTemplateModalOpen(true);
             }}
             onOpenSaveTemplate={() => {
-              form.setTemplateNameInput(form.formData.de ? `${form.formData.de} Protocol` : '');
+              const diag =
+                form.formData.de ||
+                (form.diagnosesList && form.diagnosesList.length > 0
+                  ? form.diagnosesList.map((d: any) => d.diagnosis).filter(Boolean).join(', ')
+                  : '');
+              form.setTemplateNameInput(diag ? `${diag} Protocol` : '');
               form.setIsSaveTemplateModalOpen(true);
             }}
             onOpenEmailModal={form.handleOpenEmailModal}
@@ -115,6 +120,8 @@ export default function PrescriptionPage() {
           selectedDoctorName={form.selectedDoctorName}
           formData={form.formData}
           medicines={form.medicines}
+          diagnosesList={form.diagnosesList}
+          testsRequested={form.testsRequested}
           followupCount={form.followupCount}
           followupUnit={form.followupUnit}
           onSaveTemplate={form.handleSavePrescriptionTemplate}

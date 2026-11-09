@@ -23,6 +23,7 @@ interface PrescriptionMasterTemplateModalsProps {
   selectedDoctorName: string;
   formData: { de?: string; advice?: string; [key: string]: any };
   medicines: any[];
+  diagnosesList?: any[];
   complaintsList?: any[];
   findingsText?: string;
   vitals?: any;
@@ -59,6 +60,8 @@ export default function PrescriptionMasterTemplateModals({
   selectedDoctorName,
   formData,
   medicines,
+  diagnosesList,
+  testsRequested,
   followupCount,
   followupUnit,
   onSaveTemplate,
@@ -265,11 +268,20 @@ export default function PrescriptionMasterTemplateModals({
               <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200 space-y-1.5 text-[11px]">
                 <span className="font-bold text-purple-900 block">Template Content Preview:</span>
                 <p className="text-slate-700">
-                  <strong>Diagnosis:</strong> {formData.de || 'None'}
+                  <strong>Diagnosis:</strong>{' '}
+                  {formData.de ||
+                    (diagnosesList && diagnosesList.length > 0
+                      ? diagnosesList.map((d: any) => d.diagnosis).filter(Boolean).join(', ')
+                      : 'None')}
                 </p>
                 <p className="text-slate-700">
                   <strong>Medicines:</strong> {medicines.length} items with dosages & schedules
                 </p>
+                {testsRequested && testsRequested.length > 0 && (
+                  <p className="text-slate-700">
+                    <strong>Tests:</strong> {testsRequested.length} requested tests
+                  </p>
+                )}
                 <p className="text-slate-700">
                   <strong>Advice:</strong>{' '}
                   {formData.advice ? formData.advice.slice(0, 60) + '...' : 'None'}

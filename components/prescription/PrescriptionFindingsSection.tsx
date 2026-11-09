@@ -51,8 +51,12 @@ export default function PrescriptionFindingsSection({
         </div>
       </div>
       <AutoResizeTextarea
+        sectionKey="findings"
+        sectionTitle="Findings"
+        category={category}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onApplyTemplate={(val) => onChange(value ? value + '\n' + val : val)}
         minRows={1}
         placeholder="Clinical findings, general examination, range of motion, swelling, tenderness, systemic signs..."
         className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"

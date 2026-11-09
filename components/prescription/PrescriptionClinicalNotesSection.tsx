@@ -1,9 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Edit2, Undo2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Edit2, Undo2, Sparkles, Plus, Check, X } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 import AutoResizeTextarea from './AutoResizeTextarea';
+import {
+  getSectionCustomTemplates,
+  saveSectionCustomTemplate,
+  fetchSectionTemplatesFromConvex,
+  ClinicalSectionPreset,
+} from '@/services/clinicalSectionPresets';
+
+const COMMON_TESTS_CATALOG = [
+  'CBC (Complete Blood Count)',
+  'Blood Sugar (Fasting & PP)',
+  'HbA1c',
+  'Serum Uric Acid',
+  'ESR & CRP',
+  'X-Ray Knee AP & Lateral Standing',
+  'X-Ray Cervical Spine AP & Lateral',
+  'X-Ray LS Spine AP & Lateral',
+  'MRI Lumbar Spine',
+  'MRI Knee Joint',
+  'Serum Calcium & Vitamin D3',
+  'Vitamin B12',
+  'Kidney Function Test (KFT)',
+  'Liver Function Test (LFT)',
+  'Urine Routine & Microscopy',
+  'Thyroid Profile (TSH)',
+  'RA Factor / Anti-CCP',
+  'Lipid Profile',
+];
 
 export interface TestRequestedItem {
   id: string;
