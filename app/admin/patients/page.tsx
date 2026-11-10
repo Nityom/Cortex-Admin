@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { getAllPrescriptions, Prescription as PrescriptionType, deletePrescription } from '@/services/prescription';
-import { deletePatient, getPatients, migratePatientsToCRX } from '@/services/patients';
+import { deletePatient, getPatients, migratePatientsToCRX, updatePatient, createPatient, getPatientByPhoneNumber } from '@/services/patients';
 import { getAll as getAllBills } from '@/services/bills';
 import { Patient } from '@/types/patient';
 import Link from 'next/link';
@@ -21,6 +21,10 @@ import {
   Calendar,
   Mail,
   CheckCircle2,
+  Pencil,
+  Save,
+  X,
+  Phone,
 } from 'lucide-react';
 import PrescriptionEmailModal, { PrescriptionEmailModalData } from '@/components/prescription/PrescriptionEmailModal';
 import { hospitalConfig } from '@/config/hospital';
@@ -437,13 +441,136 @@ const ViewPatients = () => {
     }
   };
 
+  // Edit Patient Details State
+  const [isEditingPatient, setIsEditingPatient] = useState<boolean>(false);
+  const [editPatientForm, setEditPatientForm] = useState({
+    name: '',
+    phone: '',
+    age: '',
+    sex: 'Male' as 'Male' | 'Female' | 'Other',
+    address: '',
+    email: '',
+  });
+  const [savingPatient, setSavingPatient] = useState<boolean>(false);
+
+  const handleStartEditPatient = (patient: PatientWithPrescriptions) => {
+    setSelectedPatient(patient);
+    setEditPatientForm({
+      name: patient.name || '',
+      phone: (patient.phone_number || '').replace(/\D/g, '').slice(0, 10),
+      age: isNaN(Number(patient.age)) || !patient.age ? '' : String(patient.age),
+      sex: (['Male', 'Female', 'Other'].includes(patient.sex) ? patient.sex : 'Male') as any,
+      address: (patient as any).address || '',
+      email: (patient as any).email || '',
+    });
+    setIsEditingPatient(true);
+    setIsModalOpen(true);
+  };
+
+  const handleSavePatientDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatient) return;
+
+    const cleanName = editPatientForm.name.trim();
+    const cleanPhone = editPatientForm.phone.replace(/\D/g, '').slice(0, 10);
+    const parsedAge = parseInt(editPatientForm.age, 10);
+    const cleanAge = isNaN(parsedAge) ? 0 : parsedAge;
+    const cleanEmail = editPatientForm.email.trim();
+    const cleanAddress = editPatientForm.address.trim();
+
+    if (!cleanName) {
+      alert("Please enter patient name.");
+      return;
+    }
+
+    if (cleanPhone.length !== 10) {
+      alert(`Mobile number must be exactly 10 digits. Currently entered: ${cleanPhone.length} digits.`);
+      return;
+    }
+
+    setSavingPatient(true);
+    try {
+      let patientId = selectedPatient.id;
+
+      // If temporary ID, check if patient exists in Convex by phone number or create
+      if (!patientId || patientId.startsWith('TMP-')) {
+        const existing = await getPatientByPhoneNumber(cleanPhone);
+        if (existing?.id) {
+          patientId = existing.id;
+        } else {
+          const created = await createPatient({
+            name: cleanName,
+            phone_number: cleanPhone,
+            age: cleanAge,
+            sex: editPatientForm.sex,
+            address: cleanAddress || undefined,
+            email: cleanEmail || undefined,
+            reference_number: selectedPatient.reference_number,
+          } as any);
+          if (created) {
+            patientId = String(created);
+          }
+        }
+      }
+
+      if (patientId && !patientId.startsWith('TMP-')) {
+        await updatePatient(patientId, {
+          name: cleanName,
+          phone_number: cleanPhone,
+          age: cleanAge,
+          sex: editPatientForm.sex,
+          address: cleanAddress || undefined,
+          email: cleanEmail || undefined,
+        });
+      }
+
+      const updatedSelected: PatientWithPrescriptions = {
+        ...selectedPatient,
+        id: patientId,
+        name: cleanName,
+        phone_number: cleanPhone,
+        age: cleanAge,
+        sex: editPatientForm.sex,
+        email: cleanEmail,
+        address: cleanAddress,
+      };
+
+      setSelectedPatient(updatedSelected);
+      setPatients((prev) =>
+        prev.map((p) =>
+          p.id === selectedPatient.id || (p.phone_number && p.phone_number === selectedPatient.phone_number)
+            ? { ...p, ...updatedSelected }
+            : p
+        )
+      );
+      setFilteredPatients((prev) =>
+        prev.map((p) =>
+          p.id === selectedPatient.id || (p.phone_number && p.phone_number === selectedPatient.phone_number)
+            ? { ...p, ...updatedSelected }
+            : p
+        )
+      );
+
+      setIsEditingPatient(false);
+      setAlertMessage({ type: 'success', message: 'Patient details updated successfully!' });
+      setTimeout(() => setAlertMessage(null), 4000);
+    } catch (err: any) {
+      console.error("Error updating patient details:", err);
+      alert("Failed to update patient details: " + (err.message || "Unknown error"));
+    } finally {
+      setSavingPatient(false);
+    }
+  };
+
   const openPatientDetails = (patient: PatientWithPrescriptions) => {
     setSelectedPatient(patient);
+    setIsEditingPatient(false);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setIsEditingPatient(false);
   };
 
   // Format date to readable format
@@ -800,6 +927,15 @@ const ViewPatients = () => {
                               <Eye className="w-4 h-4" />
                             </button>
 
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditPatient(patient)}
+                              className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition flex items-center justify-center shadow-2xs cursor-pointer"
+                              title={`Edit details for ${patient.name}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+
                             <Link
                               href={`/admin/prescription?patientName=${encodeURIComponent(patient.name)}&phoneNumber=${encodeURIComponent(patient.phone_number)}&phone=${encodeURIComponent(patient.phone_number)}&reference_number=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'CRX'))}&uhid=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'CRX'))}&age=${patient.age}&sex=${patient.sex}&doctorName=${encodeURIComponent(latestDoc)}&medicalHistory=${encodeURIComponent(patient.prescriptions[0]?.medical_history || '')}`}
                             >
@@ -934,19 +1070,149 @@ const ViewPatients = () => {
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <div className="mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-emerald-50 p-4 rounded-lg">
-                        <h4 className="text-lg font-semibold text-emerald-800 mb-3">Patient Information</h4>
-                        <div className="space-y-2">
-                          <p><span className="font-medium">Name:</span> {selectedPatient.name}</p>
-                          <p><span className="font-medium">Phone:</span> {selectedPatient.phone_number}</p>
-                          {selectedPatient.email && (
-                            <p><span className="font-medium">Email:</span> {selectedPatient.email}</p>
+                      <div className="bg-emerald-50/70 p-5 rounded-xl border border-emerald-100">
+                        <div className="flex items-center justify-between mb-3 border-b border-emerald-100/80 pb-2">
+                          <h4 className="text-base font-bold text-emerald-900 flex items-center gap-1.5">
+                            <User className="w-4 h-4 text-emerald-700" />
+                            Patient Information
+                          </h4>
+                          {!isEditingPatient && (
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditPatient(selectedPatient)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+                              title="Edit patient details"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              <span>Edit Details</span>
+                            </button>
                           )}
-                          <p><span className="font-medium">Age:</span> {selectedPatient.age}</p>
-                          <p><span className="font-medium">Sex:</span> {selectedPatient.sex}</p>
-                          <p><span className="font-medium">Latest Visit:</span> {formatDate(selectedPatient.latestVisit)}</p>
-                          <p><span className="font-medium">Total Visits:</span> {selectedPatient.totalVisits}</p>
                         </div>
+
+                        {isEditingPatient ? (
+                          <form onSubmit={handleSavePatientDetails} className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                                Full Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={editPatientForm.name}
+                                onChange={(e) => setEditPatientForm({ ...editPatientForm, name: e.target.value })}
+                                placeholder="Patient full name"
+                                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="block text-xs font-semibold text-slate-700">
+                                    Mobile <span className="text-red-500">*</span>
+                                  </label>
+                                  <span className={`text-[10px] font-mono font-medium ${editPatientForm.phone.length === 10 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                    {editPatientForm.phone.length}/10
+                                  </span>
+                                </div>
+                                <input
+                                  type="tel"
+                                  inputMode="numeric"
+                                  maxLength={10}
+                                  pattern="[0-9]{10}"
+                                  required
+                                  value={editPatientForm.phone}
+                                  onChange={(e) => setEditPatientForm({ ...editPatientForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                                  placeholder="10 digits"
+                                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <div>
+                                  <label className="block text-xs font-semibold text-slate-700 mb-1">Age</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="125"
+                                    value={editPatientForm.age}
+                                    onChange={(e) => setEditPatientForm({ ...editPatientForm, age: e.target.value })}
+                                    placeholder="Age"
+                                    className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-semibold text-slate-700 mb-1">Sex</label>
+                                  <select
+                                    value={editPatientForm.sex}
+                                    onChange={(e) => setEditPatientForm({ ...editPatientForm, sex: e.target.value as any })}
+                                    className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                  >
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+                                <input
+                                  type="email"
+                                  value={editPatientForm.email}
+                                  onChange={(e) => setEditPatientForm({ ...editPatientForm, email: e.target.value })}
+                                  placeholder="patient@email.com"
+                                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Address / City</label>
+                                <input
+                                  type="text"
+                                  value={editPatientForm.address}
+                                  onChange={(e) => setEditPatientForm({ ...editPatientForm, address: e.target.value })}
+                                  placeholder="e.g. Wardha"
+                                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-emerald-100">
+                              <button
+                                type="button"
+                                onClick={() => setIsEditingPatient(false)}
+                                disabled={savingPatient}
+                                className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={savingPatient || editPatientForm.phone.length !== 10}
+                                className="px-3.5 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition disabled:opacity-50 flex items-center gap-1 shadow-xs cursor-pointer"
+                              >
+                                {savingPatient ? 'Saving...' : 'Save Changes'}
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="space-y-2 text-sm text-slate-800">
+                            <p><span className="font-semibold text-slate-500">Name:</span> <span className="font-bold">{selectedPatient.name}</span></p>
+                            <p><span className="font-semibold text-slate-500">Phone:</span> <span className="font-mono font-bold text-slate-900">{selectedPatient.phone_number}</span></p>
+                            {selectedPatient.email && (
+                              <p><span className="font-semibold text-slate-500">Email:</span> {selectedPatient.email}</p>
+                            )}
+                            {(selectedPatient as any).address && (
+                              <p><span className="font-semibold text-slate-500">Address:</span> {(selectedPatient as any).address}</p>
+                            )}
+                            <p><span className="font-semibold text-slate-500">Age:</span> {isNaN(Number(selectedPatient.age)) || !selectedPatient.age ? '—' : `${selectedPatient.age} yrs`}</p>
+                            <p><span className="font-semibold text-slate-500">Sex:</span> {selectedPatient.sex}</p>
+                            <p><span className="font-semibold text-slate-500">Latest Visit:</span> {formatDate(selectedPatient.latestVisit)}</p>
+                            <p><span className="font-semibold text-slate-500">Total Visits:</span> <span className="font-bold text-emerald-800">{selectedPatient.totalVisits}</span></p>
+                          </div>
+                        )}
                       </div>                      <div className="bg-purple-50 p-4 rounded-lg">
                         <h4 className="text-lg font-semibold text-purple-800 mb-3">Medical Summary</h4>
                         <div className="space-y-2">

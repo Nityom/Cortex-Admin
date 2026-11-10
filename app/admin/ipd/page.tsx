@@ -1172,8 +1172,17 @@ export default function IPDManagementPage() {
   // Submit New IPD Admission
   const handleCreateAdmission = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdmissionForm.name.trim() || !newAdmissionForm.phone.trim()) {
-      alert("Please provide patient name and contact number.");
+    const cleanPhone = newAdmissionForm.phone.replace(/\D/g, "");
+    if (!newAdmissionForm.name.trim()) {
+      alert("Please provide patient name.");
+      return;
+    }
+    if (!cleanPhone) {
+      alert("Please provide patient contact number.");
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      alert(`Mobile number must be exactly 10 digits. You have entered ${cleanPhone.length} digits.`);
       return;
     }
 

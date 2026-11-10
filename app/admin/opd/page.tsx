@@ -55,7 +55,7 @@ interface OPDQueueItem {
   department: string;
   priority: "Normal" | "Urgent" | "Emergency";
   visitType: "New Registration" | "Routine Follow-up" | "Post-Op Review" | "Emergency" | "Appointment";
-  status: "Waiting" | "Ready" | "In Consultation" | "Completed";
+  status: "Waiting" | "Ready" | "In Consultation" | "Completed" | "Cancelled";
   vitals: {
     bp?: string;
     pulse?: string;
@@ -637,8 +637,17 @@ export default function OPDManagementPage() {
   // Submit OPD Registration
   const handleRegisterPatient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      alert("Please enter patient name and mobile number.");
+    const cleanPhone = formData.phone.replace(/\D/g, "");
+    if (!formData.name.trim()) {
+      alert("Please enter patient name.");
+      return;
+    }
+    if (!cleanPhone) {
+      alert("Please enter patient 10-digit mobile number.");
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      alert(`Mobile number must be exactly 10 digits. You have entered ${cleanPhone.length} digits.`);
       return;
     }
 
@@ -652,7 +661,7 @@ export default function OPDManagementPage() {
           name: formData.name.trim(),
           age: Number(formData.age) || 0,
           sex: formData.sex,
-          phone_number: formData.phone.trim(),
+          phone_number: cleanPhone,
           address: formData.address.trim() || undefined,
           email: formData.email.trim() || undefined,
           whatsapp_number: formData.whatsapp_number.trim() || undefined,
@@ -669,7 +678,7 @@ export default function OPDManagementPage() {
           }
         }
         if (!uhid) {
-          const pt = await getPatientByPhoneNumber(formData.phone.trim());
+          const pt = await getPatientByPhoneNumber(cleanPhone);
           if (pt?.reference_number) {
             uhid = pt.reference_number.replace(/^CH/i, "CRX");
           } else {
@@ -711,7 +720,7 @@ export default function OPDManagementPage() {
         age: formData.age.trim(),
         ageUnit: formData.ageUnit,
         sex: formData.sex,
-        phone: formData.phone.trim(),
+        phone: cleanPhone,
         address: formData.address.trim(),
         email: formData.email.trim() || undefined,
         whatsapp_number: formData.whatsapp_number.trim() || undefined,
@@ -1065,6 +1074,7 @@ export default function OPDManagementPage() {
       waiting: todayItems.filter((item) => item.status === "Waiting" || item.status === "Ready").length,
       inConsultation: todayItems.filter((item) => item.status === "In Consultation").length,
       completed: todayItems.filter((item) => item.status === "Completed").length,
+      cancelled: todayItems.filter((item) => item.status === "Cancelled").length,
     };
   }, [queue, todayStr]);
 
@@ -1087,7 +1097,7 @@ export default function OPDManagementPage() {
       }
       // 3. Status Filter
       if (activeTab === "waitingQueue") {
-        if (item.status === "Completed") return false;
+        if (item.status === "Completed" || item.status === "Cancelled") return false;
       } else if (activeTab !== "billingQueue" && selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) {
         return false;
       }
@@ -1323,6 +1333,7 @@ export default function OPDManagementPage() {
                   <option value="Waiting">Waiting</option>
                   <option value="In Consultation">In Consultation</option>
                   <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>}
 
@@ -1427,6 +1438,8 @@ export default function OPDManagementPage() {
                           ? "bg-amber-50 text-amber-800 border-amber-100"
                           : item.status === "Completed"
                           ? "bg-slate-100 text-slate-700 border-slate-200"
+                          : item.status === "Cancelled"
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
                           : "bg-emerald-50 text-emerald-800 border-emerald-100";
 
                       const uhidNorm = (item.uhid || "").trim().toUpperCase();
@@ -1463,7 +1476,7 @@ export default function OPDManagementPage() {
                           )}
                         </td>
                         <td className="px-4 py-4"><span className="block whitespace-nowrap text-sm font-semibold text-[#577464]">{item.doctor}</span><span className="mt-1 block text-sm text-slate-500">{item.department || "General consultation"}</span></td>
-                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option></select>}</td>
+                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>
@@ -1746,19 +1759,44 @@ export default function OPDManagementPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Mobile Number <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Mobile Number <span className="text-red-500">*</span>
+                    </label>
+                    <span
+                      className={`text-[10px] font-mono font-medium ${
+                        formData.phone.replace(/\D/g, "").length === 10
+                          ? "text-emerald-600"
+                          : formData.phone.replace(/\D/g, "").length > 0
+                          ? "text-amber-600"
+                          : "text-slate-400"
+                      }`}
+                    >
+                      {formData.phone.replace(/\D/g, "").length}/10 digits
+                    </span>
+                  </div>
                   <PatientSearchInput
                     value={formData.phone}
                     searchType="phone"
-                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                    onChange={(val) => setFormData({ ...formData, phone: val.replace(/\D/g, "").slice(0, 10) })}
                     onSelectPatient={handleAutoFillPatient}
                     patients={combinedPatients}
-                    placeholder="e.g. 9876543210"
+                    placeholder="10-digit mobile number"
                     required
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Type to search existing patient</span>
+                  {formData.phone.replace(/\D/g, "").length > 0 && formData.phone.replace(/\D/g, "").length < 10 && (
+                    <span className="text-[10px] text-amber-600 font-medium mt-0.5 block">
+                      10 digits compulsory ({10 - formData.phone.replace(/\D/g, "").length} more needed)
+                    </span>
+                  )}
+                  {formData.phone.replace(/\D/g, "").length === 10 && (
+                    <span className="text-[10px] text-emerald-600 font-medium mt-0.5 block flex items-center gap-1">
+                      ✓ Valid 10-digit mobile number
+                    </span>
+                  )}
+                  {formData.phone.replace(/\D/g, "").length === 0 && (
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">10-digit mobile number compulsory</span>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">

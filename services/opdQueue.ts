@@ -25,7 +25,7 @@ export interface OPDQueueItem {
   department: string;
   priority: "Normal" | "Urgent" | "Emergency";
   visitType: "New Registration" | "Routine Follow-up" | "Post-Op Review" | "Emergency" | "Appointment";
-  status: "Waiting" | "Ready" | "In Consultation" | "Completed";
+  status: "Waiting" | "Ready" | "In Consultation" | "Completed" | "Cancelled";
   vitals: {
     bp?: string;
     pulse?: string;
@@ -152,7 +152,7 @@ export const opdQueueService = {
     }
   },
 
-  async updateStatus(queue_id: string, status: "Waiting" | "Ready" | "In Consultation" | "Completed"): Promise<boolean> {
+  async updateStatus(queue_id: string, status: "Waiting" | "Ready" | "In Consultation" | "Completed" | "Cancelled"): Promise<boolean> {
     // 1. Update local storage immediately
     if (typeof window !== "undefined") {
       try {

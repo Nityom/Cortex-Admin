@@ -788,20 +788,12 @@ export default function AppointmentsPage() {
             ) : (
               appointmentsForDate.map((appt, index) => {
                 const initials = (appt.name || '?').split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
-                const avatarColors = [
-                  'bg-emerald-100 text-emerald-700',
-                  'bg-violet-100 text-violet-700',
-                  'bg-emerald-100 text-emerald-700',
-                  'bg-amber-100 text-amber-700',
-                  'bg-rose-100 text-rose-700',
-                  'bg-cyan-100 text-cyan-700',
-                ];
-                const accentColors = ['border-emerald-400', 'border-violet-400', 'border-emerald-400', 'border-amber-400', 'border-rose-400', 'border-cyan-400'];
-                const color = avatarColors[index % avatarColors.length];
-                const accent = accentColors[index % accentColors.length];
+                const isGynae = (appt.doctor_name || '').toLowerCase().includes('shillpa');
+                const leftAccent = isGynae ? 'border-l-pink-500' : 'border-l-emerald-600';
+                const avatarColor = isGynae ? 'bg-pink-100 text-pink-700' : 'bg-emerald-100 text-emerald-700';
 
                 return (
-                  <div key={appt._id} className={`rounded-xl bg-white border border-gray-100 shadow-sm border-l-4 ${accent} hover:shadow-md transition-all group`}>
+                  <div key={appt._id} className={`rounded-xl bg-white border border-slate-200 shadow-xs border-l-4 ${leftAccent} hover:shadow-md transition-all group`}>
                     {/* Top row: time + actions */}
                     <div className="flex items-center justify-between px-4 pt-3 pb-2">
                       <div className="flex items-center gap-1.5">
@@ -811,7 +803,7 @@ export default function AppointmentsPage() {
                       <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleOpenModal(appt)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                           title="Edit"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -819,7 +811,7 @@ export default function AppointmentsPage() {
                         {isAdmin && (
                           <button
                             onClick={() => handleDelete(appt._id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -830,7 +822,7 @@ export default function AppointmentsPage() {
 
                     {/* Patient info & Doctor */}
                     <div className="flex items-start gap-3 px-4 pb-2">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${color}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${avatarColor}`}>
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -849,8 +841,8 @@ export default function AppointmentsPage() {
                         )}
                         {appt.doctor_name && (
                           <span className={`inline-block mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                            appt.doctor_name.toLowerCase().includes('shillpa')
-                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                            isGynae
+                              ? 'bg-pink-100 text-pink-800 border border-pink-200'
                               : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                           }`}>
                             {appt.doctor_name}

@@ -252,24 +252,53 @@ export default function IpdNewAdmissionTab({
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Mobile Number <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Mobile Number <span className="text-red-500">*</span>
+                </label>
+                <span
+                  className={`text-[10px] font-mono font-medium ${
+                    newAdmissionForm.phone.replace(/\D/g, "").length === 10
+                      ? "text-emerald-600"
+                      : newAdmissionForm.phone.replace(/\D/g, "").length > 0
+                      ? "text-amber-600"
+                      : "text-slate-400"
+                  }`}
+                >
+                  {newAdmissionForm.phone.replace(/\D/g, "").length}/10 digits
+                </span>
+              </div>
               <div className="relative">
                 <Phone className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                   required
                   value={newAdmissionForm.phone}
                   onChange={(e) => {
-                    setNewAdmissionForm({ ...newAdmissionForm, phone: e.target.value });
-                    handlePhoneLookup(e.target.value);
+                    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setNewAdmissionForm({ ...newAdmissionForm, phone: cleaned });
+                    handlePhoneLookup(cleaned);
                   }}
-                  placeholder="e.g. 9823012345"
+                  placeholder="10-digit mobile number"
                   className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Type 10 digits to auto-lookup UHID</span>
+              {newAdmissionForm.phone.replace(/\D/g, "").length > 0 && newAdmissionForm.phone.replace(/\D/g, "").length < 10 && (
+                <span className="text-[10px] text-amber-600 font-medium mt-0.5 block">
+                  10 digits compulsory ({10 - newAdmissionForm.phone.replace(/\D/g, "").length} more needed)
+                </span>
+              )}
+              {newAdmissionForm.phone.replace(/\D/g, "").length === 10 && (
+                <span className="text-[10px] text-emerald-600 font-medium mt-0.5 block">
+                  ✓ Valid 10-digit mobile number
+                </span>
+              )}
+              {newAdmissionForm.phone.replace(/\D/g, "").length === 0 && (
+                <span className="text-[10px] text-slate-400 mt-0.5 block">10 digits compulsory to register & lookup UHID</span>
+              )}
             </div>
 
             <div>
