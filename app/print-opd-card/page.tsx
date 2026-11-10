@@ -3,6 +3,7 @@
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { hospitalConfig } from "@/config/hospital";
+import { formatDate } from "@/lib/utils";
 
 function OPDCardContent() {
   const searchParams = useSearchParams();
@@ -27,7 +28,7 @@ function OPDCardContent() {
   const weight = searchParams.get("weight") || "";
   const bmi = searchParams.get("bmi") || "";
   const fee = searchParams.get("fee") || "250";
-  const dateStr = searchParams.get("date") || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const dateStr = formatDate(searchParams.get("date") || new Date());
   const timeStr = searchParams.get("time") || new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
   return (

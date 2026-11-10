@@ -37,7 +37,7 @@ export function IpdPrintReceiptModal({
   const docSig = isGyno ? "/sign1.png" : "/sign.png";
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-2 sm:p-3 overflow-y-auto">
       {/* Embedded Print CSS to print receipt matching bill size (A6 / A7 / A4) */}
       <style
         dangerouslySetInnerHTML={{
@@ -78,7 +78,7 @@ export function IpdPrintReceiptModal({
       <div
         className={`bg-white rounded-2xl w-full ${
           receiptPageSize === "A7" ? "max-w-sm" : "max-w-lg"
-        } p-4 sm:p-5 shadow-2xl border border-slate-200 space-y-3.5 print:p-0 print:border-none print:shadow-none`}
+        } max-h-[90vh] overflow-y-auto p-3 sm:p-4 shadow-2xl border border-slate-200 space-y-3 print:max-h-none print:overflow-visible print:p-0 print:border-none print:shadow-none`}
       >
         {/* Top Navigation & Paper Size Selector */}
         <div className="no-print space-y-2 pb-2 border-b border-slate-200">

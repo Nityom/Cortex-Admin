@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { IPDAdmission, DOCTORS } from "./types";
+import { formatDate } from "@/lib/utils";
 
 interface IpdClinicalStayModalProps {
   admission: IPDAdmission;
@@ -125,7 +126,7 @@ export function IpdClinicalStayModal({
                 Bed: {activeAdmission.bedNumber} ({activeAdmission.ward})
               </span>
               <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 rounded text-xs font-semibold">
-                Admitted: {activeAdmission.admissionDate}
+                Admitted: {formatDate(activeAdmission.admissionDate)}
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>

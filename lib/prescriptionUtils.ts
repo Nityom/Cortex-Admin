@@ -114,7 +114,7 @@ export function formatPrescriptionDate(dateStr?: string): string {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
 }
 
 export function formatFollowup(followupDate?: string, prescriptionDate?: string): string {
@@ -124,7 +124,7 @@ export function formatFollowup(followupDate?: string, prescriptionDate?: string)
 
   const daysOfWeek = ['रविवार', 'सोमवार', 'मंगळवार', 'बुधवार', 'गुरुवार', 'शुक्रवार', 'शनिवार'];
   const dayName = daysOfWeek[fDate.getDay()];
-  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}/${String(fDate.getMonth() + 1).padStart(2, '0')}/${fDate.getFullYear()}`;
+  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}-${String(fDate.getMonth() + 1).padStart(2, '0')}-${fDate.getFullYear()}`;
 
   let diffPrefix = '';
   if (prescriptionDate) {

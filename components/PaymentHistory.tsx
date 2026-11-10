@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { paymentTransactionService, PaymentTransaction } from "@/services/payment-transactions";
 import { Plus, Trash2, Receipt, Calendar, CreditCard } from "lucide-react";
+import { formatDate as formatDateUtil } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import {
   AlertDialog,
@@ -88,15 +89,7 @@ export default function PaymentHistory({
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
-    try {
-      return new Date(dateString).toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return dateString;
-    }
+    return formatDateUtil(dateString);
   };
 
   return (

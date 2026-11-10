@@ -4,6 +4,7 @@ import React from "react";
 import { Printer, X } from "lucide-react";
 import { IPDAdmission, calculateStayDays } from "./types";
 import { hospitalConfig, getDoctorProfile } from "@/config/hospital";
+import { formatDate } from "@/lib/utils";
 
 interface IpdPrintDischargeModalProps {
   isOpen: boolean;
@@ -122,12 +123,12 @@ export default function IpdPrintDischargeModal({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-200">
               <div>
                 <span className="text-slate-500 block text-[10px]">DOA (Admission)</span>
-                <span className="font-bold">{admission.admissionDate}</span>
+                <span className="font-bold">{formatDate(admission.admissionDate)}</span>
               </div>
               <div>
                 <span className="text-slate-500 block text-[10px]">DOD (Discharge)</span>
                 <span className="font-bold text-slate-900">
-                  {admission.dischargeDate || new Date().toISOString().split("T")[0]}
+                  {formatDate(admission.dischargeDate || new Date())}
                 </span>
               </div>
               <div>

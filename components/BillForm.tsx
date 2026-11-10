@@ -6,6 +6,7 @@ import { createBill, updateBill, getBillByPrescriptionId, getPatientByReferenceN
 import { getPatientByReference } from '@/services/patients';
 import { generateBillPdfBlob, downloadBillPdf, printBillPdf, BillData as ClientBillData } from '@/lib/generate-bill-client';
 import { hospitalConfig } from '@/config/hospital';
+import { formatDate } from '@/lib/utils';
 
 
 interface PatientData {
@@ -543,7 +544,7 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
           </div>
             <div className="text-right">
               <p><strong>Bill No:</strong> {billData.billNumber}</p>
-              <p><strong>Date:</strong> {new Date(billData.billDate).toLocaleDateString()}</p>
+              <p><strong>Date:</strong> {formatDate(billData.billDate)}</p>
             </div>
           </div>
         </div>
@@ -554,7 +555,7 @@ const BillForm: React.FC<BillFormProps> = ({ patientData, diagnosis, selectedTee
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">            <div>
             <p><strong>Name:</strong> {patientData.name}</p>
             <p><strong>Age/Sex:</strong> {patientData.age} / {patientData.sex}</p>
-            <p><strong>Visit Date:</strong> {new Date(patientData.date).toLocaleDateString()}</p>
+            <p><strong>Visit Date:</strong> {formatDate(patientData.date)}</p>
             {patientData.reference_number && (
               <p className="mt-2 font-medium text-emerald-700">
                 <strong>Patient Reference:</strong> {patientData.reference_number}

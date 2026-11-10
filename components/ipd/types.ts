@@ -301,16 +301,15 @@ export function calculateRunningBill(admission: IPDAdmission, dischargeDateOverr
   const effectiveDischargeDate = dischargeDateOverride !== undefined ? dischargeDateOverride : admission.dischargeDate;
   const rawDays = calculateStayDays(admission.admissionDate, effectiveDischargeDate);
   const days = admission.billableDaysOverride ?? rawDays;
-  const dailyRate = admission.dailyRate !== undefined ? Number(admission.dailyRate) : 0;
-  const bedCharges = admission.bedChargesOverride !== undefined ? admission.bedChargesOverride : (days * dailyRate);
+    // IPD billing is manual: rates are reference data only and are not billed unless
+    // staff explicitly enters a charge (including an override).
+    const bedCharges = admission.bedChargesOverride ?? 0;
 
-  const nursingRate = admission.nursingRatePerDay !== undefined ? Number(admission.nursingRatePerDay) : 0;
-  const nursingCharges = admission.nursingChargesOverride !== undefined ? admission.nursingChargesOverride : (days * nursingRate);
+    const nursingCharges = admission.nursingChargesOverride ?? 0;
 
   const rawDocVisits = Math.max(days, (admission.doctorNotes || []).length);
   const doctorVisitsCount = admission.doctorVisitsCountOverride ?? rawDocVisits;
-  const doctorRate = admission.doctorRatePerVisit !== undefined ? Number(admission.doctorRatePerVisit) : 0;
-  const doctorCharges = admission.doctorChargesOverride !== undefined ? admission.doctorChargesOverride : (doctorVisitsCount * doctorRate);
+    const doctorCharges = admission.doctorChargesOverride ?? 0;
 
   const investigationsTotal = (admission.investigations || []).reduce((sum, i) => sum + (Number(i.cost) || 0), 0);
   const proceduresTotal = (admission.procedures || []).reduce((sum, p) => sum + (Number(p.cost) || 0), 0);

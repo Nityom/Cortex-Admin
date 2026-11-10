@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Clock, Calendar, ArrowRight, History, FileText } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
@@ -146,7 +147,7 @@ export default function PrescriptionPastVisitsModal({
               pastVisits.map((visit: any, idx) => {
                 const id = String(visit._id || visit.id);
                 const isSelected = id === selectedVisitId;
-                const dateStr = visit.prescription_date || (visit._creationTime ? new Date(visit._creationTime).toLocaleDateString() : 'Previous Visit');
+                const dateStr = formatDate(visit.prescription_date || visit._creationTime) || 'Previous Visit';
                 return (
                   <div
                     key={id || idx}
@@ -194,7 +195,7 @@ export default function PrescriptionPastVisitsModal({
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div>
                     <h4 className="text-sm font-bold text-slate-900">
-                      Visit on {selectedVisit.prescription_date || 'Past Consultation'}
+                      Visit on {formatDate(selectedVisit.prescription_date) || 'Past Consultation'}
                     </h4>
                     <p className="text-xs text-slate-500">
                       Prescribed by <span className="font-semibold text-slate-700">{selectedVisit.doctor_name || 'Doctor'}</span>

@@ -37,6 +37,7 @@ import { Patient } from "@/types/patient";
 import PatientSearchInput from "@/components/PatientSearchInput";
 import { getPrescriptionsByPatient } from "@/services/prescription";
 import { getBillByPrescriptionId } from "@/services/bills";
+import { formatDate } from "@/lib/utils";
 
 interface OPDQueueItem {
   id: string;
@@ -399,13 +400,7 @@ export default function OPDManagementPage() {
 
   const formatVisitDate = (isoStr?: string) => {
     if (!isoStr) return "";
-    try {
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return isoStr;
-      return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-    } catch {
-      return isoStr;
-    }
+    return formatDate(isoStr);
   };
 
   // Set of patient UHIDs with confirmed paid bills
@@ -1403,7 +1398,7 @@ export default function OPDManagementPage() {
       <header className="opd-page-heading">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{new Date().toLocaleDateString("en-US", { weekday: "long" })}, {formatDate(new Date())}</p>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{activeTab === "waitingQueue" ? "Waiting queue" : activeTab === "queue" ? "Today at a glance" : activeTab === "billingQueue" ? "Billing queue" : activeTab === "appointments" ? "Appointments" : activeTab === "register" ? "Register a patient" : "Patient directory"}</h1>
             <p className="mt-1 text-base text-slate-500">{activeTab === "waitingQueue" ? "Patients currently in clinic awaiting consultation." : activeTab === "queue" ? `${hospitalConfig.legalName} · Your clinic is running smoothly. Here’s today’s OPD snapshot.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
           </div>
@@ -1617,10 +1612,10 @@ export default function OPDManagementPage() {
               </div>
               <h3 className="text-base font-bold text-slate-900">
                 {activeTab === "waitingQueue"
-                  ? (selectedQueueDate === todayStr ? "No Patients Waiting in Queue Today" : `No Patients Waiting on ${selectedQueueDate}`)
+                  ? (selectedQueueDate === todayStr ? "No Patients Waiting in Queue Today" : `No Patients Waiting on ${formatDate(selectedQueueDate)}`)
                   : activeTab === "billingQueue"
-                  ? (selectedQueueDate === todayStr ? "No Patients in Billing Queue Today" : `No Patients in Billing Queue on ${selectedQueueDate}`)
-                  : (selectedQueueDate === todayStr ? "No Patients in Queue Today" : `No Patients in Queue on ${selectedQueueDate}`)}
+                  ? (selectedQueueDate === todayStr ? "No Patients in Billing Queue Today" : `No Patients in Billing Queue on ${formatDate(selectedQueueDate)}`)
+                  : (selectedQueueDate === todayStr ? "No Patients in Queue Today" : `No Patients in Queue on ${formatDate(selectedQueueDate)}`)}
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
                 {activeTab === "waitingQueue"
@@ -1629,7 +1624,7 @@ export default function OPDManagementPage() {
                   ? "Completed consultations will appear here for billing."
                   : selectedQueueDate === todayStr
                   ? "There are currently no patients waiting for OPD consultation today."
-                  : `No OPD patient registrations found for ${selectedQueueDate}. Choose another date from the calendar or return to today.`}
+                  : `No OPD patient registrations found for ${formatDate(selectedQueueDate)}. Choose another date from the calendar or return to today.`}
               </p>
               <div className="flex items-center justify-center gap-2">
                 {selectedQueueDate !== todayStr && (
@@ -1655,7 +1650,7 @@ export default function OPDManagementPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
                 <div><h2 className="text-lg font-bold text-[#3f5f50]">{activeTab === "waitingQueue" ? "Waiting queue" : activeTab === "billingQueue" ? "Billing queue" : "OPD queue"} <span className="ml-1 font-normal text-slate-500">{activeTab === "waitingQueue" ? "Patients currently waiting for consultation" : activeTab === "billingQueue" ? "Completed consultations ready for billing" : "A live snapshot of your clinic"}</span></h2></div>
                 <button type="button" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600" onClick={() => setSelectedQueueDate(todayStr)}>
-                  {selectedQueueDate === todayStr ? "Today" : selectedQueueDate}<Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  {selectedQueueDate === todayStr ? "Today" : formatDate(selectedQueueDate)}<Calendar className="h-3.5 w-3.5 text-slate-400" />
                 </button>
               </div>
               <div className="overflow-x-auto">
@@ -1962,7 +1957,7 @@ export default function OPDManagementPage() {
                   Enter patient details, select consulting doctor, and record initial vitals.
                 </p>
               </div>
-              <span className="text-xs text-slate-400">Date: {new Date().toLocaleDateString("en-GB")}</span>
+              <span className="text-xs text-slate-400">Date: {formatDate(new Date())}</span>
             </div>
 
             {/* Found existing patient alert */}

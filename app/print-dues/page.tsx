@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PrintableExtractionDues from '@/components/PrintableExtractionDues';
+import { formatDate as formatDateUtil } from '@/lib/utils';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
@@ -53,9 +54,7 @@ function PrintDuesContent() {
         const balance = bill.balance_amount ?? Math.max(total - amountPaid, 0);
 
         const formatDate = (ts: number | string | undefined) => {
-          if (!ts) return new Date().toLocaleDateString('en-GB');
-          const date = typeof ts === 'number' ? new Date(ts) : new Date(ts);
-          return isNaN(date.getTime()) ? new Date().toLocaleDateString('en-GB') : date.toLocaleDateString('en-GB');
+          return formatDateUtil(ts || new Date());
         };
 
         setBillData({

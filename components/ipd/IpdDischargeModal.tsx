@@ -92,7 +92,7 @@ export default function IpdDischargeModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-2 md:p-3">
-      <div className="bg-white sm:rounded-2xl w-full h-full max-h-[98vh] flex flex-col shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white sm:rounded-2xl w-full max-w-6xl h-full sm:h-auto max-h-[88vh] flex flex-col shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex flex-col gap-3 bg-slate-50/80 rounded-t-2xl">
           <div className="flex items-start justify-between gap-3">
@@ -893,14 +893,11 @@ export default function IpdDischargeModal({
 
             <button
               type="button"
-              onClick={async () => {
-                onFinalizeDischarge(admission.id);
-                await onGenerateFinalBill(admission);
-              }}
+              onClick={() => onGenerateFinalBill(admission)}
               className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow flex items-center gap-2 transition cursor-pointer"
             >
               <FileText className="w-4 h-4" />
-              {isAlreadyDischarged ? "Update Discharge & Settle Bill" : "Discharge & Generate Final Bill"}
+              {admission.finalSettlement?.billId ? "Update & Print Bill" : "Generate & Print Bill"}
             </button>
           </div>
 

@@ -17,6 +17,7 @@ import {
   Printer,
 } from "lucide-react";
 import { IPDAdmission, WardBedConfigItem, DOCTORS, calculateStayDays, calculateRunningBill } from "./types";
+import { formatDate } from "@/lib/utils";
 
 interface IpdBedMatrixTabProps {
   wardBedConfig: WardBedConfigItem[];
@@ -272,7 +273,7 @@ export default function IpdBedMatrixTab({
                           Doctor: <strong className="text-slate-800 font-medium">{adm.consultantDoctor}</strong>
                         </span>
                         <span>
-                          Admitted: <strong className="text-slate-800 font-medium">{adm.admissionDate}</strong> (
+                          Admitted: <strong className="text-slate-800 font-medium">{formatDate(adm.admissionDate)}</strong> (
                           {bill.days} {bill.days === 1 ? "day" : "days"})
                         </span>
                       </div>

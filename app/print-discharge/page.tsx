@@ -103,11 +103,14 @@ const STORAGE_KEY = "cortex_ipd_admissions_v1";
 
 function formatDisplayDate(dateStr?: string): string {
   if (!dateStr) return '';
+  const match = String(dateStr).match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    return `${match[3].padStart(2, '0')}-${match[2].padStart(2, '0')}-${match[1]}`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const day = String(d.getDate()).padStart(2, '0');
-  const month = months[d.getMonth()];
+  const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}-${month}-${year}`;
 }
@@ -118,10 +121,8 @@ function formatFollowup(followupDate?: string, dischargeDate?: string): string {
   if (isNaN(fDate.getTime())) return followupDate;
 
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   const dayName = daysOfWeek[fDate.getDay()];
-  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}-${months[fDate.getMonth()]}-${fDate.getFullYear()}`;
+  const formattedDate = formatDisplayDate(followupDate);
 
   let diffPrefix = '';
   if (dischargeDate) {

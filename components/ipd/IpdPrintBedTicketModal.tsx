@@ -3,6 +3,7 @@
 import React from "react";
 import { Printer } from "lucide-react";
 import { IPDAdmission } from "./types";
+import { formatDate } from "@/lib/utils";
 
 interface IpdPrintBedTicketModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export default function IpdPrintBedTicketModal({
           <div>
             <span className="text-slate-500 block text-[10px]">Admission Date & Time:</span>
             <span>
-              {admission.admissionDate} ({admission.admissionTime})
+              {formatDate(admission.admissionDate)} ({admission.admissionTime})
             </span>
           </div>
           <div>

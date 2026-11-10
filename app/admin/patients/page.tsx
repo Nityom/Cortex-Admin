@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import PrescriptionEmailModal, { PrescriptionEmailModalData } from '@/components/prescription/PrescriptionEmailModal';
 import { hospitalConfig } from '@/config/hospital';
+import { formatDate as formatDateUtil } from '@/lib/utils';
 
 // Group prescriptions by patient name to create a patient list
 interface Bill {
@@ -634,14 +635,10 @@ const ViewPatients = () => {
     setIsEditingPatient(false);
   };
 
-  // Format date to readable format
+  // Format date to readable DD-MM-YYYY format
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    if (!dateString) return '—';
+    return formatDateUtil(dateString);
   };
 
   // Pagination

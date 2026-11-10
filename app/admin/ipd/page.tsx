@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 import { createPatient, getPatients, getPatientByPhoneNumber, getPatientById } from "@/services/patients";
 import { Patient } from "@/types/patient";
-import { createBill } from "@/services/bills";
+import { createBill, updateBill } from "@/services/bills";
 import { hospitalConfig, getDoctorProfile } from "@/config/hospital";
 import { useQuery, useMutation } from "convex/react";
 // @ts-ignore
@@ -2153,34 +2153,6 @@ export default function IPDManagementPage() {
       const admitDateStr = `${admission.admissionDate} ${admission.admissionTime || ""}`.trim();
       const wardStr = `${admission.ward} ${admission.bedNumber}`.trim();
 
-      // If a final bill was already generated and saved in DB, open it directly for printing!
-      if (admission.finalSettlement?.billId && typeof window !== "undefined") {
-        const isGynoDoc = /shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
-        const queryParams = new URLSearchParams({
-          billId: String(admission.finalSettlement.billId),
-          type: "ipd",
-          pageSize: "A4",
-          autoPrint: "true",
-          signature: isGynoDoc ? "sign1.png" : "sign.png",
-          doctorName: admission.consultantDoctor,
-          patientName: admission.name,
-          patientPhone: admission.phone,
-          patientAge: String(admission.age),
-          patientSex: admission.sex,
-          address: admission.address || "",
-          uhid: admission.uhid,
-          ipdNumber: admission.ipdNumber,
-          admitDate: admitDateStr,
-          dischDate: dischDateStr,
-          wardName: wardStr,
-          paymentCategory: admission.paymentCategory || "General",
-          deposit: String(admission.finalSettlement.advanceAdjusted ?? billing.totalAdvances),
-          balance: String(admission.finalSettlement.balancePaid ?? finalBalance),
-        });
-        window.open(`/print-bill?${queryParams.toString()}`, "_blank");
-        return;
-      }
-
       const billItems: any[] = [];
       let itemIdx = 1;
 
@@ -2256,17 +2228,6 @@ export default function IPDManagementPage() {
         }
       });
 
-      if (billItems.length === 0) {
-        billItems.push({
-          id: 1,
-          description: `Inpatient Care & Stay (${admission.ipdNumber})`,
-          quantity: 1,
-          unit_price: netTotal,
-          total: netTotal,
-          item_type: "procedure",
-        });
-      }
-
       // Save to Hospital Bills database via createBill
       const billPayload: any = {
         prescription_id: "IPD_DIRECT",
@@ -2281,7 +2242,9 @@ export default function IPDManagementPage() {
         items: billItems,
       };
 
-      const savedBill = await createBill(billPayload);
+      const savedBill = admission.finalSettlement?.billId
+        ? await updateBill(String(admission.finalSettlement.billId), billPayload)
+        : await createBill(billPayload);
       const activeBillId = savedBill?.id || (savedBill as any)?._id;
 
       // Update admission with final settlement and billId
@@ -2514,6 +2477,7 @@ export default function IPDManagementPage() {
           setSearchQuery={setSearchQuery}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischargeModal={(adm) => {
+            setActiveAdmission(adm);
             initDischargeFormForAdmission(adm);
             setActiveModal("discharge");
           }}

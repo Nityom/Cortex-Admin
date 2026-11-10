@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import PrintableBill from '@/components/PrintableBill';
 import { filterNonMedicineBillItems } from '@/services/bills';
+import { formatDate as formatDateUtil } from '@/lib/utils';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
@@ -113,9 +114,8 @@ function PrintBillContent() {
         const balance = Math.max(0, total - amountPaid);
 
         const formatDate = (ts: number | string | undefined) => {
-          if (!ts) return new Date().toLocaleDateString('en-GB');
-          const date = typeof ts === 'number' ? new Date(ts) : new Date(ts);
-          return isNaN(date.getTime()) ? new Date().toLocaleDateString('en-GB') : date.toLocaleDateString('en-GB');
+          if (!ts) return formatDateUtil(new Date());
+          return formatDateUtil(ts);
         };
 
         setBillData({

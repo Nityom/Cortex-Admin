@@ -9,6 +9,7 @@ import { useIsAdmin } from '@/hooks/use-is-admin';
 import { getPatientByPhoneNumber, getOrCreatePatient } from '@/services/patients';
 import { OPDQueueItem } from '@/services/opdQueue';
 import { hospitalConfig } from '@/config/hospital';
+import { formatDate } from '@/lib/utils';
 
 // Helpers
 const getTodayString = () => {
@@ -20,9 +21,15 @@ const getTodayString = () => {
 
 const formatDateForDisplay = (dateStr: string) => {
   if (!dateStr) return '';
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-  }).format(new Date(dateStr));
+  try {
+    const d = new Date(dateStr);
+    const weekday = !isNaN(d.getTime())
+      ? new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(d)
+      : '';
+    return weekday ? `${weekday}, ${formatDate(dateStr)}` : formatDate(dateStr);
+  } catch {
+    return formatDate(dateStr);
+  }
 };
 
 const normalizeAppointmentTime = (time: string) => {
@@ -806,7 +813,7 @@ export default function AppointmentsPage() {
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-gray-500 flex items-center gap-1">
                             <CalendarIcon className="w-3 h-3" />
-                            {typeof appt.date === 'string' ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(appt.date)) : '—'}
+                            {typeof appt.date === 'string' ? formatDate(appt.date) : '—'}
                           </span>
                           {typeof appt.time === 'string' && (
                             <span className="text-xs text-emerald-600 flex items-center gap-1">
@@ -849,18 +856,21 @@ export default function AppointmentsPage() {
                         <Clock className="w-3.5 h-3.5 text-emerald-500" />
                         <span className="text-sm font-bold text-emerald-600 tracking-tight">{appt.time}</span>
                       </div>
-                      <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1.5">
                         <button
+                          type="button"
                           onClick={() => handleOpenModal(appt)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
-                          title="Edit"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer shadow-2xs"
+                          title="Edit appointment"
                         >
-                          <Pencil className="w-3.5 h-3.5" />
+                          <Pencil className="w-3 h-3 text-emerald-700" />
+                          <span>Edit</span>
                         </button>
                         {isAdmin && (
                           <button
+                            type="button"
                             onClick={() => handleDelete(appt._id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                            className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

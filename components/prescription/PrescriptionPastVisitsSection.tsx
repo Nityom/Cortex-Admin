@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { History, Calendar, Clock, ArrowDownToLine, Pill, Activity, ChevronDown, ChevronUp, AlertCircle, FileText } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
@@ -165,11 +166,7 @@ export default function PrescriptionPastVisitsSection({
               const meds = safeParseArray(visit.medicines);
               const vitals = visit.vitals || {};
               const dateDisplay = visit.prescription_date
-                ? new Date(visit.prescription_date).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })
+                ? formatDate(visit.prescription_date)
                 : 'Date N/A';
 
               return (

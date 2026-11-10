@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Printer, Check, X, ArrowLeft } from 'lucide-react';
 import { hospitalConfig } from '@/config/hospital';
+import { formatDate } from '@/lib/utils';
 
 interface BillItem {
   id?: number;
@@ -87,6 +88,10 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
   const [includeSigState, setIncludeSigState] = useState<boolean>(includeSignature);
   const [pageSize, setPageSize] = useState<'A6' | 'A7' | 'A4'>(isIpdBill ? 'A4' : defaultPageSize);
   const [autoClose, setAutoClose] = useState<boolean>(!isIpdBill);
+
+  const displayBillDate = formatDate(billDate || new Date());
+  const displayAdmitDate = admitDate ? formatDate(admitDate) : displayBillDate;
+  const displayDischargeDate = dischargeDate ? formatDate(dischargeDate) : displayBillDate;
 
   // Initialize from localStorage if present (for standard OPD bills only; IPD bills stay large A4)
   useEffect(() => {
@@ -435,7 +440,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
         <div className="border border-gray-300 rounded p-1 mb-1.5 text-[7.5px] leading-tight bg-gray-50/40">
           <div className="flex justify-between font-semibold text-gray-900">
             <span>Inv: {formattedBillNumber}</span>
-            <span>{billDate}</span>
+            <span>{displayBillDate}</span>
           </div>
           <div className="font-bold text-gray-900 mt-0.5 truncate">
             Pt: {patientName}
@@ -561,7 +566,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
         <div className="border border-gray-300 rounded-lg p-2 mb-2 text-[9.5px] bg-gray-50/40">
           <div className="flex justify-between items-center font-bold pb-1 border-b border-gray-200 text-gray-900">
             <span>Invoice No: <span className="font-mono">{formattedBillNumber}</span></span>
-            <span>Date: {billDate}</span>
+            <span>Date: {displayBillDate}</span>
           </div>
           <div className="pt-1 flex justify-between items-start">
             <div>
@@ -601,7 +606,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
                   <div>{item.description}</div>
                   {item.date && (
                     <div className="text-[7.5px] text-gray-500">
-                      {new Date(item.date).toLocaleDateString('en-GB')}
+                      {formatDate(item.date)}
                     </div>
                   )}
                 </td>
@@ -741,7 +746,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
           </div>
           <div>
             <span className="text-sm font-semibold text-gray-800">Invoice Date: </span>
-            <span className="text-sm font-medium">{billDate}</span>
+            <span className="text-sm font-medium">{displayBillDate}</span>
           </div>
         </div>
 
@@ -796,7 +801,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
           <tr key={item.id || index} className="border-b border-gray-200">
             <td className="py-2 px-2 text-sm font-medium text-gray-900">{item.description}</td>
             <td className="py-2 px-2 text-xs text-center text-gray-600">
-              {item.date ? new Date(item.date).toLocaleDateString('en-GB') : '-'}
+              {item.date ? formatDate(item.date) : '-'}
             </td>
             <td className="py-2 px-2 text-xs text-center text-gray-800 font-medium">
               {item.quantity} {item.unit || (item.itemType === 'medicine' ? 'PCS' : 'EACH')}
@@ -1012,11 +1017,11 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
               </div>
               <div className="flex">
                 <span className="w-28 font-semibold text-gray-800 shrink-0">Admit. Date :</span>
-                <span className="font-medium text-black">{admitDate || billDate}</span>
+                <span className="font-medium text-black">{displayAdmitDate}</span>
               </div>
               <div className="flex">
                 <span className="w-28 font-semibold text-gray-800 shrink-0">Disch. Date :</span>
-                <span className="font-medium text-black">{dischargeDate || billDate}</span>
+                <span className="font-medium text-black">{displayDischargeDate}</span>
               </div>
               <div className="flex">
                 <span className="w-28 font-semibold text-gray-800 shrink-0">Address :</span>
@@ -1044,7 +1049,7 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
               </div>
               <div className="flex">
                 <span className="w-32 font-semibold text-gray-800 shrink-0">Bill Date :</span>
-                <span className="font-medium text-black">{billDate}</span>
+                <span className="font-medium text-black">{displayBillDate}</span>
               </div>
               <div className="flex">
                 <span className="w-32 font-semibold text-gray-800 shrink-0">Consultant :</span>

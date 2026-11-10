@@ -41,6 +41,7 @@ import { getPatients, getPatientByPhoneNumber } from "@/services/patients";
 import { getPrescriptionsByPatient } from "@/services/prescription";
 import { Patient } from "@/types/patient";
 import { hospitalConfig, calculateDoctorConsultationFee } from "@/config/hospital";
+import { formatDate } from "@/lib/utils";
 
 interface ChargeItem {
   id: string;
@@ -1097,7 +1098,7 @@ export default function HospitalBillingPage() {
                 <div className="flex flex-wrap items-center justify-between text-sm text-slate-600 pt-3 border-t border-slate-100">
                   <span>Visit: <strong className="text-slate-900 font-bold">{opdPatient.visitNumber}</strong></span>
                   <span>Attending Doctor: <strong className="text-slate-900 font-bold">{activeDoctor}</strong></span>
-                  <span>Date: <strong className="text-slate-900 font-bold">{new Date().toLocaleDateString("en-GB")}</strong></span>
+                  <span>Date: <strong className="text-slate-900 font-bold">{formatDate(new Date())}</strong></span>
                 </div>
               </div>
 

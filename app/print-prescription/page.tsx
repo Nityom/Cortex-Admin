@@ -101,7 +101,7 @@ function formatTimestamp(dateStr?: string): string {
   const year = validD.getFullYear();
   const hours = String(validD.getHours()).padStart(2, '0');
   const mins = String(validD.getMinutes()).padStart(2, '0');
-  return `${day}/${month}/${year}, ${hours}:${mins}`;
+  return `${day}-${month}-${year}, ${hours}:${mins}`;
 }
 
 function formatFollowup(followupDate?: string, prescriptionDate?: string): string {
@@ -110,10 +110,8 @@ function formatFollowup(followupDate?: string, prescriptionDate?: string): strin
   if (isNaN(fDate.getTime())) return followupDate;
 
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
   const dayName = daysOfWeek[fDate.getDay()];
-  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}-${months[fDate.getMonth()]}-${fDate.getFullYear()}`;
+  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}-${String(fDate.getMonth() + 1).padStart(2, '0')}-${fDate.getFullYear()}`;
 
   let diffPrefix = '';
   if (prescriptionDate) {

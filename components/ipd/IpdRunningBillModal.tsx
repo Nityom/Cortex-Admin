@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { IPDAdmission, calculateRunningBill } from "./types";
+import { formatDate } from "@/lib/utils";
 
 interface IpdRunningBillModalProps {
   admission: IPDAdmission;
@@ -106,10 +107,10 @@ export function IpdRunningBillModal({
   const bill = calculateRunningBill(activeAdmission);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-3">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[86vh] flex flex-col shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+        <div className="p-3 sm:p-4 border-b border-slate-100 flex items-center justify-between gap-2 bg-slate-50 rounded-t-2xl">
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-mono font-bold text-xs">
@@ -121,7 +122,7 @@ export function IpdRunningBillModal({
             </div>
             <h2 className="text-xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
             <p className="text-xs text-slate-500">
-              Stay: {activeAdmission.admissionDate} to Present ({bill.days} days) • Bed: {activeAdmission.bedNumber} (
+              Stay: {formatDate(activeAdmission.admissionDate)} to Present ({bill.days} days) • Bed: {activeAdmission.bedNumber} (
               {activeAdmission.ward})
             </p>
           </div>
@@ -165,7 +166,7 @@ export function IpdRunningBillModal({
         </div>
 
         {/* Body */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-6">
+        <div className="p-3 sm:p-4 overflow-y-auto flex-1 space-y-4">
           {/* Balance Summary Card */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -188,10 +189,10 @@ export function IpdRunningBillModal({
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
-                  1. Itemized Charge Accumulation (All Charges Editable)
+                  1. Patient Charges
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Click &quot;Edit&quot; on any service to modify rates, stay units or set custom overrides. Add lab tests or OT procedures directly.
+                  Only charges you add here are included. Bed, nursing, and doctor rates are not added automatically.
                 </p>
               </div>
               <span className="text-[11px] font-mono font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg">

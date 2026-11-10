@@ -112,7 +112,11 @@ function drawWrappedText(
 function formatDate(d: string): string {
   if (!d) return '';
   const dt = new Date(d);
-  return isNaN(dt.getTime()) ? d : dt.toLocaleDateString('en-GB');
+  if (isNaN(dt.getTime())) return d;
+  const day = String(dt.getDate()).padStart(2, '0');
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const year = dt.getFullYear();
+  return `${day}-${month}-${year}`;
 }
 
 export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promise<Blob> {
