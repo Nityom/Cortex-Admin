@@ -421,6 +421,9 @@ export default function OPDManagementPage() {
               } else if (cleanPhone === "7796308778" && uhid !== "CRX0003") {
                 uhid = "CRX0003";
                 changed = true;
+              } else if ((cleanPhone.includes("96656") || (item.name || "").toLowerCase().includes("samiksha") || uhid === "CRX4469" || uhid === "CRX7494") && uhid !== "CRX0069") {
+                uhid = "CRX0069";
+                changed = true;
               }
 
               if (uhid !== item.uhid) changed = true;
@@ -428,6 +431,57 @@ export default function OPDManagementPage() {
               if (status !== item.status) changed = true;
               return { ...item, uhid, status };
             });
+
+            // 1.5. Merge duplicate entries for Samiksha into single CRX0069 record
+            const samikshaEntries = updated.filter((item: any) =>
+              item.uhid === "CRX0069" ||
+              item.uhid === "CRX4469" ||
+              item.uhid === "CRX7494" ||
+              (item.name || "").toLowerCase().includes("samiksha") ||
+              (item.phone && item.phone.includes("96656"))
+            );
+
+            if (samikshaEntries.length > 1) {
+              const primaryItem = samikshaEntries[0];
+              const mergedQueue = updated.filter((item: any) => {
+                if (samikshaEntries.some((s: any) => s.id === item.id)) {
+                  return item.id === primaryItem.id;
+                }
+                return true;
+              }).map((item: any) => {
+                if (item.id === primaryItem.id) {
+                  return {
+                    ...item,
+                    name: "samiksha varnerkar",
+                    uhid: "CRX0069",
+                    phone: "9665651439",
+                    age: "21",
+                    ageUnit: "years",
+                    sex: "Female",
+                    address: "waigao",
+                    doctor: "Dr. Shillpa Raut",
+                    department: "Obstetrics & Gynaecology",
+                  };
+                }
+                return item;
+              });
+              updated.length = 0;
+              updated.push(...mergedQueue);
+              changed = true;
+            } else if (samikshaEntries.length === 1) {
+              const s = samikshaEntries[0];
+              if (s.name !== "samiksha varnerkar" || s.uhid !== "CRX0069" || s.phone !== "9665651439") {
+                s.name = "samiksha varnerkar";
+                s.uhid = "CRX0069";
+                s.phone = "9665651439";
+                s.age = "21";
+                s.sex = "Female";
+                s.address = "waigao";
+                s.doctor = "Dr. Shillpa Raut";
+                s.department = "Obstetrics & Gynaecology";
+                changed = true;
+              }
+            }
 
             // 2. Repair and deduplicate tokens PER DOCTOR per day
             // (group by date + doctor, sort chronologically, guarantee independent 01, 02, 03... per doctor)

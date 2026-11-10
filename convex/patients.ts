@@ -181,3 +181,105 @@ export const remove = mutation({
         await ctx.db.delete(args.id);
     },
 });
+
+export const mergeSamikshaToCRX0069 = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const allPatients = await ctx.db.query("patients").collect();
+        const samikshaMatches = allPatients.filter((p) => {
+            const nameMatch = (p.name || "").toLowerCase().includes("samiksha");
+            const phoneMatch = p.phone_number && (p.phone_number.includes("96656") || p.phone_number === "9665651439" || p.phone_number === "966561439");
+            const refMatch = p.reference_number === "CRX0069" || p.reference_number === "CRX4469" || p.reference_number === "CRX7494";
+            return nameMatch || phoneMatch || refMatch;
+        });
+
+        let targetPatientId: any = null;
+        if (samikshaMatches.length > 0) {
+            targetPatientId = samikshaMatches[0]._id;
+            await ctx.db.patch(targetPatientId, {
+                reference_number: "CRX0069",
+                name: "samiksha varnerkar",
+                age: "21",
+                sex: "Female",
+                phone_number: "9665651439",
+                address: "waigao",
+            });
+            for (let i = 1; i < samikshaMatches.length; i++) {
+                await ctx.db.delete(samikshaMatches[i]._id);
+            }
+        } else {
+            targetPatientId = await ctx.db.insert("patients", {
+                reference_number: "CRX0069",
+                name: "samiksha varnerkar",
+                age: "21",
+                sex: "Female",
+                phone_number: "9665651439",
+                address: "waigao",
+            });
+        }
+
+        // Update / Merge any appointments
+        const allAppts = await ctx.db.query("appointments").collect();
+        const apptMatches = allAppts.filter((a) => {
+            const nameMatch = (a.name || "").toLowerCase().includes("samiksha");
+            const phoneMatch = a.phone && (a.phone.includes("96656") || a.phone === "9665651439" || a.phone === "966561439");
+            return nameMatch || phoneMatch;
+        });
+        if (apptMatches.length > 0) {
+            await ctx.db.patch(apptMatches[0]._id, {
+                name: "samiksha varnerkar",
+                phone: "9665651439",
+                address: "waigao",
+                age: 21,
+                doctor_name: "Dr. Shillpa Raut",
+            });
+            for (let i = 1; i < apptMatches.length; i++) {
+                await ctx.db.delete(apptMatches[i]._id);
+            }
+        }
+
+        // Update / Merge any opd_queue items
+        const allOpd = await ctx.db.query("opd_queue").collect();
+        const opdMatches = allOpd.filter((o) => {
+            const nameMatch = (o.name || "").toLowerCase().includes("samiksha");
+            const phoneMatch = o.phone && (o.phone.includes("96656") || o.phone === "9665651439" || o.phone === "966561439");
+            const refMatch = o.uhid === "CRX0069" || o.uhid === "CRX4469" || o.uhid === "CRX7494";
+            return nameMatch || phoneMatch || refMatch;
+        });
+        if (opdMatches.length > 0) {
+            await ctx.db.patch(opdMatches[0]._id, {
+                name: "samiksha varnerkar",
+                uhid: "CRX0069",
+                phone: "9665651439",
+                age: "21",
+                sex: "Female",
+                address: "waigao",
+                doctor: "Dr. Shillpa Raut",
+                department: "Obstetrics & Gynaecology",
+            });
+            for (let i = 1; i < opdMatches.length; i++) {
+                await ctx.db.delete(opdMatches[i]._id);
+            }
+        }
+
+        // Update any prescriptions if they exist
+        const allRx = await ctx.db.query("prescriptions").collect();
+        const rxMatches = allRx.filter((r) => {
+            const nameMatch = (r.patient_name || "").toLowerCase().includes("samiksha");
+            const phoneMatch = r.phone_number && (r.phone_number.includes("96656") || r.phone_number === "9665651439" || r.phone_number === "966561439");
+            const refMatch = r.reference_number === "CRX0069" || r.reference_number === "CRX4469" || r.reference_number === "CRX7494";
+            return nameMatch || phoneMatch || refMatch;
+        });
+        for (const rx of rxMatches) {
+            await ctx.db.patch(rx._id, {
+                patient_name: "samiksha varnerkar",
+                reference_number: "CRX0069",
+                phone_number: "9665651439",
+                age: "21",
+                sex: "Female",
+            });
+        }
+
+        return targetPatientId;
+    },
+});

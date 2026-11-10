@@ -293,6 +293,27 @@ const ViewPatients = () => {
           patientMap.set(key, patient);
         }
       });
+
+      // Also include any registered patients from database that do not have prescriptions yet
+      dbPatients.forEach((dbp) => {
+        const key = dbp.phone_number || (dbp.reference_number ? `ref:${dbp.reference_number}` : `name:${dbp.name}`);
+        if (!patientMap.has(key)) {
+          patientMap.set(key, {
+            id: dbp.id,
+            reference_number: dbp.reference_number?.replace(/^CH/i, 'CRX'),
+            name: dbp.name,
+            phone_number: dbp.phone_number || '—',
+            age: parseInt(String(dbp.age), 10) || 0,
+            sex: dbp.sex,
+            latestVisit: dbp.created_at || new Date().toISOString(),
+            totalVisits: 0,
+            prescriptions: [],
+            created_at: dbp.created_at,
+            updated_at: dbp.updated_at,
+          });
+        }
+      });
+
       // Convert map to array and sort by reference number
       const patientList = Array.from(patientMap.values()).sort((a, b) => {
         // Put patients without reference numbers at the end
