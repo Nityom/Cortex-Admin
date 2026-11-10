@@ -213,7 +213,7 @@ http.route({
           const dosage = m.dosage || "-";
           const timing = getTimingFromDosage(m.dosage, m.when || m.frequency);
           const duration = m.duration || "-";
-          const qty = m.quantity ? `<br><span style="font-size: 9pt; color: #4b5563;">(Qty: ${m.quantity})</span>` : "";
+          const qty = m.quantity ? `<br><span style="font-size: 8pt; color: #4b5563;">(Qty: ${m.quantity})</span>` : "";
 
           return `
           <tr class="med-row">
@@ -227,7 +227,7 @@ http.route({
             <td class="med-qty-val col-qty">${duration}${qty}</td>
           </tr>`;
         }).join("")
-      : `<tr><td colspan="4" style="text-align: center; color: #6b7280; padding: 20px;">No oral medicines prescribed.</td></tr>`;
+      : `<tr><td colspan="4" style="text-align: center; color: #6b7280; padding: 14px;">No oral medicines prescribed.</td></tr>`;
 
     // Clinical examination lines
     const findingsText = (rx.findings || rx.clinical_findings || rx.oral_exam_notes || "").trim();
@@ -239,7 +239,7 @@ http.route({
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
   <title>Prescription - ${rx.patient_name || "Patient"} - Cortex Hospital</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -247,18 +247,30 @@ http.route({
     @media print {
       @page {
         size: A4 portrait;
-        margin: 5mm 5mm 5mm 20mm;
+        margin: 5mm 5mm 5mm 18mm;
       }
       html, body {
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
         color: #000000 !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
       .no-print {
         display: none !important;
+      }
+      .sheet-viewport-wrapper {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 268mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: block !important;
       }
       .prescription-sheet {
         box-shadow: none !important;
@@ -267,78 +279,139 @@ http.route({
         padding: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
+        height: 268mm !important;
+        max-height: 268mm !important;
+        min-height: 268mm !important;
+        transform: none !important;
+        overflow: hidden !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-before: avoid !important;
+        break-after: avoid !important;
+        break-inside: avoid !important;
+      }
+      .sheet-content {
+        height: 100% !important;
+        max-height: 268mm !important;
+        min-height: 268mm !important;
+        overflow: hidden !important;
+        page-break-inside: avoid !important;
+      }
+      .sheet-footer-fixed-bottom {
+        page-break-inside: avoid !important;
+        page-break-before: avoid !important;
+        margin-top: auto !important;
       }
     }
 
     body {
       background: #cbd5e1;
-      padding: 20px 10px 40px;
+      padding: 12px 6px 30px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #000000;
-      line-height: 1.3;
+      line-height: 1.25;
       display: flex;
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     /* Screen-only top action bar */
     .top-action-bar {
-      max-width: 210mm;
+      max-width: 794px;
       width: 100%;
       background: #0f172a;
       color: #ffffff;
-      padding: 10px 18px;
-      border-radius: 10px;
-      margin-bottom: 16px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-size: 13px;
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .top-action-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .top-action-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .action-btn {
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, opacity 0.15s;
+      user-select: none;
+    }
+
+    .zoom-btn {
+      background: #334155;
+    }
+    .zoom-btn:hover {
+      background: #475569;
     }
 
     .print-btn {
       background: #7B1828;
-      color: #ffffff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.2s;
     }
     .print-btn:hover {
       background: #5e121e;
     }
 
-    /* A4 Prescription Container matching Cortex-Admin */
+    /* Viewport / Responsive Zoom Wrapper */
+    .sheet-viewport-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      margin: 0 auto;
+      transition: height 0.2s ease;
+    }
+
+    /* A4 Prescription Container strictly constrained to 1 page */
     .prescription-sheet {
-      width: 210mm;
-      min-height: 297mm;
-      max-width: 210mm;
+      width: 794px; /* 210mm at 96 DPI */
+      max-width: 794px;
+      min-height: 1040px; /* ~275mm at 96 DPI */
+      max-height: 1100px; /* guarantees single page fit */
       background: #ffffff;
       box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-      padding: 6mm 10mm 8mm 18mm;
+      padding: 5mm 8mm 6mm 16mm;
       position: relative;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       box-sizing: border-box;
+      transform-origin: top center;
     }
 
-    /* Faint Watermark */
+    /* Faint Background Watermark */
     .sheet-watermark {
       position: absolute;
       top: 48%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 320px;
-      opacity: 0.055;
+      width: 280px;
+      opacity: 0.05;
       pointer-events: none;
       z-index: 0;
     }
@@ -349,7 +422,8 @@ http.route({
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 280mm;
+      height: 100%;
+      min-height: 1010px;
     }
 
     .sheet-top-and-body {
@@ -362,7 +436,7 @@ http.route({
     .top-meta-row {
       display: flex;
       justify-content: space-between;
-      font-size: 7.5pt;
+      font-size: 7pt;
       color: #555555;
       margin-bottom: 2px;
     }
@@ -372,12 +446,12 @@ http.route({
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding-bottom: 4px;
+      padding-bottom: 3px;
       border-bottom: 1.5px solid #d1d5db;
     }
 
     .hospital-logo {
-      height: 56px;
+      height: 50px;
       width: auto;
       object-fit: contain;
     }
@@ -387,7 +461,7 @@ http.route({
     }
 
     .doctor-title-name {
-      font-size: 16pt;
+      font-size: 15pt;
       font-weight: 700;
       color: #7B1828; /* Cortex maroon */
       margin: 0;
@@ -396,27 +470,27 @@ http.route({
     }
 
     .doctor-qualifications {
-      font-size: 9.5pt;
+      font-size: 9pt;
       font-weight: 500;
       color: #111111;
       margin-top: 1px;
     }
 
     .doctor-reg {
-      font-size: 8pt;
+      font-size: 7.5pt;
       color: #4b5563;
       margin-top: 1px;
     }
 
     .doctor-diplomate {
-      font-size: 9pt;
+      font-size: 8.5pt;
       font-weight: 500;
       color: #1f2937;
       margin-top: 1px;
     }
 
     .doctor-specialty {
-      font-size: 9pt;
+      font-size: 8.5pt;
       font-weight: 500;
       color: #1f2937;
       margin-top: 1px;
@@ -427,8 +501,8 @@ http.route({
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 0 5px 0;
-      font-size: 11pt;
+      padding: 4px 0 3px 0;
+      font-size: 10.5pt;
       font-weight: 500;
       color: #000000;
     }
@@ -448,9 +522,9 @@ http.route({
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 16px;
-      padding: 4px 0 4px 0;
-      font-size: 10pt;
+      gap: 12px;
+      padding: 3px 0;
+      font-size: 9pt;
       color: #111111;
       border-top: 1px dashed #cbd5e1;
     }
@@ -459,21 +533,21 @@ http.route({
       font-weight: 600;
       color: #000000;
       text-transform: uppercase;
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       letter-spacing: 0.5px;
     }
 
     .vitals-item {
       display: inline-flex;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
     }
 
     /* Clinical Strip */
     .clinical-strip-section {
-      padding: 4px 0 4px 0;
-      font-size: 10pt;
-      line-height: 1.4;
+      padding: 3px 0;
+      font-size: 9pt;
+      line-height: 1.35;
       border-top: 1px dashed #cbd5e1;
       border-bottom: 1px solid #d1d5db;
     }
@@ -482,13 +556,13 @@ http.route({
       display: flex;
       align-items: baseline;
       gap: 6px;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
     .clinical-strip-lbl {
       font-weight: 600;
       color: #000000;
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       text-transform: uppercase;
       letter-spacing: 0.3px;
       flex-shrink: 0;
@@ -501,9 +575,9 @@ http.route({
 
     /* Diagnosis Row */
     .diagnosis-row {
-      padding: 4px 0 6px 0;
-      font-size: 11pt;
-      line-height: 1.35;
+      padding: 3px 0 4px 0;
+      font-size: 10.5pt;
+      line-height: 1.3;
       border-bottom: 1px solid #d1d5db;
     }
 
@@ -520,17 +594,17 @@ http.route({
 
     /* Rx Section */
     .rx-wrapper {
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .rx-symbol {
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 20pt;
+      font-size: 18pt;
       font-weight: normal;
       font-style: italic;
       color: #1f2937;
       line-height: 1;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
 
     .med-table {
@@ -539,10 +613,10 @@ http.route({
     }
 
     .med-table th {
-      font-size: 10pt;
+      font-size: 9pt;
       font-weight: 600;
       color: #1f2937;
-      padding: 5px 6px;
+      padding: 4px 5px;
       border-bottom: 2px solid #6b7280;
     }
 
@@ -569,13 +643,13 @@ http.route({
     }
 
     .med-row td {
-      padding: 6px 6px;
+      padding: 4px 5px;
       vertical-align: top;
       border-bottom: 1px solid #e5e7eb;
     }
 
     .med-name-heading {
-      font-size: 12.5pt;
+      font-size: 11pt;
       font-weight: 600;
       color: #000000;
       letter-spacing: 0.1px;
@@ -584,23 +658,23 @@ http.route({
 
     .med-sub-line {
       display: flex;
-      font-size: 9.5pt;
-      margin-top: 2px;
-      padding-left: 12px;
-      line-height: 1.35;
+      font-size: 8.5pt;
+      margin-top: 1px;
+      padding-left: 10px;
+      line-height: 1.3;
     }
 
     .med-sub-lbl {
-      width: 90px;
+      width: 85px;
       color: #4b5563;
       font-weight: 600;
       text-transform: uppercase;
       flex-shrink: 0;
-      font-size: 8.5pt;
+      font-size: 7.5pt;
     }
 
     .med-sub-sep {
-      margin-right: 5px;
+      margin-right: 4px;
       color: #555555;
       flex-shrink: 0;
     }
@@ -618,7 +692,7 @@ http.route({
     }
 
     .dosage-val {
-      font-size: 11.5pt;
+      font-size: 10.5pt;
       font-weight: normal;
       color: #000000;
       text-align: center;
@@ -628,14 +702,14 @@ http.route({
     }
 
     .timing-val {
-      font-size: 10.5pt;
+      font-size: 9.5pt;
       font-weight: normal;
       color: #111111;
-      line-height: 1.35;
+      line-height: 1.3;
     }
 
     .med-qty-val {
-      font-size: 11.5pt;
+      font-size: 10.5pt;
       font-weight: 600;
       color: #000000;
       text-align: center;
@@ -643,62 +717,62 @@ http.route({
 
     /* Advice & Next Visit */
     .advice-section {
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
     .advice-heading {
-      font-size: 11pt;
+      font-size: 10pt;
       font-weight: 600;
       color: #000000;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
     .advice-content-body {
-      font-size: 10.5pt;
+      font-size: 9.5pt;
       color: #1f2937;
-      line-height: 1.4;
+      line-height: 1.35;
       white-space: pre-line;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     .marathi-item {
-      font-size: 10.5pt;
-      margin-top: 4px;
+      font-size: 9.5pt;
+      margin-top: 3px;
       color: #000000;
     }
 
     .marathi-label {
       font-weight: 600;
-      margin-right: 5px;
+      margin-right: 4px;
     }
 
     /* Doctor Signature */
     .sheet-signature-section {
       display: flex;
       justify-content: flex-end;
-      margin-top: 6mm;
+      margin-top: 3mm;
     }
 
     .signature-block {
       text-align: center;
-      min-width: 210px;
+      min-width: 190px;
       flex-shrink: 0;
       padding-bottom: 2px;
     }
 
     .sig-img {
-      height: 52px;
-      max-width: 170px;
+      height: 44px;
+      max-width: 150px;
       object-fit: contain;
       margin: 0 auto;
       display: block;
     }
 
     .sig-doc-name {
-      font-size: 13pt;
+      font-size: 11.5pt;
       font-weight: 600;
       color: #111111;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     /* Bottom Fixed Footer Area */
@@ -708,10 +782,10 @@ http.route({
     }
 
     .prescription-validity-note {
-      font-size: 9pt;
-      line-height: 1.4;
+      font-size: 8pt;
+      line-height: 1.35;
       letter-spacing: 0.1px;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     .validity-rule {
@@ -722,13 +796,13 @@ http.route({
     .generic-rule {
       font-weight: normal;
       color: #1e293b;
-      margin-top: 1.5px;
+      margin-top: 1px;
     }
 
     /* Footer Schedule Banner */
     .footer-banner-container {
-      margin-top: 6px;
-      padding-top: 3px;
+      margin-top: 4px;
+      padding-top: 2px;
       border-top: 1.5px solid #d1d5db;
       text-align: center;
     }
@@ -737,38 +811,38 @@ http.route({
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      margin-bottom: 3px;
+      gap: 5px;
+      margin-bottom: 2px;
     }
 
     .clinic-pill {
       background-color: #7B1828;
       color: #ffffff;
-      font-size: 8pt;
+      font-size: 7.5pt;
       font-weight: 600;
-      padding: 1.5px 8px;
+      padding: 1px 7px;
       border-radius: 9999px;
       letter-spacing: 0.2px;
     }
 
     .clinic-time {
-      font-size: 8.5pt;
+      font-size: 8pt;
       font-weight: normal;
       color: #111111;
     }
 
     .footer-clinic-title {
-      font-size: 9.5pt;
+      font-size: 8.5pt;
       font-weight: 600;
       color: #000000;
       margin-bottom: 1px;
     }
 
     .footer-opd-line {
-      font-size: 7.5pt;
+      font-size: 7pt;
       font-weight: 600;
       color: #1f2937;
-      margin-bottom: 1.5px;
+      margin-bottom: 1px;
     }
 
     .footer-opd-label {
@@ -777,40 +851,40 @@ http.route({
     }
 
     .footer-sunday-line {
-      font-size: 7.5pt;
+      font-size: 7pt;
       font-weight: 700;
       color: #7B1828;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
     .footer-address-line {
-      font-size: 7.5pt;
+      font-size: 7pt;
       font-weight: 500;
       color: #374151;
     }
 
     .footer-bottom-bar {
-      height: 4px;
+      height: 3px;
       background: linear-gradient(90deg, #4c1d95 0%, #7B1828 50%, #4c1d95 100%);
       border-radius: 2px;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .footer-hms-branding {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 5px;
-      margin-top: 6px;
-      padding-top: 2px;
+      gap: 4px;
+      margin-top: 4px;
+      padding-top: 1px;
       padding-right: 4px;
-      font-size: 7.5pt;
+      font-size: 7pt;
       color: #64748b;
       text-align: right;
     }
 
     .footer-hms-branding img {
-      height: 12px;
+      height: 11px;
       width: auto;
       object-fit: contain;
       border-radius: 2px;
@@ -827,182 +901,232 @@ http.route({
 <body>
   <!-- Top Navigation / Action Bar (Screen Only) -->
   <div class="top-action-bar no-print">
-    <span>🏥 Official Digital Prescription &bull; Cortex Hospital, Wardha</span>
-    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <div class="top-action-bar-left">
+      <span>🏥 Official Digital Prescription &bull; Cortex Hospital</span>
+    </div>
+    <div class="top-action-bar-right">
+      <button id="zoomToggleBtn" class="action-btn zoom-btn" onclick="toggleZoom()">🔍 Zoom (100%)</button>
+      <button class="action-btn print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
   </div>
 
-  <!-- A4 Prescription Sheet -->
-  <div class="prescription-sheet">
-    <!-- Watermark -->
-    <img src="${CORTEX_LOGO_BASE64}" alt="Watermark" class="sheet-watermark" />
+  <!-- Viewport Scaler Wrapper -->
+  <div class="sheet-viewport-wrapper" id="sheetWrapper">
+    <!-- A4 Prescription Sheet -->
+    <div class="prescription-sheet" id="prescriptionSheet">
+      <!-- Watermark -->
+      <img src="${CORTEX_LOGO_BASE64}" alt="Watermark" class="sheet-watermark" />
 
-    <div class="sheet-content">
-      <div class="sheet-top-and-body">
-        <!-- Top Meta Line -->
-        <div class="top-meta-row">
-          <span>${formatTimestamp(rx.prescription_date)}</span>
-          <span>Svaasth HMS</span>
-        </div>
-
-        <!-- Official Header Row -->
-        <div class="header-row">
-          <div style="display: flex; align-items: center;">
-            <img src="${CORTEX_LOGO_BASE64}" alt="Cortex Hospital" class="hospital-logo" />
+      <div class="sheet-content">
+        <div class="sheet-top-and-body">
+          <!-- Top Meta Line -->
+          <div class="top-meta-row">
+            <span>${formatTimestamp(rx.prescription_date)}</span>
+            <span>Svaasth HMS</span>
           </div>
 
-          <div class="doctor-header-block">
-            <h1 class="doctor-title-name">${docConfig.name}</h1>
-            <div class="doctor-qualifications">${docConfig.degrees}</div>
-            <div class="doctor-reg">${docConfig.reg}</div>
-            <div class="doctor-diplomate">${docConfig.diplomate}</div>
-            <div class="doctor-specialty">${docConfig.specialty}</div>
-          </div>
-        </div>
+          <!-- Official Header Row -->
+          <div class="header-row">
+            <div style="display: flex; align-items: center;">
+              <img src="${CORTEX_LOGO_BASE64}" alt="Cortex Hospital" class="hospital-logo" />
+            </div>
 
-        <!-- Patient Row -->
-        <div class="patient-row">
-          <div class="patient-info-left">
-            <span>${refNumber}</span> : <span>${patientNameFormatted}</span> <span>${patientDetailsText}</span><span>${phoneText}</span>
-          </div>
-          <div class="patient-date-right">
-            Date: ${formatPrescriptionDate(rx.prescription_date)}
-          </div>
-        </div>
-
-        <!-- Vitals (if present) -->
-        ${hasVitals ? `
-        <div class="vitals-row">
-          <span class="vitals-label">Vitals:</span>
-          ${bp ? `<span class="vitals-item"><strong>BP:</strong> ${bp} mmHg</span>` : ""}
-          ${pulse ? `<span class="vitals-item"><strong>Pulse:</strong> ${pulse} /min</span>` : ""}
-          ${spo2 ? `<span class="vitals-item"><strong>SpO₂:</strong> ${spo2}%</span>` : ""}
-          ${temp ? `<span class="vitals-item"><strong>Temp:</strong> ${temp} °F</span>` : ""}
-          ${height ? `<span class="vitals-item"><strong>Height:</strong> ${height} cm</span>` : ""}
-          ${weight ? `<span class="vitals-item"><strong>Weight:</strong> ${weight} kg</span>` : ""}
-          ${bmi ? `<span class="vitals-item"><strong>BMI:</strong> ${bmi}</span>` : ""}
-        </div>` : ""}
-
-        <!-- Chief Complaints (if present) -->
-        ${rx.chief_complaint ? `
-        <div class="clinical-strip-section">
-          <div class="clinical-strip-row">
-            <span class="clinical-strip-lbl">Chief Complaints:</span>
-            <span class="clinical-strip-val">${rx.chief_complaint}</span>
-          </div>
-        </div>` : ""}
-
-        <!-- Medical History (if present) -->
-        ${rx.medical_history ? `
-        <div class="clinical-strip-section">
-          <div class="clinical-strip-row">
-            <span class="clinical-strip-lbl">Medical History:</span>
-            <span class="clinical-strip-val">${rx.medical_history}</span>
-          </div>
-        </div>` : ""}
-
-        <!-- Clinical Examination (if present) -->
-        ${findingsLines.length > 0 ? `
-        <div class="clinical-strip-section">
-          <div class="clinical-strip-row" style="align-items: flex-start;">
-            <span class="clinical-strip-lbl" style="min-width: 140px;">Clinical Examination:</span>
-            <div style="display: flex; flex-direction: column; gap: 2px; flex: 1;">
-              ${findingsLines.map((line: string) => `
-                <div style="display: flex; align-items: baseline; gap: 5px;">
-                  <span style="font-size: 9pt; color: #666; line-height: 1;">&bull;</span>
-                  <span class="clinical-strip-val">${line}</span>
-                </div>
-              `).join("")}
+            <div class="doctor-header-block">
+              <h1 class="doctor-title-name">${docConfig.name}</h1>
+              <div class="doctor-qualifications">${docConfig.degrees}</div>
+              <div class="doctor-reg">${docConfig.reg}</div>
+              <div class="doctor-diplomate">${docConfig.diplomate}</div>
+              <div class="doctor-specialty">${docConfig.specialty}</div>
             </div>
           </div>
-        </div>` : ""}
 
-        <!-- Diagnosis Row -->
-        ${diagnosisText ? `
-        <div class="diagnosis-row">
-          <span class="diagnosis-label">DIAGNOSIS: </span>
-          <span class="diagnosis-text">${diagnosisText}</span>
-        </div>` : ""}
-
-        <!-- Rx Symbol & Medication Table -->
-        <div class="rx-wrapper">
-          <div class="rx-symbol">℞</div>
-          <table class="med-table">
-            <thead>
-              <tr>
-                <th class="col-med">MEDICINE NAME</th>
-                <th class="col-dosage">DOSAGE</th>
-                <th class="col-timing">TIMING</th>
-                <th class="col-qty">DURATION / QTY</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${medsRowsHtml}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Doctor Advice & Instructions (if present) -->
-        ${rx.advice ? `
-        <div class="advice-section">
-          <div class="advice-heading">Advice / सल्ला:</div>
-          <div class="advice-content-body">${rx.advice}</div>
-        </div>` : ""}
-
-        <!-- Next Visit / Follow-up (if present) -->
-        ${rx.followup_date ? `
-        <div class="marathi-item">
-          <span class="marathi-label">फेरतपासणी (Next Visit):</span>
-          <span>${formatFollowup(rx.followup_date, rx.prescription_date)}</span>
-        </div>` : ""}
-
-        <!-- Doctor Signature -->
-        <div class="sheet-signature-section">
-          <div class="signature-block">
-            <img src="${docConfig.signature}" alt="Doctor Signature" class="sig-img" />
-            <div class="sig-doc-name">${docConfig.name}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom Fixed Letterhead Footer -->
-      <div class="sheet-footer-fixed-bottom">
-        <!-- Validity Note & Generic Medicine Notice -->
-        <div class="prescription-validity-note">
-          ${!isGyno ? `<div class="validity-rule">* Prescription is valid for 30 days only</div>` : ""}
-          <div class="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
-        </div>
-
-        <!-- Schedule Banner -->
-        <div class="footer-banner-container">
-          <div class="footer-top-pill-row">
-            <span class="clinic-pill">HIP &amp; KNEE JOINT CLINIC</span>
-            <span class="clinic-time">&bull; Every Thursday 6 pm to 8 pm</span>
+          <!-- Patient Row -->
+          <div class="patient-row">
+            <div class="patient-info-left">
+              <span>${refNumber}</span> : <span>${patientNameFormatted}</span> <span>${patientDetailsText}</span><span>${phoneText}</span>
+            </div>
+            <div class="patient-date-right">
+              Date: ${formatPrescriptionDate(rx.prescription_date)}
+            </div>
           </div>
 
-          <div class="footer-clinic-title">Dedicated to Complete Orthopaedic, Maternity &amp; Family Care</div>
+          <!-- Vitals (if present) -->
+          ${hasVitals ? `
+          <div class="vitals-row">
+            <span class="vitals-label">Vitals:</span>
+            ${bp ? `<span class="vitals-item"><strong>BP:</strong> ${bp} mmHg</span>` : ""}
+            ${pulse ? `<span class="vitals-item"><strong>Pulse:</strong> ${pulse} /min</span>` : ""}
+            ${spo2 ? `<span class="vitals-item"><strong>SpO₂:</strong> ${spo2}%</span>` : ""}
+            ${temp ? `<span class="vitals-item"><strong>Temp:</strong> ${temp} °F</span>` : ""}
+            ${height ? `<span class="vitals-item"><strong>Height:</strong> ${height} cm</span>` : ""}
+            ${weight ? `<span class="vitals-item"><strong>Weight:</strong> ${weight} kg</span>` : ""}
+            ${bmi ? `<span class="vitals-item"><strong>BMI:</strong> ${bmi}</span>` : ""}
+          </div>` : ""}
 
-          <div class="footer-opd-line">
-            <span class="footer-opd-label">OPD Time : </span>Mon. to Fri. - 10 am to 1 pm &amp; 6 pm to 8 pm | Sat. - 10 am to 1 pm | Sunday Closed
+          <!-- Chief Complaints (if present) -->
+          ${rx.chief_complaint ? `
+          <div class="clinical-strip-section">
+            <div class="clinical-strip-row">
+              <span class="clinical-strip-lbl">Chief Complaints:</span>
+              <span class="clinical-strip-val">${rx.chief_complaint}</span>
+            </div>
+          </div>` : ""}
+
+          <!-- Medical History (if present) -->
+          ${rx.medical_history ? `
+          <div class="clinical-strip-section">
+            <div class="clinical-strip-row">
+              <span class="clinical-strip-lbl">Medical History:</span>
+              <span class="clinical-strip-val">${rx.medical_history}</span>
+            </div>
+          </div>` : ""}
+
+          <!-- Clinical Examination (if present) -->
+          ${findingsLines.length > 0 ? `
+          <div class="clinical-strip-section">
+            <div class="clinical-strip-row" style="align-items: flex-start;">
+              <span class="clinical-strip-lbl" style="min-width: 130px;">Clinical Examination:</span>
+              <div style="display: flex; flex-direction: column; gap: 1px; flex: 1;">
+                ${findingsLines.map((line: string) => `
+                  <div style="display: flex; align-items: baseline; gap: 4px;">
+                    <span style="font-size: 8pt; color: #666; line-height: 1;">&bull;</span>
+                    <span class="clinical-strip-val">${line}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>` : ""}
+
+          <!-- Diagnosis Row -->
+          ${diagnosisText ? `
+          <div class="diagnosis-row">
+            <span class="diagnosis-label">DIAGNOSIS: </span>
+            <span class="diagnosis-text">${diagnosisText}</span>
+          </div>` : ""}
+
+          <!-- Rx Symbol & Medication Table -->
+          <div class="rx-wrapper">
+            <div class="rx-symbol">℞</div>
+            <table class="med-table">
+              <thead>
+                <tr>
+                  <th class="col-med">MEDICINE NAME</th>
+                  <th class="col-dosage">DOSAGE</th>
+                  <th class="col-timing">TIMING</th>
+                  <th class="col-qty">DURATION / QTY</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${medsRowsHtml}
+              </tbody>
+            </table>
           </div>
 
-          <div class="footer-sunday-line">Sunday OPD Closed</div>
+          <!-- Doctor Advice & Instructions (if present) -->
+          ${rx.advice ? `
+          <div class="advice-section">
+            <div class="advice-heading">Advice / सल्ला:</div>
+            <div class="advice-content-body">${rx.advice}</div>
+          </div>` : ""}
 
-          <div class="footer-address-line">
-            Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001 &nbsp;|&nbsp; Ph. : 07152-255795, 9373280505
+          <!-- Next Visit / Follow-up (if present) -->
+          ${rx.followup_date ? `
+          <div class="marathi-item">
+            <span class="marathi-label">फेरतपासणी (Next Visit):</span>
+            <span>${formatFollowup(rx.followup_date, rx.prescription_date)}</span>
+          </div>` : ""}
+
+          <!-- Doctor Signature -->
+          <div class="sheet-signature-section">
+            <div class="signature-block">
+              <img src="${docConfig.signature}" alt="Doctor Signature" class="sig-img" />
+              <div class="sig-doc-name">${docConfig.name}</div>
+            </div>
           </div>
-
-          <div class="footer-bottom-bar"></div>
         </div>
 
-        <!-- Powered by Svaasth-HMS Badge -->
-        <div class="footer-hms-branding">
-          <span>Powered by</span>
-          <img src="${SVAASTH_LOGO_BASE64}" alt="Svaasth HMS" />
-          <strong>Svaasth-HMS</strong>
+        <!-- Bottom Fixed Letterhead Footer -->
+        <div class="sheet-footer-fixed-bottom">
+          <!-- Validity Note & Generic Medicine Notice -->
+          <div class="prescription-validity-note">
+            ${!isGyno ? `<div class="validity-rule">* Prescription is valid for 30 days only</div>` : ""}
+            <div class="generic-rule">* Medicine can be purchased from any medical store and in a generic form also</div>
+          </div>
+
+          <!-- Schedule Banner -->
+          <div class="footer-banner-container">
+            <div class="footer-top-pill-row">
+              <span class="clinic-pill">HIP &amp; KNEE JOINT CLINIC</span>
+              <span class="clinic-time">&bull; Every Thursday 6 pm to 8 pm</span>
+            </div>
+
+            <div class="footer-clinic-title">Dedicated to Complete Orthopaedic, Maternity &amp; Family Care</div>
+
+            <div class="footer-opd-line">
+              <span class="footer-opd-label">OPD Time : </span>Mon. to Fri. - 10 am to 1 pm &amp; 6 pm to 8 pm | Sat. - 10 am to 1 pm | Sunday Closed
+            </div>
+
+            <div class="footer-sunday-line">Sunday OPD Closed</div>
+
+            <div class="footer-address-line">
+              Cortex Hospital, Aarti Chowk, Nagpur Road, Wardha - 442001 &nbsp;|&nbsp; Ph. : 07152-255795, 9373280505
+            </div>
+
+            <div class="footer-bottom-bar"></div>
+          </div>
+
+          <!-- Powered by Svaasth-HMS Badge -->
+          <div class="footer-hms-branding">
+            <span>Powered by</span>
+            <img src="${SVAASTH_LOGO_BASE64}" alt="Svaasth HMS" />
+            <strong>Svaasth-HMS</strong>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <script>
+    var isUserZoomedIn = false;
+
+    function applyScreenScale() {
+      var sheet = document.getElementById('prescriptionSheet');
+      var wrapper = document.getElementById('sheetWrapper');
+      var zoomBtn = document.getElementById('zoomToggleBtn');
+      if (!sheet || !wrapper) return;
+
+      var naturalWidth = 794;
+      var availWidth = window.innerWidth - 12;
+
+      if (availWidth < naturalWidth && !isUserZoomedIn) {
+        var scale = Math.min(1, availWidth / naturalWidth);
+        sheet.style.transform = 'scale(' + scale + ')';
+        sheet.style.transformOrigin = 'top center';
+        var actualHeight = sheet.offsetHeight * scale;
+        wrapper.style.height = (actualHeight + 12) + 'px';
+        wrapper.style.overflow = 'hidden';
+        if (zoomBtn) zoomBtn.innerHTML = '🔍 Zoom (100%)';
+      } else {
+        sheet.style.transform = 'none';
+        sheet.style.transformOrigin = 'top center';
+        wrapper.style.height = 'auto';
+        wrapper.style.overflow = 'auto';
+        if (zoomBtn) zoomBtn.innerHTML = '📱 Fit to Screen';
+      }
+    }
+
+    function toggleZoom() {
+      isUserZoomedIn = !isUserZoomedIn;
+      applyScreenScale();
+    }
+
+    window.addEventListener('resize', applyScreenScale);
+    window.addEventListener('orientationchange', applyScreenScale);
+    document.addEventListener('DOMContentLoaded', applyScreenScale);
+    window.addEventListener('load', applyScreenScale);
+    // Instant initial execution
+    applyScreenScale();
+  </script>
 </body>
 </html>`;
 
