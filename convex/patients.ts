@@ -185,17 +185,34 @@ export const remove = mutation({
 export const mergeSamikshaToCRX0069 = mutation({
     args: {},
     handler: async (ctx) => {
+        const isSamikshaMatch = (name?: string, phone?: string, ref?: string) => {
+            const n = (name || "").toLowerCase();
+            const p = (phone || "").replace(/\D/g, "");
+            const r = (ref || "").trim().toUpperCase();
+            return (
+                n.includes("samiksha") ||
+                p === "9665651439" ||
+                p === "966561439" ||
+                p === "9822349198" ||
+                p.includes("96656") ||
+                r === "CRX0069" ||
+                r === "CRX0099" ||
+                r === "CRX4469" ||
+                r === "CRX7494"
+            );
+        };
+
+        // 1. Merge Patients table
         const allPatients = await ctx.db.query("patients").collect();
-        const samikshaMatches = allPatients.filter((p) => {
-            const nameMatch = (p.name || "").toLowerCase().includes("samiksha");
-            const phoneMatch = p.phone_number && (p.phone_number.includes("96656") || p.phone_number === "9665651439" || p.phone_number === "966561439");
-            const refMatch = p.reference_number === "CRX0069" || p.reference_number === "CRX4469" || p.reference_number === "CRX7494";
-            return nameMatch || phoneMatch || refMatch;
-        });
+        const samikshaMatches = allPatients.filter((p) =>
+            isSamikshaMatch(p.name, p.phone_number, p.reference_number)
+        );
 
         let targetPatientId: any = null;
         if (samikshaMatches.length > 0) {
-            targetPatientId = samikshaMatches[0]._id;
+            // Pick CRX0069 doc if present, else first match
+            const primaryDoc = samikshaMatches.find(p => p.reference_number === "CRX0069") || samikshaMatches[0];
+            targetPatientId = primaryDoc._id;
             await ctx.db.patch(targetPatientId, {
                 reference_number: "CRX0069",
                 name: "samiksha varnerkar",
@@ -204,8 +221,10 @@ export const mergeSamikshaToCRX0069 = mutation({
                 phone_number: "9665651439",
                 address: "waigao",
             });
-            for (let i = 1; i < samikshaMatches.length; i++) {
-                await ctx.db.delete(samikshaMatches[i]._id);
+            for (const doc of samikshaMatches) {
+                if (doc._id !== targetPatientId) {
+                    await ctx.db.delete(doc._id);
+                }
             }
         } else {
             targetPatientId = await ctx.db.insert("patients", {
@@ -218,34 +237,65 @@ export const mergeSamikshaToCRX0069 = mutation({
             });
         }
 
-        // Update / Merge any appointments
-        const allAppts = await ctx.db.query("appointments").collect();
-        const apptMatches = allAppts.filter((a) => {
-            const nameMatch = (a.name || "").toLowerCase().includes("samiksha");
-            const phoneMatch = a.phone && (a.phone.includes("96656") || a.phone === "9665651439" || a.phone === "966561439");
-            return nameMatch || phoneMatch;
-        });
-        if (apptMatches.length > 0) {
-            await ctx.db.patch(apptMatches[0]._id, {
-                name: "samiksha varnerkar",
-                phone: "9665651439",
-                address: "waigao",
-                age: 21,
-                doctor_name: "Dr. Shillpa Raut",
+        // 2. Update all Prescriptions
+        const allRx = await ctx.db.query("prescriptions").collect();
+        const rxMatches = allRx.filter((r) =>
+            isSamikshaMatch(r.patient_name, r.phone_number, r.reference_number)
+        );
+        for (const rx of rxMatches) {
+            await ctx.db.patch(rx._id, {
+                patient_name: "samiksha varnerkar",
+                reference_number: "CRX0069",
+                phone_number: "9665651439",
+                age: "21",
+                sex: "Female",
             });
-            for (let i = 1; i < apptMatches.length; i++) {
-                await ctx.db.delete(apptMatches[i]._id);
+        }
+
+        // 3. Update all Bills
+        const allBills = await ctx.db.query("bills").collect();
+        const billMatches = allBills.filter((b) =>
+            isSamikshaMatch(undefined, undefined, b.reference_number) || b.patient_id === targetPatientId
+        );
+        for (const bill of billMatches) {
+            await ctx.db.patch(bill._id, {
+                reference_number: "CRX0069",
+                patient_id: targetPatientId,
+            });
+        }
+
+        // 4. Update and Deduplicate Appointments
+        const allAppts = await ctx.db.query("appointments").collect();
+        const apptMatches = allAppts.filter((a) =>
+            isSamikshaMatch(a.name, a.phone)
+        );
+        // Group appointments by date
+        const apptByDate = new Map<string, any[]>();
+        for (const a of apptMatches) {
+            const d = a.date || "nodate";
+            if (!apptByDate.has(d)) apptByDate.set(d, []);
+            apptByDate.get(d)!.push(a);
+        }
+        for (const [_, items] of apptByDate.entries()) {
+            if (items.length > 0) {
+                await ctx.db.patch(items[0]._id, {
+                    name: "samiksha varnerkar",
+                    phone: "9665651439",
+                    address: "waigao",
+                    age: 21,
+                    doctor_name: "Dr. Shillpa Raut",
+                });
+                for (let i = 1; i < items.length; i++) {
+                    await ctx.db.delete(items[i]._id);
+                }
             }
         }
 
-        // Update / Merge any opd_queue items
+        // 5. Update / Merge any opd_queue items
         const allOpd = await ctx.db.query("opd_queue").collect();
-        const opdMatches = allOpd.filter((o) => {
-            const nameMatch = (o.name || "").toLowerCase().includes("samiksha");
-            const phoneMatch = o.phone && (o.phone.includes("96656") || o.phone === "9665651439" || o.phone === "966561439");
-            const refMatch = o.uhid === "CRX0069" || o.uhid === "CRX4469" || o.uhid === "CRX7494";
-            return nameMatch || phoneMatch || refMatch;
-        });
+        const opdMatches = allOpd.filter((o) =>
+            isSamikshaMatch(o.name, o.phone, o.uhid)
+        );
         if (opdMatches.length > 0) {
             await ctx.db.patch(opdMatches[0]._id, {
                 name: "samiksha varnerkar",
@@ -260,24 +310,6 @@ export const mergeSamikshaToCRX0069 = mutation({
             for (let i = 1; i < opdMatches.length; i++) {
                 await ctx.db.delete(opdMatches[i]._id);
             }
-        }
-
-        // Update any prescriptions if they exist
-        const allRx = await ctx.db.query("prescriptions").collect();
-        const rxMatches = allRx.filter((r) => {
-            const nameMatch = (r.patient_name || "").toLowerCase().includes("samiksha");
-            const phoneMatch = r.phone_number && (r.phone_number.includes("96656") || r.phone_number === "9665651439" || r.phone_number === "966561439");
-            const refMatch = r.reference_number === "CRX0069" || r.reference_number === "CRX4469" || r.reference_number === "CRX7494";
-            return nameMatch || phoneMatch || refMatch;
-        });
-        for (const rx of rxMatches) {
-            await ctx.db.patch(rx._id, {
-                patient_name: "samiksha varnerkar",
-                reference_number: "CRX0069",
-                phone_number: "9665651439",
-                age: "21",
-                sex: "Female",
-            });
         }
 
         return targetPatientId;
