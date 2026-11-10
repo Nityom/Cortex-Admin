@@ -246,9 +246,19 @@ const ViewPatients = () => {
       }
       console.log(`Fetched ${dbPatients.length} patients`);
 
-      const dbPatientMap = new Map(dbPatients.map(p => [p.phone_number, p]));
+      const dbPatientByRef = new Map(
+        dbPatients
+          .filter(p => p.reference_number)
+          .map(p => [(p.reference_number || '').replace(/^CH/i, 'CRX').trim().toUpperCase(), p])
+      );
+      const dbPatientByPhoneName = new Map(
+        dbPatients.map(p => [`${(p.phone_number || '').replace(/\D/g, '').slice(-10)}_${(p.name || '').trim().toLowerCase()}`, p])
+      );
+      const dbPatientByPhone = new Map(
+        dbPatients.map(p => [(p.phone_number || '').replace(/\D/g, '').slice(-10), p])
+      );
 
-      // Group prescriptions by phone_number, falling back to name if phone is not available
+      // Group prescriptions by UHID, falling back to phone + name combination
       prescriptionsWithBills.forEach(prescription => {
         let cleanPhone = (prescription.phone_number || '').replace(/\D/g, '').slice(-10);
         let rxName = (prescription.patient_name || '').trim();
@@ -272,18 +282,35 @@ const ViewPatients = () => {
           prescription.age = '21';
         }
 
-        const key = cleanPhone.length === 10 ? cleanPhone : (refNum ? `ref:${refNum}` : `name:${rxName.toLowerCase()}`);
+        const key = refNum
+          ? `ref:${refNum}`
+          : (cleanPhone.length === 10
+              ? `phone_name:${cleanPhone}_${rxName.toLowerCase()}`
+              : `name:${rxName.toLowerCase()}`);
 
         if (!patientMap.has(key)) {
           // Try to find existing patient in database
-          const existingPatient = cleanPhone ? dbPatientMap.get(cleanPhone) : null;
+          let existingPatient = null;
+          if (refNum) existingPatient = dbPatientByRef.get(refNum.toUpperCase()) || null;
+          if (!existingPatient && cleanPhone) existingPatient = dbPatientByPhoneName.get(`${cleanPhone}_${rxName.toLowerCase()}`) || null;
+          if (!existingPatient && cleanPhone) {
+            const byP = dbPatientByPhone.get(cleanPhone);
+            if (byP && (byP.name || '').trim().toLowerCase() === rxName.toLowerCase()) {
+              existingPatient = byP;
+            }
+          }
+
+          const parsedAge = parseInt(prescription.age, 10);
+          const fallbackAge = existingPatient?.age ? parseInt(String(existingPatient.age), 10) : 0;
+          const validAge = !isNaN(parsedAge) && parsedAge > 0 ? parsedAge : (!isNaN(fallbackAge) && fallbackAge > 0 ? fallbackAge : (isSamiksha ? 21 : 0));
+
           patientMap.set(key, {
             id: existingPatient?.id || 'TMP-' + Math.random().toString(36).substring(2, 7), // Use DB ID if exists, or create a temporary ID
             reference_number: existingPatient?.reference_number?.replace(/^CH/i, 'CRX') || refNum,
             name: rxName,
             phone_number: cleanPhone || 'Unknown',
-            age: parseInt(prescription.age, 10) || 21,
-            sex: prescription.sex || 'Female',
+            age: validAge,
+            sex: prescription.sex || existingPatient?.sex || (isSamiksha ? 'Female' : 'Male'),
             latestVisit: prescription.prescription_date,
             totalVisits: 1,
             prescriptions: [prescription],
@@ -298,13 +325,16 @@ const ViewPatients = () => {
           // Update latest visit date if this prescription is newer
           if (new Date(prescription.prescription_date) > new Date(patient.latestVisit)) {
             patient.latestVisit = prescription.prescription_date;
-            patient.age = parseInt(prescription.age, 10) || patient.age;
+            const parsedAge = parseInt(prescription.age, 10);
+            if (!isNaN(parsedAge) && parsedAge > 0) {
+              patient.age = parsedAge;
+            }
             patient.name = rxName;
 
             if (cleanPhone && patient.phone_number === 'Unknown') {
               patient.phone_number = cleanPhone;
-              // Update patient ID if we find a matching patient in the database
-              const existingPatient = dbPatientMap.get(cleanPhone);
+              let existingPatient = refNum ? dbPatientByRef.get(refNum.toUpperCase()) : null;
+              if (!existingPatient) existingPatient = dbPatientByPhoneName.get(`${cleanPhone}_${rxName.toLowerCase()}`);
               if (existingPatient) {
                 patient.id = existingPatient.id;
                 patient.reference_number = existingPatient.reference_number?.replace(/^CH/i, 'CRX');
@@ -337,15 +367,23 @@ const ViewPatients = () => {
           refNum = 'CRX0069';
         }
 
-        const key = cleanPhone.length === 10 ? cleanPhone : (refNum ? `ref:${refNum}` : `name:${ptName.toLowerCase()}`);
+        const key = refNum
+          ? `ref:${refNum}`
+          : (cleanPhone.length === 10
+              ? `phone_name:${cleanPhone}_${ptName.toLowerCase()}`
+              : `name:${ptName.toLowerCase()}`);
+
+        const parsedAge = parseInt(String(dbp.age || ''), 10);
+        const validAge = !isNaN(parsedAge) && parsedAge > 0 ? parsedAge : (isSamiksha ? 21 : 0);
+
         if (!patientMap.has(key)) {
           patientMap.set(key, {
             id: dbp.id,
             reference_number: refNum || dbp.reference_number?.replace(/^CH/i, 'CRX'),
             name: ptName,
             phone_number: cleanPhone || '—',
-            age: parseInt(String(dbp.age), 10) || (isSamiksha ? 21 : 0),
-            sex: (isSamiksha ? 'Female' : dbp.sex),
+            age: validAge,
+            sex: (isSamiksha ? 'Female' : (dbp.sex || 'Female')),
             latestVisit: dbp.created_at || new Date().toISOString(),
             totalVisits: 0,
             prescriptions: [],
@@ -554,9 +592,9 @@ const ViewPatients = () => {
     try {
       let patientId = selectedPatient.id;
 
-      // If temporary ID, check if patient exists in Convex by phone number or create
+      // If temporary ID, check if patient exists in Convex by phone number + name or create
       if (!patientId || patientId.startsWith('TMP-')) {
-        const existing = await getPatientByPhoneNumber(cleanPhone);
+        const existing = await getPatientByPhoneNumber(cleanPhone, cleanName);
         if (existing?.id) {
           patientId = existing.id;
         } else {

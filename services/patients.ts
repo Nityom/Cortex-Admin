@@ -46,13 +46,24 @@ export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' |
     return data;
 }
 
-export const getPatientByPhoneNumber = async (phoneNumber: string): Promise<Patient | null> => {
-    const data = await convex.query(api.patients.getByPhoneNumber, { phone_number: phoneNumber });
-    return data ? formatPatient(data) : null;
+export const getPatientByPhoneNumber = async (phoneNumber: string, name?: string): Promise<Patient | null> => {
+    try {
+        const data = await convex.query(api.patients.getByPhoneAndName, {
+            phone_number: phoneNumber,
+            name: name ? name.trim() : undefined,
+        });
+        return data ? formatPatient(data) : null;
+    } catch {
+        const fallback = await convex.query(api.patients.getByPhoneNumber, {
+            phone_number: phoneNumber,
+            name: name ? name.trim() : undefined,
+        });
+        return fallback ? formatPatient(fallback) : null;
+    }
 }
 
 export const getOrCreatePatient = async (patient: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'reference_number'>): Promise<Patient> => {
-    const existingPatient = await getPatientByPhoneNumber(patient.phone_number);
+    const existingPatient = await getPatientByPhoneNumber(patient.phone_number, patient.name);
     if (existingPatient) {
         if ((patient as any).email && (patient as any).email.trim() && (patient as any).email.trim() !== (existingPatient as any).email) {
             try {

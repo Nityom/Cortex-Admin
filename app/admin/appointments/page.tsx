@@ -477,15 +477,16 @@ export default function AppointmentsPage() {
           let uhid = '';
           let patientId: string | undefined = undefined;
           const cleanPhone = (formData.phone || '').replace(/\D/g, '').slice(0, 10);
+          const patientName = formData.name.trim();
           if (cleanPhone) {
             try {
-              const pt = await getPatientByPhoneNumber(cleanPhone);
-              if (pt) {
+              const pt = await getPatientByPhoneNumber(cleanPhone, patientName);
+              if (pt && (!pt.name || pt.name.trim().toLowerCase() === patientName.toLowerCase())) {
                 patientId = pt.id;
                 uhid = (pt.reference_number || '').replace(/^CH/i, 'CRX');
               } else {
                 const newPt = await getOrCreatePatient({
-                  name: formData.name.trim(),
+                  name: patientName,
                   phone_number: cleanPhone,
                   age: Number(formData.age) || 0,
                   sex: isGynae ? 'Female' : 'Male',

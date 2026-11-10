@@ -13,15 +13,27 @@ export const create = mutation({
         whatsapp_number: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        // Check if patient exists with this phone number
-        const existingPatient = await ctx.db
+        // Check if patient exists with this phone number AND matching name
+        const cleanName = args.name.trim().toLowerCase();
+        const candidates = await ctx.db
             .query("patients")
             .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
-            .first();
+            .collect();
+
+        const existingPatient = candidates.find(
+            (p) => p.name.trim().toLowerCase() === cleanName
+        );
 
         if (existingPatient) {
+            const patches: Record<string, any> = {};
             if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
-                await ctx.db.patch(existingPatient._id, { email: args.email.trim() });
+                patches.email = args.email.trim();
+            }
+            if (args.address && args.address.trim() && !existingPatient.address) {
+                patches.address = args.address.trim();
+            }
+            if (Object.keys(patches).length > 0) {
+                await ctx.db.patch(existingPatient._id, patches);
             }
             return existingPatient._id;
         }
@@ -109,13 +121,31 @@ export const migratePrefixToCRX = mutation({
     },
 });
 
-export const getByPhoneNumber = query({
-    args: { phone_number: v.string() },
+export const getByPhoneAndName = query({
+    args: { phone_number: v.string(), name: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        return await ctx.db
+        const candidates = await ctx.db
             .query("patients")
             .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
-            .first();
+            .collect();
+        if (candidates.length === 0) return null;
+        if (!args.name || !args.name.trim()) return candidates[0];
+        const cleanName = args.name.trim().toLowerCase();
+        return candidates.find((p) => p.name.trim().toLowerCase() === cleanName) || null;
+    },
+});
+
+export const getByPhoneNumber = query({
+    args: { phone_number: v.string(), name: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        const candidates = await ctx.db
+            .query("patients")
+            .withIndex("by_phone", (q) => q.eq("phone_number", args.phone_number))
+            .collect();
+        if (candidates.length === 0) return null;
+        if (!args.name || !args.name.trim()) return candidates[0];
+        const cleanName = args.name.trim().toLowerCase();
+        return candidates.find((p) => p.name.trim().toLowerCase() === cleanName) || candidates[0];
     },
 });
 
@@ -313,5 +343,116 @@ export const mergeSamikshaToCRX0069 = mutation({
         }
 
         return targetPatientId;
+    },
+});
+
+export const repairLaxmiAndKajal = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // 1. Ensure Laxmi Meshram is CRX0170
+        const patient170 = await ctx.db
+            .query("patients")
+            .withIndex("by_reference", (q) => q.eq("reference_number", "CRX0170"))
+            .first();
+
+        let laxmiId = patient170?._id;
+        if (patient170) {
+            await ctx.db.patch(patient170._id, {
+                name: "laxmi meshram",
+                age: "19",
+                sex: "Female",
+                phone_number: "9322782585",
+                address: "pulgaon",
+                reference_number: "CRX0170",
+            });
+        } else {
+            laxmiId = await ctx.db.insert("patients", {
+                name: "laxmi meshram",
+                age: "19",
+                sex: "Female",
+                phone_number: "9322782585",
+                address: "pulgaon",
+                reference_number: "CRX0170",
+            });
+        }
+
+        // 2. Ensure Kajal Meshram is CRX0188
+        const patient188 = await ctx.db
+            .query("patients")
+            .withIndex("by_reference", (q) => q.eq("reference_number", "CRX0188"))
+            .first();
+
+        let kajalId = patient188?._id;
+        if (patient188) {
+            await ctx.db.patch(patient188._id, {
+                name: "kajal meshram",
+                age: "24",
+                sex: "Female",
+                phone_number: "9322782585",
+                address: "pulgaon",
+                reference_number: "CRX0188",
+            });
+        } else {
+            kajalId = await ctx.db.insert("patients", {
+                name: "kajal meshram",
+                age: "24",
+                sex: "Female",
+                phone_number: "9322782585",
+                address: "pulgaon",
+                reference_number: "CRX0188",
+            });
+        }
+
+        // 3. Ensure reference counter is at least 188
+        const counter = await ctx.db
+            .query("reference_counter")
+            .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
+            .first();
+        if (counter) {
+            if (counter.current_number < 188) {
+                await ctx.db.patch(counter._id, { current_number: 188 });
+            }
+        } else {
+            await ctx.db.insert("reference_counter", { counter_id: 1, current_number: 188 });
+        }
+
+        // 4. Update OPD Queue items
+        const allOpd = await ctx.db.query("opd_queue").collect();
+        for (const item of allOpd) {
+            const cleanName = (item.name || "").trim().toLowerCase();
+            const cleanPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+            if (cleanPhone === "9322782585") {
+                if (cleanName.includes("laxmi")) {
+                    await ctx.db.patch(item._id, {
+                        name: "laxmi meshram",
+                        uhid: "CRX0170",
+                        patientId: laxmiId,
+                    });
+                } else if (cleanName.includes("kajal")) {
+                    await ctx.db.patch(item._id, {
+                        name: "kajal meshram",
+                        uhid: "CRX0188",
+                        patientId: kajalId,
+                    });
+                }
+            }
+        }
+
+        // 5. Update Appointments
+        const allAppts = await ctx.db.query("appointments").collect();
+        for (const appt of allAppts) {
+            const cleanName = (appt.name || "").trim().toLowerCase();
+            const cleanPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
+            if (cleanPhone === "9322782585") {
+                if (cleanName.includes("kajal")) {
+                    await ctx.db.patch(appt._id, {
+                        name: "kajal meshram",
+                        age: 24,
+                    });
+                }
+            }
+        }
+
+        return { success: true, laxmiId, kajalId };
     },
 });

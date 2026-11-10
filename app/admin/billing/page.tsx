@@ -479,7 +479,7 @@ export default function HospitalBillingPage() {
     setOpdPatient((p) => ({ ...p, phone: phoneStr }));
     if (phoneStr.trim().length >= 10) {
       try {
-        const found = await getPatientByPhoneNumber(phoneStr.trim());
+        const found = await getPatientByPhoneNumber(phoneStr.trim(), opdPatient.name?.trim());
         if (found) {
           const uhidClean = (found.reference_number || "CRX0001").replace(/^CH/i, "CRX");
           let isFollowUp = false;

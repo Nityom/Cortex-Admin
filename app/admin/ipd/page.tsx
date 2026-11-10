@@ -564,7 +564,7 @@ export default function IPDManagementPage() {
   const handlePhoneLookup = async (phone: string) => {
     if (phone.trim().length >= 10) {
       try {
-        const found = await getPatientByPhoneNumber(phone.trim());
+        const found = await getPatientByPhoneNumber(phone.trim(), newAdmissionForm.name?.trim());
         if (found) {
           setExistingPatientFound(found);
           setNewAdmissionForm((prev) => ({

@@ -212,12 +212,13 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
       const cleanName = (item.name || "").trim().toLowerCase();
 
       // Deduplication identifier:
-      // 10-digit phone number if valid, else UHID if valid, else patient name
-      const key = cleanPhone.length === 10
-        ? `phone:${cleanPhone}`
-        : cleanUhid
+      // Must NOT collapse distinct family members sharing the same phone number.
+      // Use UHID if available; otherwise use phone + name combination.
+      const key = cleanUhid
         ? `uhid:${cleanUhid}`
-        : `name:${cleanName}`;
+        : (cleanPhone.length === 10
+            ? `phone_name:${cleanPhone}_${cleanName}`
+            : `name:${cleanName}`);
 
       if (!patientMap.has(key)) {
         patientMap.set(key, item);
@@ -345,6 +346,10 @@ export default function OPDManagementPage() {
           byUhid.set(uhid, rx);
         }
         const rawPhone = (rx.phone_number || rx.phone || "").replace(/\D/g, "").slice(-10);
+        const rxName = (rx.patient_name || "").trim().toLowerCase();
+        if (rawPhone && rxName && !byPhone.has(`${rawPhone}_${rxName}`)) {
+          byPhone.set(`${rawPhone}_${rxName}`, rx);
+        }
         if (rawPhone && !byPhone.has(rawPhone)) {
           byPhone.set(rawPhone, rx);
         }
@@ -359,8 +364,8 @@ export default function OPDManagementPage() {
             if (uhid && !lastVisit.has(uhid)) {
               lastVisit.set(uhid, { date: rxDateStr, daysAgo: diffDays });
             }
-            if (rawPhone && !lastVisit.has(rawPhone)) {
-              lastVisit.set(rawPhone, { date: rxDateStr, daysAgo: diffDays });
+            if (rawPhone && rxName && !lastVisit.has(`${rawPhone}_${rxName}`)) {
+              lastVisit.set(`${rawPhone}_${rxName}`, { date: rxDateStr, daysAgo: diffDays });
             }
           }
         }
@@ -727,7 +732,7 @@ export default function OPDManagementPage() {
     const cleanPhone = formData.phone.trim();
     if (cleanPhone.length >= 10) {
       try {
-        const existing = await getPatientByPhoneNumber(cleanPhone);
+        const existing = await getPatientByPhoneNumber(cleanPhone, formData.name.trim());
         if (existing) {
           setExistingPatientFound(existing);
           setFormData((prev) => ({
@@ -808,7 +813,7 @@ export default function OPDManagementPage() {
           }
         }
         if (!uhid) {
-          const pt = await getPatientByPhoneNumber(cleanPhone);
+          const pt = await getPatientByPhoneNumber(cleanPhone, formData.name.trim());
           if (pt?.reference_number) {
             uhid = pt.reference_number.replace(/^CH/i, "CRX");
           } else {
@@ -1039,7 +1044,7 @@ export default function OPDManagementPage() {
     let age = "";
     let sex: "Male" | "Female" | "Other" = "Male";
     try {
-      const pt = await getPatientByPhoneNumber(appt.phone?.trim() || "");
+      const pt = await getPatientByPhoneNumber(appt.phone?.trim() || "", appt.name?.trim());
       if (pt) {
         if (pt.age) age = String(pt.age);
         if (pt.sex) sex = pt.sex as any;
@@ -1066,7 +1071,7 @@ export default function OPDManagementPage() {
       let patientId: string | undefined = undefined;
 
       try {
-        let pt = await getPatientByPhoneNumber(appt.phone?.trim() || "");
+        let pt = await getPatientByPhoneNumber(appt.phone?.trim() || "", appt.name?.trim());
         if (pt) {
           patientId = pt.id;
           uhid = (pt.reference_number || "").replace(/^CH/i, "CRX");
@@ -1098,15 +1103,21 @@ export default function OPDManagementPage() {
 
       // Check if patient already checked into today's queue for this doctor
       const apptCleanPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
+      const apptCleanName = (appt.name || "").trim().toLowerCase();
       const existingInToday = doctorTodayItems.find((q) => {
         const qPhone = (q.phone || "").replace(/\D/g, "").slice(-10);
         const qUhid = (q.uhid || "").trim().toUpperCase();
-        return (
-          (q.appointmentId && q.appointmentId === appt._id) ||
-          (apptCleanPhone && qPhone === apptCleanPhone) ||
-          (uhid && qUhid === uhid.toUpperCase()) ||
-          (q.name.trim().toLowerCase() === (appt.name || "").trim().toLowerCase())
-        );
+        const qName = (q.name || "").trim().toLowerCase();
+
+        // 1. Same appointment ID
+        if (q.appointmentId && q.appointmentId === appt._id) return true;
+        // 2. Same UHID (if non-empty)
+        if (uhid && qUhid && qUhid === uhid.toUpperCase()) return true;
+        // 3. Same phone AND same name (different family members sharing phone can both check in!)
+        if (apptCleanPhone && qPhone === apptCleanPhone && qName === apptCleanName) return true;
+        // 4. Same exact full name for today's doctor
+        if (qName && apptCleanName && qName === apptCleanName) return true;
+        return false;
       });
 
       if (existingInToday) {
@@ -1670,13 +1681,42 @@ export default function OPDManagementPage() {
 
                       const uhidNorm = (item.uhid || "").trim().toUpperCase();
                       const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
-                      const linkedRx =
-                        (item.id && prescriptionByVisitId.get(item.id)) ||
-                        (uhidNorm && prescriptionByUhid.get(uhidNorm)) ||
-                        (phoneNorm && prescriptionByPhone.get(phoneNorm));
+                      const itemCleanName = (item.name || "").trim().toLowerCase();
 
-                      const hasPrescription = item.status === "Completed" || !!linkedRx;
-                      const lastVisitInfo = (uhidNorm && patientLastVisitMap.get(uhidNorm)) || (phoneNorm && patientLastVisitMap.get(phoneNorm));
+                      const isNameCompatible = (rxName?: string) => {
+                        if (!rxName) return false;
+                        const rxClean = rxName.trim().toLowerCase();
+                        if (rxClean === itemCleanName) return true;
+                        const itemFirst = itemCleanName.split(/\s+/)[0];
+                        const rxFirst = rxClean.split(/\s+/)[0];
+                        return itemFirst.length >= 3 && itemFirst === rxFirst;
+                      };
+
+                      let linkedRx = item.id ? prescriptionByVisitId.get(item.id) : undefined;
+                      if (linkedRx && !isNameCompatible(linkedRx.patient_name)) {
+                        linkedRx = undefined;
+                      }
+
+                      if (!linkedRx && uhidNorm) {
+                        const candidate = prescriptionByUhid.get(uhidNorm);
+                        if (candidate && isNameCompatible(candidate.patient_name)) {
+                          linkedRx = candidate;
+                        }
+                      }
+
+                      if (!linkedRx && phoneNorm) {
+                        const candidate =
+                          prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) ||
+                          prescriptionByPhone.get(phoneNorm);
+                        if (candidate && isNameCompatible(candidate.patient_name)) {
+                          linkedRx = candidate;
+                        }
+                      }
+
+                      const hasPrescription = !!linkedRx;
+                      const lastVisitInfo =
+                        (uhidNorm && patientLastVisitMap.get(uhidNorm)) ||
+                        (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`));
 
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(displayedQueue.length - index).padStart(2, "0")}</td>
