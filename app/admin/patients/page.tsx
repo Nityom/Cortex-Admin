@@ -927,15 +927,6 @@ const ViewPatients = () => {
                               <Eye className="w-4 h-4" />
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleStartEditPatient(patient)}
-                              className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition flex items-center justify-center shadow-2xs cursor-pointer"
-                              title={`Edit details for ${patient.name}`}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-
                             <Link
                               href={`/admin/prescription?patientName=${encodeURIComponent(patient.name)}&phoneNumber=${encodeURIComponent(patient.phone_number)}&phone=${encodeURIComponent(patient.phone_number)}&reference_number=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'CRX'))}&uhid=${encodeURIComponent((patient.reference_number || '').replace(/^CH/i, 'CRX'))}&age=${patient.age}&sex=${patient.sex}&doctorName=${encodeURIComponent(latestDoc)}&medicalHistory=${encodeURIComponent(patient.prescriptions[0]?.medical_history || '')}`}
                             >

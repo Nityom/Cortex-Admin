@@ -6,7 +6,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Phone, Stethoscope, Pencil, Trash2, Search, X, MapPin } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/use-is-admin';
-import { getPatientByPhoneNumber } from '@/services/patients';
+import { getPatientByPhoneNumber, getOrCreatePatient } from '@/services/patients';
 import { OPDQueueItem } from '@/services/opdQueue';
 import { hospitalConfig } from '@/config/hospital';
 
@@ -428,21 +428,38 @@ export default function AppointmentsPage() {
           const dept = docName.toLowerCase().includes('shillpa')
             ? 'Obstetrics & Gynaecology'
             : 'Orthopaedics & Joint Replacement';
+          const isGynae = docName.toLowerCase().includes('shillpa') || dept.toLowerCase().includes('gynaec');
+          const sex = isGynae ? 'Female' : 'Male';
 
           // 1. Resolve Patient UHID & patientId
           let uhid = '';
           let patientId: string | undefined = undefined;
-          if (formData.phone?.trim()) {
+          const cleanPhone = (formData.phone || '').replace(/\D/g, '').slice(0, 10);
+          if (cleanPhone) {
             try {
-              const pt = await getPatientByPhoneNumber(formData.phone.trim());
+              const pt = await getPatientByPhoneNumber(cleanPhone);
               if (pt) {
                 patientId = pt.id;
                 uhid = (pt.reference_number || '').replace(/^CH/i, 'CRX');
+              } else {
+                const newPt = await getOrCreatePatient({
+                  name: formData.name.trim(),
+                  phone_number: cleanPhone,
+                  age: Number(formData.age) || 0,
+                  sex: isGynae ? 'Female' : 'Male',
+                  address: formData.address.trim() || undefined,
+                });
+                if (newPt) {
+                  patientId = newPt.id;
+                  uhid = (newPt.reference_number || '').replace(/^CH/i, 'CRX');
+                }
               }
-            } catch {}
+            } catch (err) {
+              console.warn('Could not sync patient in Convex:', err);
+            }
           }
           if (!uhid) {
-            uhid = `CRX${Math.floor(1000 + Math.random() * 9000)}`;
+            uhid = `CRX0001`;
           }
 
           // 2. Calculate next token number for this doctor
@@ -465,9 +482,6 @@ export default function AppointmentsPage() {
             .filter((n) => !isNaN(n) && n > 0);
           const nextToken = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
           const tokenNumber = String(nextToken).padStart(2, '0');
-
-          const isGynae = docName.toLowerCase().includes('shillpa') || dept.toLowerCase().includes('gynaec');
-          const sex = isGynae ? 'Female' : 'Male';
 
           const queueItem: OPDQueueItem = {
             id: `opd_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,

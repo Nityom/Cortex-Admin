@@ -27,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  Trash2,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -790,13 +791,27 @@ export default function OPDManagementPage() {
   };
 
   // Status changer for queue items
-  const updateStatus = async (id: string, newStatus: "Waiting" | "Ready" | "In Consultation" | "Completed") => {
+  const updateStatus = async (id: string, newStatus: "Waiting" | "Ready" | "In Consultation" | "Completed" | "Cancelled") => {
     const updated = queue.map((item) => (item.id === id ? { ...item, status: newStatus } : item));
     saveQueue(updated);
     try {
       await updateOpdQueueStatusMutation({ queue_id: id, status: newStatus });
     } catch (err) {
       console.warn("Could not sync status update to Convex:", err);
+    }
+  };
+
+  // Delete/Remove queue item (e.g. duplicate or mistaken registration)
+  const handleDeleteQueueItem = async (id: string, patientName: string) => {
+    if (!confirm(`Are you sure you want to remove ${patientName} from today's OPD queue?`)) {
+      return;
+    }
+    const updated = queue.filter((item) => item.id !== id);
+    saveQueue(updated);
+    try {
+      await removeOpdQueueMutation({ queue_id: id });
+    } catch (err) {
+      console.warn("Could not delete queue item from Convex:", err);
     }
   };
 
@@ -1481,6 +1496,7 @@ export default function OPDManagementPage() {
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>
                           <button type="button" onClick={() => startPrescription(item, linkedRx?._id || linkedRx?.id)} title={hasPrescription ? "View prescription" : "Create prescription"} className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#176e56] px-3 text-xs font-semibold text-white transition hover:bg-[#155944]"><FileText className="h-4 w-4"/>{hasPrescription ? "View Rx" : "Prescription"}</button>
+                          <button type="button" onClick={() => handleDeleteQueueItem(item.id, item.name)} title="Remove duplicate/cancelled patient from queue" className="grid h-8 w-8 place-items-center rounded-lg border border-transparent text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"><Trash2 className="h-4 w-4" /></button>
                         </div></td>
                       </tr>;
                     })}
