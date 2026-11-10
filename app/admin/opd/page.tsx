@@ -318,6 +318,101 @@ export default function OPDManagementPage() {
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
   const syncLocalOpdQueueMutation = useMutation(api.opd_queue.syncLocalItems);
   const clearOpdQueueMutation = useMutation(api.opd_queue.clearAll);
+  const syncingAppointmentIds = React.useRef(new Set<string>());
+
+  // Keep scheduled appointments visible in the OPD queue even when they were
+  // created by an external channel such as the WhatsApp assistant.
+  useEffect(() => {
+    if (!allAppointments || !liveOpdQueue) return;
+
+    const queuedAppointmentIds = new Set(
+      liveOpdQueue
+        .map((item: any) => item.appointmentId)
+        .filter((appointmentId: unknown): appointmentId is string => typeof appointmentId === "string")
+    );
+    const nextTokens = new Map<string, number>();
+
+    for (const item of liveOpdQueue) {
+      const date = getItemLocalDate(item.registeredAt);
+      const doctor = getDoctorKey(item.doctor);
+      const key = `${date}___${doctor}`;
+      const token = Number.parseInt(item.token, 10);
+      if (date && Number.isFinite(token)) {
+        nextTokens.set(key, Math.max(nextTokens.get(key) || 0, token));
+      }
+    }
+
+    const appointmentsToSync = allAppointments.filter((appointment: any) => {
+      if (
+        !appointment._id ||
+        appointment.status === "CANCELLED" ||
+        !appointment.date ||
+        appointment.date < todayStr ||
+        !appointment.time ||
+        !appointment.name ||
+        !appointment.phone
+      ) {
+        return false;
+      }
+
+      const appointmentId = String(appointment._id);
+      return (
+        !queuedAppointmentIds.has(appointmentId) &&
+        !syncingAppointmentIds.current.has(appointmentId)
+      );
+    });
+
+    if (appointmentsToSync.length === 0) return;
+
+    const queueItems = appointmentsToSync.map((appointment: any) => {
+      const doctor = appointment.doctor_name || DOCTORS[0].name;
+      const date = String(appointment.date);
+      const doctorKey = getDoctorKey(doctor);
+      const tokenKey = `${date}___${doctorKey}`;
+      const token = (nextTokens.get(tokenKey) || 0) + 1;
+      nextTokens.set(tokenKey, token);
+
+      return {
+        id: `appointment_${appointment._id}`,
+        token: String(token).padStart(2, "0"),
+        uhid: "",
+        appointmentId: String(appointment._id),
+        name: String(appointment.name),
+        age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "—",
+        ageUnit: "years",
+        sex: doctorKey === "shillpa" ? "Female" : "Male",
+        phone: String(appointment.phone),
+        address: appointment.address || "",
+        doctor,
+        department: doctorKey === "shillpa"
+          ? "Obstetrics & Gynaecology"
+          : "Orthopaedics & Joint Replacement",
+        priority: "Normal",
+        visitType: "Appointment",
+        status: "Waiting",
+        vitals: {},
+        consultationFee: 0,
+        paymentMode: "Free / Exempt",
+        registeredAt: new Date(`${date}T${appointment.time}:00`).toISOString(),
+        time: String(appointment.time),
+      } satisfies OPDQueueItem;
+    });
+
+    for (const item of queueItems) {
+      syncingAppointmentIds.current.add(item.appointmentId!);
+    }
+
+    void Promise.all(
+      queueItems.map(async (item) => {
+        try {
+          await upsertOpdQueueMutation(item);
+        } catch (error) {
+          syncingAppointmentIds.current.delete(item.appointmentId!);
+          console.error("Could not sync scheduled appointment to OPD queue:", error);
+        }
+      })
+    );
+  }, [allAppointments, liveOpdQueue, todayStr, upsertOpdQueueMutation]);
 
   // Map of opd_visit_id / reference_number / phone to prescription & last visit tracking
   const { prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, patientLastVisitMap } = useMemo(() => {

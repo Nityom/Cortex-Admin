@@ -39,9 +39,9 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    const host = req.headers.get('host') || 'cortexhospital.com';
-    const proto = host.includes('localhost') ? 'http' : 'https';
-    const prescriptionUrl = `${proto}://${host}/print-prescription?id=${encodeURIComponent(prescriptionId)}`;
+    // Use live Convex HTTPS site URL so WhatsApp recipients can always view/print online
+    const liveSiteBase = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
+    const prescriptionUrl = `${liveSiteBase}/print-prescription?id=${encodeURIComponent(prescriptionId)}`;
 
     const message = `🏥 *CORTEX HOSPITAL, WARDHA*
 Hello *${patientName || 'Patient'}* 👋

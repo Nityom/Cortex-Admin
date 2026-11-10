@@ -15,6 +15,7 @@ import type * as clinical_templates from "../clinical_templates.js";
 import type * as consumables from "../consumables.js";
 import type * as doctors from "../doctors.js";
 import type * as email from "../email.js";
+import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as inventory_sales from "../inventory_sales.js";
 import type * as investigations from "../investigations.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   consumables: typeof consumables;
   doctors: typeof doctors;
   email: typeof email;
+  http: typeof http;
   inventory: typeof inventory;
   inventory_sales: typeof inventory_sales;
   investigations: typeof investigations;
