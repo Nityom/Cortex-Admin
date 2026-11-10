@@ -103,7 +103,6 @@ export default function PatientSearchInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
     if (searchType === 'phone') {
-      // Enforce strictly digits only and limit to 10 digits
       val = val.replace(/\D/g, '').slice(0, 10);
     }
     setSearchTerm(val);

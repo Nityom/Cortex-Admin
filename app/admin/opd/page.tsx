@@ -126,6 +126,128 @@ const shiftDate = (currentDateStr: string, deltaDays: number) => {
 
 const STORAGE_KEY = "cortex_opd_queue_v1";
 
+const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
+  const rawName = (item.name || "").toLowerCase().trim();
+  const rawPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+  const rawUhid = (item.uhid || "").trim().toUpperCase();
+
+  const isSamiksha =
+    rawUhid === "CRX0069" ||
+    rawUhid === "CRX4469" ||
+    rawUhid === "CRX7494" ||
+    rawName.includes("samiksha") ||
+    rawPhone === "9665651439" ||
+    rawPhone.includes("96656");
+
+  if (isSamiksha) {
+    return {
+      ...item,
+      name: "samiksha varnerkar",
+      uhid: "CRX0069",
+      phone: "9665651439",
+      age: "21",
+      ageUnit: "years",
+      sex: "Female",
+      address: "waigao",
+      doctor: "Dr. Shillpa Raut",
+      department: "Obstetrics & Gynaecology",
+    };
+  }
+
+  return {
+    ...item,
+    uhid: rawUhid.replace(/^CH/i, "CRX"),
+  };
+};
+
+const getStatusRank = (status?: string): number => {
+  switch (status) {
+    case "In Consultation":
+      return 5;
+    case "Ready":
+      return 4;
+    case "Waiting":
+      return 3;
+    case "Completed":
+      return 2;
+    case "Cancelled":
+      return 1;
+    default:
+      return 0;
+  }
+};
+
+const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
+  if (!items || !Array.isArray(items)) return [];
+
+  // Step 1: Normalize identity across all items (unifying Samiksha to CRX0069)
+  const normalized = items.map(normalizePatientIdentity);
+
+  // Step 2: Group by date and doctor key
+  const groups = new Map<string, OPDQueueItem[]>();
+  for (const item of normalized) {
+    const itemDate = getItemLocalDate(item.registeredAt) || "today";
+    const docKey = getDoctorKey(item.doctor);
+    const groupKey = `${itemDate}___${docKey}`;
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, []);
+    }
+    groups.get(groupKey)!.push(item);
+  }
+
+  const dedupedAll: OPDQueueItem[] = [];
+
+  groups.forEach((groupItems) => {
+    // Sort chronological first so earlier registrations establish base token
+    groupItems.sort(
+      (a, b) => new Date(a.registeredAt || 0).getTime() - new Date(b.registeredAt || 0).getTime()
+    );
+
+    const patientMap = new Map<string, OPDQueueItem>();
+
+    for (const item of groupItems) {
+      const cleanPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+      const cleanUhid = (item.uhid || "").trim().toUpperCase();
+      const cleanName = (item.name || "").trim().toLowerCase();
+
+      // Deduplication identifier:
+      // 10-digit phone number if valid, else UHID if valid, else patient name
+      const key = cleanPhone.length === 10
+        ? `phone:${cleanPhone}`
+        : cleanUhid
+        ? `uhid:${cleanUhid}`
+        : `name:${cleanName}`;
+
+      if (!patientMap.has(key)) {
+        patientMap.set(key, item);
+      } else {
+        const existing = patientMap.get(key)!;
+        const existingRank = getStatusRank(existing.status);
+        const currentRank = getStatusRank(item.status);
+
+        // Keep active status over cancelled/waiting/completed
+        if (currentRank > existingRank) {
+          patientMap.set(key, { ...item, token: existing.token || item.token });
+        } else if (currentRank === existingRank) {
+          // If status ranks are identical, prefer the latest registered item
+          const timeExisting = new Date(existing.registeredAt || 0).getTime();
+          const timeCurrent = new Date(item.registeredAt || 0).getTime();
+          if (timeCurrent > timeExisting) {
+            patientMap.set(key, { ...item, token: existing.token || item.token });
+          }
+        }
+        // Duplicate is discarded completely
+      }
+    }
+
+    patientMap.forEach((dedupedItem) => {
+      dedupedAll.push(dedupedItem);
+    });
+  });
+
+  return dedupedAll;
+};
+
 export default function OPDManagementPage() {
   const router = useRouter();
 
@@ -391,6 +513,9 @@ export default function OPDManagementPage() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
+            // Immediate synchronous deduplication so UI never flashes duplicate records
+            const rawDeduped = deduplicateOpdQueue(parsed);
+
             let dbPatients: any[] = [];
             try {
               dbPatients = await getPatients();
@@ -400,8 +525,8 @@ export default function OPDManagementPage() {
               dbPatients.map((p) => [p.phone_number?.trim(), p.reference_number?.replace(/^CH/i, "CRX")])
             );
 
-            let changed = false;
-            const updated = parsed.map((item: any) => {
+            let changed = rawDeduped.length !== parsed.length;
+            const updated = rawDeduped.map((item: any) => {
               let uhid = (item.uhid || "").replace(/^CH/i, "CRX");
               const cleanPhone = (item.phone || "").trim();
 
@@ -432,61 +557,13 @@ export default function OPDManagementPage() {
               return { ...item, uhid, status };
             });
 
-            // 1.5. Merge duplicate entries for Samiksha into single CRX0069 record
-            const samikshaEntries = updated.filter((item: any) =>
-              item.uhid === "CRX0069" ||
-              item.uhid === "CRX4469" ||
-              item.uhid === "CRX7494" ||
-              (item.name || "").toLowerCase().includes("samiksha") ||
-              (item.phone && item.phone.includes("96656"))
-            );
+            // Universal deduplication and Samiksha normalization
+            const finalQueue = deduplicateOpdQueue(updated);
+            if (finalQueue.length !== parsed.length) changed = true;
 
-            if (samikshaEntries.length > 1) {
-              const primaryItem = samikshaEntries[0];
-              const mergedQueue = updated.filter((item: any) => {
-                if (samikshaEntries.some((s: any) => s.id === item.id)) {
-                  return item.id === primaryItem.id;
-                }
-                return true;
-              }).map((item: any) => {
-                if (item.id === primaryItem.id) {
-                  return {
-                    ...item,
-                    name: "samiksha varnerkar",
-                    uhid: "CRX0069",
-                    phone: "9665651439",
-                    age: "21",
-                    ageUnit: "years",
-                    sex: "Female",
-                    address: "waigao",
-                    doctor: "Dr. Shillpa Raut",
-                    department: "Obstetrics & Gynaecology",
-                  };
-                }
-                return item;
-              });
-              updated.length = 0;
-              updated.push(...mergedQueue);
-              changed = true;
-            } else if (samikshaEntries.length === 1) {
-              const s = samikshaEntries[0];
-              if (s.name !== "samiksha varnerkar" || s.uhid !== "CRX0069" || s.phone !== "9665651439") {
-                s.name = "samiksha varnerkar";
-                s.uhid = "CRX0069";
-                s.phone = "9665651439";
-                s.age = "21";
-                s.sex = "Female";
-                s.address = "waigao";
-                s.doctor = "Dr. Shillpa Raut";
-                s.department = "Obstetrics & Gynaecology";
-                changed = true;
-              }
-            }
-
-            // 2. Repair and deduplicate tokens PER DOCTOR per day
-            // (group by date + doctor, sort chronologically, guarantee independent 01, 02, 03... per doctor)
+            // Repair and reassign sequential tokens PER DOCTOR per day
             const doctorDateGroups = new Map<string, any[]>();
-            updated.forEach((item: any) => {
+            finalQueue.forEach((item: any) => {
               const d = getItemLocalDate(item.registeredAt) || "nodate";
               const docKey = getDoctorKey(item.doctor);
               const groupKey = `${d}_${docKey}`;
@@ -505,10 +582,11 @@ export default function OPDManagementPage() {
                 }
               });
             });
-            setQueue(updated);
+
+            setQueue(finalQueue);
             if (changed) {
               try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(finalQueue));
               } catch (_) { }
             }
           }
@@ -579,18 +657,20 @@ export default function OPDManagementPage() {
         registeredAt: item.registeredAt || "",
         time: item.time || "",
       }));
-      setQueue(mapped);
+      const deduped = deduplicateOpdQueue(mapped);
+      setQueue(deduped);
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(mapped));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(deduped));
       } catch {}
     }
   }, [liveOpdQueue]);
 
   // Save Queue to Local Storage
   const saveQueue = (newQueue: OPDQueueItem[]) => {
-    setQueue(newQueue);
+    const deduped = deduplicateOpdQueue(newQueue);
+    setQueue(deduped);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newQueue));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(deduped));
     } catch (e) {
       console.error("Failed to save OPD queue to storage:", e);
     }
@@ -752,7 +832,7 @@ export default function OPDManagementPage() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) freshQueue = parsed;
+          if (Array.isArray(parsed)) freshQueue = deduplicateOpdQueue(parsed);
         }
       } catch {}
 
@@ -760,6 +840,67 @@ export default function OPDManagementPage() {
       const doctorTodayItems = freshQueue.filter(
         (q) => getItemLocalDate(q.registeredAt) === today && getDoctorKey(q.doctor) === targetDocKey
       );
+
+      // Check if patient already registered in today's OPD queue for this doctor to prevent duplicate tokens
+      const existingInToday = doctorTodayItems.find((q) => {
+        const qPhone = (q.phone || "").replace(/\D/g, "").slice(-10);
+        const qUhid = (q.uhid || "").trim().toUpperCase();
+        const qName = (q.name || "").trim().toLowerCase();
+        return (
+          (cleanPhone && qPhone === cleanPhone) ||
+          (uhid && qUhid === uhid.toUpperCase()) ||
+          (qName === formData.name.trim().toLowerCase())
+        );
+      });
+
+      if (existingInToday) {
+        const updatedItem: OPDQueueItem = {
+          ...existingInToday,
+          priority: formData.priority,
+          visitType: formData.visitType,
+          vitals: {
+            ...existingInToday.vitals,
+            bp: formData.bp.trim() || existingInToday.vitals?.bp,
+            pulse: formData.pulse.trim() || existingInToday.vitals?.pulse,
+            spo2: formData.spo2.trim() || existingInToday.vitals?.spo2,
+            height: formData.height.trim() || existingInToday.vitals?.height,
+            weight: formData.weight.trim() || existingInToday.vitals?.weight,
+            bmi: calculatedBMI || existingInToday.vitals?.bmi,
+            temperature: formData.temperature.trim() || existingInToday.vitals?.temperature,
+          },
+          status: existingInToday.status === "Cancelled" ? "Waiting" : existingInToday.status,
+        };
+        const updatedQueue = freshQueue.map((q) => (q.id === existingInToday.id ? updatedItem : q));
+        saveQueue(updatedQueue);
+        try {
+          await upsertOpdQueueMutation(updatedItem);
+        } catch (_) {}
+
+        setSuccessNotification(`Patient ${existingInToday.name} is already registered in today's queue (Token #${existingInToday.token}). Details updated!`);
+        setFormData({
+          name: "",
+          age: "",
+          ageUnit: "years",
+          sex: "Male",
+          phone: "",
+          address: "",
+          email: "",
+          whatsapp_number: "",
+          doctor: formData.doctor,
+          department: formData.department,
+          priority: "Normal",
+          visitType: "New Registration",
+          bp: "",
+          pulse: "",
+          spo2: "",
+          height: "",
+          weight: "",
+          temperature: "",
+        });
+        setExistingPatientFound(null);
+        return;
+      }
+
       const existingTokens = doctorTodayItems
         .map((q) => parseInt(q.token, 10))
         .filter((n) => !isNaN(n) && n > 0);
@@ -950,7 +1091,7 @@ export default function OPDManagementPage() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) freshQueue = parsed;
+          if (Array.isArray(parsed)) freshQueue = deduplicateOpdQueue(parsed);
         }
       } catch {}
 
@@ -959,6 +1100,26 @@ export default function OPDManagementPage() {
       const doctorTodayItems = freshQueue.filter(
         (q) => getItemLocalDate(q.registeredAt) === today && getDoctorKey(q.doctor) === targetDocKey
       );
+
+      // Check if patient already checked into today's queue for this doctor
+      const apptCleanPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
+      const existingInToday = doctorTodayItems.find((q) => {
+        const qPhone = (q.phone || "").replace(/\D/g, "").slice(-10);
+        const qUhid = (q.uhid || "").trim().toUpperCase();
+        return (
+          (q.appointmentId && q.appointmentId === appt._id) ||
+          (apptCleanPhone && qPhone === apptCleanPhone) ||
+          (uhid && qUhid === uhid.toUpperCase()) ||
+          (q.name.trim().toLowerCase() === (appt.name || "").trim().toLowerCase())
+        );
+      });
+
+      if (existingInToday) {
+        setSuccessNotification(`${appt.name || "Patient"} is already in today's OPD queue (Token #${existingInToday.token}).`);
+        setCheckInModalAppt(null);
+        return;
+      }
+
       const existingTokens = doctorTodayItems
         .map((q) => parseInt(q.token, 10))
         .filter((n) => !isNaN(n) && n > 0);
@@ -1134,11 +1295,11 @@ export default function OPDManagementPage() {
 
   // Today count
   const todayQueueCount = useMemo(() => {
-    return queue.filter((item) => getItemLocalDate(item.registeredAt) === todayStr).length;
+    return deduplicateOpdQueue(queue).filter((item) => getItemLocalDate(item.registeredAt) === todayStr).length;
   }, [queue, todayStr]);
 
   const todayQueueSummary = useMemo(() => {
-    const todayItems = queue.filter((item) => getItemLocalDate(item.registeredAt) === todayStr);
+    const todayItems = deduplicateOpdQueue(queue).filter((item) => getItemLocalDate(item.registeredAt) === todayStr);
     return {
       waiting: todayItems.filter((item) => item.status === "Waiting" || item.status === "Ready").length,
       inConsultation: todayItems.filter((item) => item.status === "In Consultation").length,
@@ -1150,7 +1311,8 @@ export default function OPDManagementPage() {
   // Filtered queue (Filters by selectedQueueDate, doctor, status, search)
   // Ready patients follow active consultations; Waiting and Completed remain below them.
   const filteredQueue = useMemo(() => {
-    const list = queue.filter((item) => {
+    const dedupedList = deduplicateOpdQueue(queue);
+    const list = dedupedList.filter((item) => {
       // 1. Filter by Date (Defaults to Today)
       if (selectedQueueDate) {
         const itemDate = getItemLocalDate(item.registeredAt);
@@ -1206,7 +1368,7 @@ export default function OPDManagementPage() {
   }, [activeTab, filteredQueue]);
 
   const waitingQueueCount = useMemo(() => {
-    return queue.filter((item) => {
+    return deduplicateOpdQueue(queue).filter((item) => {
       const itemDate = getItemLocalDate(item.registeredAt);
       if (selectedQueueDate && itemDate !== selectedQueueDate) return false;
       if (selectedDoctorFilter !== "All") {
