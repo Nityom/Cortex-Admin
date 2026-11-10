@@ -33,3 +33,4 @@ export async function sendPrescriptionOnWhatsApp(
     return { success: false, error: err.message || 'Network error' };
   }
 }
+
