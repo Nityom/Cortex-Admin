@@ -65,6 +65,7 @@ export const create = mutation({
     doctor_name: v.optional(v.string()),
     duration_minutes: v.optional(v.number()),
     dental_problem: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("PENDING"), v.literal("CONFIRMED"), v.literal("CANCELLED"), v.literal("COMPLETED"))),
     notes: v.optional(v.string()),
     is_offline: v.optional(v.boolean()),
   },
@@ -86,6 +87,7 @@ export const create = mutation({
     const now = Date.now();
     const appointmentId = await ctx.db.insert("appointments", {
       ...args,
+      status: args.status || "CONFIRMED",
       created_at: now,
       updated_at: now,
     });

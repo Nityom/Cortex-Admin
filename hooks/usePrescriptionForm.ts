@@ -46,6 +46,7 @@ import { paymentTransactionService } from '@/services/payment-transactions';
 import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 import { getDoctorProfile } from '@/config/hospital';
 import { opdQueueService } from '@/services/opdQueue';
+import { sendPrescriptionOnWhatsApp } from '@/services/whatsappNotification';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -1258,6 +1259,18 @@ export function usePrescriptionForm() {
           setPrescriptionId(savedPrescription.id);
           setIsEditMode(true);
         }
+      }
+
+      // Automatically send prescription link to patient on WhatsApp
+      if (savedPrescription?.id && formData.phoneNumber) {
+        sendPrescriptionOnWhatsApp({
+          phoneNumber: formData.phoneNumber,
+          patientName: formData.patientName,
+          prescriptionId: savedPrescription.id,
+          doctorName: selectedDoctorName || 'Dr. Vipeen Raut',
+          date: formData.date,
+          diagnosis: allDiagnoses,
+        }).catch((err) => console.warn('Could not send prescription WhatsApp link:', err));
       }
 
       // Update OPD status if visit was linked (both in Convex DB and local cache)
