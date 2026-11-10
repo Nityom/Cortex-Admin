@@ -305,8 +305,8 @@ http.route({
     }
 
     body {
-      background: #cbd5e1;
-      padding: 12px 6px 30px;
+      background: #e2e8f0;
+      padding: 10px 8px 24px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #000000;
       line-height: 1.25;
@@ -319,20 +319,18 @@ http.route({
 
     /* Screen-only top action bar */
     .top-action-bar {
-      max-width: 794px;
+      max-width: 820px;
       width: 100%;
       background: #0f172a;
       color: #ffffff;
       padding: 8px 14px;
       border-radius: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-size: 12px;
-      flex-wrap: wrap;
-      gap: 8px;
+      font-size: 13px;
     }
 
     .top-action-bar-left {
@@ -340,77 +338,61 @@ http.route({
       align-items: center;
       gap: 6px;
       font-weight: 600;
+      font-size: 12.5px;
     }
 
-    .top-action-bar-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .action-btn {
+    .print-btn {
+      background: #7B1828;
       color: #ffffff;
       border: none;
-      padding: 6px 12px;
-      border-radius: 5px;
+      padding: 6px 14px;
+      border-radius: 6px;
       font-weight: 600;
       font-size: 12px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      transition: background 0.15s, opacity 0.15s;
-      user-select: none;
+      transition: background 0.15s;
     }
 
-    .zoom-btn {
-      background: #334155;
-    }
-    .zoom-btn:hover {
-      background: #475569;
-    }
-
-    .print-btn {
-      background: #7B1828;
-    }
     .print-btn:hover {
       background: #5e121e;
     }
 
-    /* Viewport / Responsive Zoom Wrapper */
+    /* Viewport / Responsive Wrapper */
     .sheet-viewport-wrapper {
       width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      max-width: 820px;
       margin: 0 auto;
-      transition: height 0.2s ease;
+      display: block;
     }
 
-    /* A4 Prescription Container strictly constrained to 1 page */
+    /* Prescription Container */
     .prescription-sheet {
-      width: 794px; /* 210mm at 96 DPI */
-      max-width: 794px;
-      min-height: 1040px; /* ~275mm at 96 DPI */
-      max-height: 1100px; /* guarantees single page fit */
+      width: 100%;
+      max-width: 820px;
+      min-height: auto;
+      height: auto;
       background: #ffffff;
-      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15);
-      padding: 5mm 8mm 6mm 16mm;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 16px 20px 14px 20px;
       position: relative;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       box-sizing: border-box;
-      transform-origin: top center;
+      margin: 0 auto;
     }
 
     /* Faint Background Watermark */
     .sheet-watermark {
       position: absolute;
-      top: 48%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 280px;
+      width: 250px;
+      max-width: 60%;
       opacity: 0.05;
       pointer-events: none;
       z-index: 0;
@@ -421,9 +403,8 @@ http.route({
       z-index: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      height: 100%;
-      min-height: 1010px;
+      height: auto;
+      min-height: auto;
     }
 
     .sheet-top-and-body {
@@ -896,6 +877,100 @@ http.route({
       color: #0d9488;
       font-weight: 800;
     }
+
+    @media screen and (max-width: 640px) {
+      body {
+        padding: 6px 6px 16px;
+      }
+      .top-action-bar {
+        padding: 8px 12px;
+      }
+      .top-action-bar-left span {
+        font-size: 11px;
+      }
+      .print-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+      .prescription-sheet {
+        padding: 12px 10px 10px 10px;
+        border-radius: 6px;
+      }
+      .hospital-logo {
+        height: 38px;
+      }
+      .doctor-title-name {
+        font-size: 13pt;
+      }
+      .doctor-qualifications {
+        font-size: 8pt;
+      }
+      .doctor-reg, .doctor-diplomate, .doctor-specialty {
+        font-size: 7.5pt;
+      }
+      .patient-row {
+        font-size: 9pt;
+      }
+      .med-table th {
+        font-size: 8pt;
+        padding: 3px 2px;
+      }
+      .med-row td {
+        padding: 3px 2px;
+      }
+      .med-name-heading {
+        font-size: 9pt;
+      }
+      .med-sub-line {
+        font-size: 7.5pt;
+        padding-left: 4px;
+      }
+      .med-sub-lbl {
+        width: 75px;
+        font-size: 7pt;
+      }
+      .dosage-val {
+        font-size: 9pt;
+      }
+      .timing-val {
+        font-size: 8pt;
+      }
+      .med-qty-val {
+        font-size: 9pt;
+      }
+      .signature-block {
+        min-width: 130px;
+      }
+      .sig-img {
+        height: 34px;
+      }
+      .sig-doc-name {
+        font-size: 9.5pt;
+      }
+      .prescription-validity-note {
+        font-size: 7pt;
+      }
+      .footer-banner-container {
+        margin-top: 3px;
+        padding-top: 2px;
+      }
+      .clinic-pill {
+        font-size: 6.8pt;
+        padding: 1px 5px;
+      }
+      .clinic-time {
+        font-size: 7pt;
+      }
+      .footer-clinic-title {
+        font-size: 7.5pt;
+      }
+      .footer-opd-line, .footer-sunday-line, .footer-address-line {
+        font-size: 6.5pt;
+      }
+      .footer-hms-branding {
+        font-size: 6pt;
+      }
+    }
   </style>
 </head>
 <body>
@@ -904,10 +979,7 @@ http.route({
     <div class="top-action-bar-left">
       <span>🏥 Official Digital Prescription &bull; Cortex Hospital</span>
     </div>
-    <div class="top-action-bar-right">
-      <button id="zoomToggleBtn" class="action-btn zoom-btn" onclick="toggleZoom()">🔍 Zoom (100%)</button>
-      <button class="action-btn print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
-    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
   </div>
 
   <!-- Viewport Scaler Wrapper -->
@@ -1085,48 +1157,6 @@ http.route({
       </div>
     </div>
   </div>
-
-  <script>
-    var isUserZoomedIn = false;
-
-    function applyScreenScale() {
-      var sheet = document.getElementById('prescriptionSheet');
-      var wrapper = document.getElementById('sheetWrapper');
-      var zoomBtn = document.getElementById('zoomToggleBtn');
-      if (!sheet || !wrapper) return;
-
-      var naturalWidth = 794;
-      var availWidth = window.innerWidth - 12;
-
-      if (availWidth < naturalWidth && !isUserZoomedIn) {
-        var scale = Math.min(1, availWidth / naturalWidth);
-        sheet.style.transform = 'scale(' + scale + ')';
-        sheet.style.transformOrigin = 'top center';
-        var actualHeight = sheet.offsetHeight * scale;
-        wrapper.style.height = (actualHeight + 12) + 'px';
-        wrapper.style.overflow = 'hidden';
-        if (zoomBtn) zoomBtn.innerHTML = '🔍 Zoom (100%)';
-      } else {
-        sheet.style.transform = 'none';
-        sheet.style.transformOrigin = 'top center';
-        wrapper.style.height = 'auto';
-        wrapper.style.overflow = 'auto';
-        if (zoomBtn) zoomBtn.innerHTML = '📱 Fit to Screen';
-      }
-    }
-
-    function toggleZoom() {
-      isUserZoomedIn = !isUserZoomedIn;
-      applyScreenScale();
-    }
-
-    window.addEventListener('resize', applyScreenScale);
-    window.addEventListener('orientationchange', applyScreenScale);
-    document.addEventListener('DOMContentLoaded', applyScreenScale);
-    window.addEventListener('load', applyScreenScale);
-    // Instant initial execution
-    applyScreenScale();
-  </script>
 </body>
 </html>`;
 
