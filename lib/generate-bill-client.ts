@@ -43,10 +43,25 @@ export interface BillData {
 }
 
 function formatDate(dateStr: string | number): string {
+  if (typeof dateStr === 'string') {
+    const trimmed = dateStr.trim();
+    const matchDMYSlash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (matchDMYSlash) {
+      return `${matchDMYSlash[1].padStart(2, '0')}/${matchDMYSlash[2].padStart(2, '0')}/${matchDMYSlash[3]}`;
+    }
+    const matchDMYHyphen = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if (matchDMYHyphen) {
+      return `${matchDMYHyphen[1].padStart(2, '0')}-${matchDMYHyphen[2].padStart(2, '0')}-${matchDMYHyphen[3]}`;
+    }
+    const matchYMD = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (matchYMD) {
+      return `${matchYMD[3].padStart(2, '0')}-${matchYMD[2].padStart(2, '0')}-${matchYMD[1]}`;
+    }
+  }
   try {
     let date: Date;
     if (typeof dateStr === 'number') {
-      date = new Date(dateStr * 1000);
+      date = new Date(dateStr > 1e11 ? dateStr : dateStr * 1000);
     } else {
       date = new Date(dateStr);
     }

@@ -70,6 +70,19 @@ interface PrescriptionLivePreviewProps {
 // Helpers
 function formatPrescriptionDate(dateStr: string): string {
   if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  const matchDMYSlash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (matchDMYSlash) {
+    return `${matchDMYSlash[1].padStart(2, '0')}/${matchDMYSlash[2].padStart(2, '0')}/${matchDMYSlash[3]}`;
+  }
+  const matchDMYHyphen = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+  if (matchDMYHyphen) {
+    return `${matchDMYHyphen[1].padStart(2, '0')}-${matchDMYHyphen[2].padStart(2, '0')}-${matchDMYHyphen[3]}`;
+  }
+  const matchYMD = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (matchYMD) {
+    return `${matchYMD[3].padStart(2, '0')}-${matchYMD[2].padStart(2, '0')}-${matchYMD[1]}`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   const day = String(d.getDate()).padStart(2, '0');
