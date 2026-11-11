@@ -265,11 +265,12 @@ const ViewPatients = () => {
         let refNum = (prescription.reference_number || '').replace(/^CH/i, 'CRX').trim();
 
         const isSamiksha =
-          cleanPhone.includes('96656') ||
-          rxName.toLowerCase().includes('samiksha') ||
+          cleanPhone === '9665651439' ||
+          cleanPhone === '966561439' ||
           refNum === 'CRX0069' ||
           refNum === 'CRX4469' ||
-          refNum === 'CRX7494';
+          refNum === 'CRX7494' ||
+          (rxName.toLowerCase().includes('samiksha') && (rxName.toLowerCase().includes('varnerkar') || rxName.toLowerCase().includes('saurangpate')));
 
         if (isSamiksha) {
           cleanPhone = '9665651439';
@@ -355,11 +356,12 @@ const ViewPatients = () => {
         let refNum = (dbp.reference_number || '').replace(/^CH/i, 'CRX').trim();
 
         const isSamiksha =
-          cleanPhone.includes('96656') ||
-          ptName.toLowerCase().includes('samiksha') ||
+          cleanPhone === '9665651439' ||
+          cleanPhone === '966561439' ||
           refNum === 'CRX0069' ||
           refNum === 'CRX4469' ||
-          refNum === 'CRX7494';
+          refNum === 'CRX7494' ||
+          (ptName.toLowerCase().includes('samiksha') && (ptName.toLowerCase().includes('varnerkar') || ptName.toLowerCase().includes('saurangpate')));
 
         if (isSamiksha) {
           cleanPhone = '9665651439';

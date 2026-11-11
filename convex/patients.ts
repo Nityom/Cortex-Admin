@@ -220,13 +220,10 @@ export const mergeSamikshaToCRX0069 = mutation({
             const p = (phone || "").replace(/\D/g, "");
             const r = (ref || "").trim().toUpperCase();
             return (
-                n.includes("samiksha") ||
+                (n.includes("samiksha") && (n.includes("varnerkar") || n.includes("saurangpate"))) ||
                 p === "9665651439" ||
                 p === "966561439" ||
-                p === "9822349198" ||
-                p.includes("96656") ||
                 r === "CRX0069" ||
-                r === "CRX0099" ||
                 r === "CRX4469" ||
                 r === "CRX7494"
             );

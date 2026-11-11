@@ -177,7 +177,11 @@ export default function AppointmentsPage() {
       .map(a => {
         const aName = (a.name || '').toLowerCase();
         const aPhone = (a.phone || '').replace(/\D/g, '').slice(-10);
-        if (aName.includes('samiksha') || aPhone.includes('96656')) {
+        const isSamikshaVarnerkar =
+          aPhone === '9665651439' ||
+          aPhone === '966561439' ||
+          (aName.includes('samiksha') && (aName.includes('varnerkar') || aName.includes('saurangpate')));
+        if (isSamikshaVarnerkar) {
           return {
             ...a,
             name: 'samiksha varnerkar',

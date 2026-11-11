@@ -89,6 +89,37 @@ import { IpdPrintReceiptModal } from "@/components/ipd/IpdPrintReceiptModal";
 import { IpdClinicalStayModal } from "@/components/ipd/IpdClinicalStayModal";
 import { IpdRunningBillModal } from "@/components/ipd/IpdRunningBillModal";
 
+const normalizeAppointmentDate = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  const ymd = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (ymd) {
+    const [, year, month, day] = ymd;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy) {
+    const [, day, month, year] = dmy;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  return null;
+};
+
+const appointmentTimestamp = (date: unknown, time: unknown): string | null => {
+  const dateKey = normalizeAppointmentDate(date);
+  if (!dateKey || typeof time !== "string") return null;
+  const match = time.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return null;
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem === "AM" && hours === 12) hours = 0;
+  if (meridiem === "PM" && hours !== 12) hours += 12;
+  if (hours > 23 || minutes > 59) return null;
+  const parsed = new Date(`${dateKey}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
 
 
 export default function IPDManagementPage() {
@@ -98,6 +129,8 @@ export default function IPDManagementPage() {
   const liveAdmissions = useQuery(api.ipd.list, {});
   const liveBedConfig = useQuery(api.ipd.getBedConfig, {});
   const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const liveAppointments = useQuery(api.appointments.list);
+  const livePatients = useQuery(api.patients.list);
   const saveIpdMutation = useMutation(api.ipd.save);
   const updateIpdStatusMutation = useMutation(api.ipd.updateStatus);
   const saveBedConfigMutation = useMutation(api.ipd.saveBedConfig);
@@ -497,14 +530,74 @@ export default function IPDManagementPage() {
 
   // Real-time synchronization for OPD Patients modal in IPD
   useEffect(() => {
-    if (liveOpdQueue && Array.isArray(liveOpdQueue) && liveOpdQueue.length > 0) {
-      const mappedOpd = liveOpdQueue.map((item: any) => ({
+    if (!Array.isArray(liveOpdQueue) && !Array.isArray(liveAppointments)) return;
+
+    const mappedOpd = (Array.isArray(liveOpdQueue) ? liveOpdQueue : []).map((item: any) => ({
         ...item,
         id: item.queue_id || item._id,
       }));
-      setOpdPatients(mappedOpd);
+    const queuedAppointmentIds = new Set(
+      mappedOpd
+        .map((item: any) => item.appointmentId)
+        .filter((id: unknown): id is string => typeof id === "string")
+    );
+    const patientByPhoneAndName = new Map(
+      (Array.isArray(livePatients) ? livePatients : []).map((patient: any) => [
+        `${String(patient.phone_number || "").replace(/\D/g, "").slice(-10)}:${String(patient.name || "").trim().toLowerCase()}`,
+        patient,
+      ])
+    );
+
+    for (const appointment of Array.isArray(liveAppointments) ? liveAppointments : []) {
+      if (
+        !appointment._id ||
+        appointment.status === "CANCELLED" ||
+        queuedAppointmentIds.has(String(appointment._id)) ||
+        !appointment.name ||
+        !appointment.phone
+      ) {
+        continue;
+      }
+
+      const registeredAt = appointmentTimestamp(appointment.date, appointment.time);
+      const dateKey = normalizeAppointmentDate(appointment.date);
+      if (!registeredAt || !dateKey) continue;
+
+      const doctor = appointment.doctor_name || "Dr. Vipeen Raut";
+      const isGynae = /shillpa|gyn/i.test(doctor);
+      const patient = patientByPhoneAndName.get(
+        `${String(appointment.phone).replace(/\D/g, "").slice(-10)}:${String(appointment.name).trim().toLowerCase()}`
+      );
+      mappedOpd.push({
+        id: `appointment_${appointment._id}`,
+        appointmentId: String(appointment._id),
+        token: "APPT",
+        uhid: String(patient?.reference_number || "").replace(/^CH/i, "CRX"),
+        patientId: patient?._id,
+        name: String(appointment.name),
+        age: appointment.age !== undefined && appointment.age !== null ? String(appointment.age) : "—",
+        ageUnit: "years",
+        sex: patient?.sex || (isGynae ? "Female" : "Male"),
+        phone: String(appointment.phone),
+        address: appointment.address || patient?.address || "",
+        doctor,
+        department: isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics & Joint Replacement",
+        priority: "Normal",
+        visitType: "Appointment",
+        status: "Waiting",
+        vitals: {},
+        registeredAt,
+        time: String(appointment.time),
+        appointmentDate: dateKey,
+      });
     }
-  }, [liveOpdQueue]);
+
+    if (mappedOpd.length > 0) {
+      setOpdPatients(mappedOpd);
+    } else {
+      setOpdPatients([]);
+    }
+  }, [liveOpdQueue, liveAppointments, livePatients]);
 
   // Save Admissions to Storage and Convex DB
   const saveAdmissions = (newItems: IPDAdmission[], changedItem?: IPDAdmission) => {

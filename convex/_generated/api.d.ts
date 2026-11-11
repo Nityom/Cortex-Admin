@@ -25,6 +25,7 @@ import type * as medicines from "../medicines.js";
 import type * as opd_queue from "../opd_queue.js";
 import type * as patients from "../patients.js";
 import type * as payment_transactions from "../payment_transactions.js";
+import type * as prescriptionAssets from "../prescriptionAssets.js";
 import type * as prescriptions from "../prescriptions.js";
 import type * as registers from "../registers.js";
 import type * as staff from "../staff.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   opd_queue: typeof opd_queue;
   patients: typeof patients;
   payment_transactions: typeof payment_transactions;
+  prescriptionAssets: typeof prescriptionAssets;
   prescriptions: typeof prescriptions;
   registers: typeof registers;
   staff: typeof staff;

@@ -102,6 +102,48 @@ const getTodayString = () => {
   return `${y}-${m}-${day}`;
 };
 
+const getAppointmentDateParts = (dateValue: unknown): [number, number, number] | null => {
+  if (typeof dateValue !== "string") return null;
+  const value = dateValue.trim();
+  const ymd = value.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (ymd) return [Number(ymd[1]), Number(ymd[2]), Number(ymd[3])];
+  const dmy = value.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy) return [Number(dmy[3]), Number(dmy[2]), Number(dmy[1])];
+  return null;
+};
+
+const getAppointmentDateKey = (dateValue: unknown): string | null => {
+  const parts = getAppointmentDateParts(dateValue);
+  if (!parts) return null;
+  const [year, month, day] = parts;
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+};
+
+const getAppointmentRegisteredAt = (dateValue: unknown, timeValue: unknown): string | null => {
+  const dateKey = getAppointmentDateKey(dateValue);
+  if (!dateKey || typeof timeValue !== "string") return null;
+
+  const time = timeValue.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!time) return null;
+  let hours = Number(time[1]);
+  const minutes = Number(time[2]);
+  const meridiem = time[3]?.toUpperCase();
+  if (meridiem === "AM" && hours === 12) hours = 0;
+  if (meridiem === "PM" && hours !== 12) hours += 12;
+  if (hours > 23 || minutes > 59) return null;
+
+  const registeredAt = new Date(`${dateKey}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
+  return Number.isNaN(registeredAt.getTime()) ? null : registeredAt.toISOString();
+};
+
 const getItemLocalDate = (dateStr?: string) => {
   if (!dateStr) return "";
   try {
@@ -136,9 +178,9 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
     rawUhid === "CRX0069" ||
     rawUhid === "CRX4469" ||
     rawUhid === "CRX7494" ||
-    rawName.includes("samiksha") ||
     rawPhone === "9665651439" ||
-    rawPhone.includes("96656");
+    rawPhone === "966561439" ||
+    (rawName.includes("samiksha") && (rawName.includes("varnerkar") || rawName.includes("saurangpate")));
 
   if (isSamiksha) {
     return {
@@ -343,11 +385,12 @@ export default function OPDManagementPage() {
     }
 
     const appointmentsToSync = allAppointments.filter((appointment: any) => {
+      const appointmentDate = getAppointmentDateKey(appointment.date);
       if (
         !appointment._id ||
         appointment.status === "CANCELLED" ||
-        !appointment.date ||
-        appointment.date < todayStr ||
+        !appointmentDate ||
+        appointmentDate < todayStr ||
         !appointment.time ||
         !appointment.name ||
         !appointment.phone
@@ -364,9 +407,11 @@ export default function OPDManagementPage() {
 
     if (appointmentsToSync.length === 0) return;
 
-    const queueItems = appointmentsToSync.map((appointment: any) => {
+    const queueItems = appointmentsToSync.flatMap((appointment: any) => {
       const doctor = appointment.doctor_name || DOCTORS[0].name;
-      const date = String(appointment.date);
+      const date = getAppointmentDateKey(appointment.date);
+      const registeredAt = getAppointmentRegisteredAt(appointment.date, appointment.time);
+      if (!date || !registeredAt) return [];
       const doctorKey = getDoctorKey(doctor);
       const tokenKey = `${date}___${doctorKey}`;
       const token = (nextTokens.get(tokenKey) || 0) + 1;
@@ -393,7 +438,7 @@ export default function OPDManagementPage() {
         vitals: {},
         consultationFee: 0,
         paymentMode: "Free / Exempt",
-        registeredAt: new Date(`${date}T${appointment.time}:00`).toISOString(),
+        registeredAt,
         time: String(appointment.time),
       } satisfies OPDQueueItem;
     });
@@ -641,7 +686,7 @@ export default function OPDManagementPage() {
               } else if (cleanPhone === "7796308778" && uhid !== "CRX0003") {
                 uhid = "CRX0003";
                 changed = true;
-              } else if ((cleanPhone.includes("96656") || (item.name || "").toLowerCase().includes("samiksha") || uhid === "CRX4469" || uhid === "CRX7494") && uhid !== "CRX0069") {
+              } else if ((cleanPhone === "9665651439" || cleanPhone === "966561439" || (item.name || "").toLowerCase().includes("varnerkar") || (item.name || "").toLowerCase().includes("saurangpate") || uhid === "CRX4469" || uhid === "CRX7494") && uhid !== "CRX0069") {
                 uhid = "CRX0069";
                 changed = true;
               }
