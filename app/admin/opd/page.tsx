@@ -205,13 +205,13 @@ const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
 
 const getStatusRank = (status?: string): number => {
   switch (status) {
-    case "In Consultation":
-      return 5;
-    case "Ready":
-      return 4;
-    case "Waiting":
-      return 3;
     case "Completed":
+      return 5;
+    case "In Consultation":
+      return 4;
+    case "Ready":
+      return 3;
+    case "Waiting":
       return 2;
     case "Cancelled":
       return 1;
@@ -1349,6 +1349,8 @@ export default function OPDManagementPage() {
 
       try {
         await upsertOpdQueueMutation(newItem);
+        // Remove any placeholder appointment queue item to avoid duplicate records
+        await removeOpdQueueMutation({ queue_id: `appointment_${appt._id}` });
       } catch (err) {
         console.warn("Could not sync check-in to Convex:", err);
       }
@@ -1512,6 +1514,15 @@ export default function OPDManagementPage() {
       // 3. Status Filter
       if (activeTab === "waitingQueue") {
         if (item.status === "Completed" || item.status === "Cancelled") return false;
+        // If prescription was already written/completed today, they are done and not waiting
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
+        const itemCleanName = (item.name || "").trim().toLowerCase();
+        const linkedRx =
+          (item.id && prescriptionByVisitId.get(item.id)) ||
+          (uhidNorm && prescriptionByUhid.get(uhidNorm)) ||
+          (phoneNorm && (prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) || prescriptionByPhone.get(phoneNorm)));
+        if (linkedRx && item.status !== "In Consultation") return false;
       } else if (activeTab !== "billingQueue" && selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) {
         return false;
       }
@@ -1561,9 +1572,20 @@ export default function OPDManagementPage() {
           return false;
         }
       }
-      return item.status === "Waiting" || item.status === "Ready" || item.status === "In Consultation";
+      if (item.status !== "Waiting" && item.status !== "Ready" && item.status !== "In Consultation") {
+        return false;
+      }
+      const uhidNorm = (item.uhid || "").trim().toUpperCase();
+      const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
+      const itemCleanName = (item.name || "").trim().toLowerCase();
+      const linkedRx =
+        (item.id && prescriptionByVisitId.get(item.id)) ||
+        (uhidNorm && prescriptionByUhid.get(uhidNorm)) ||
+        (phoneNorm && (prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) || prescriptionByPhone.get(phoneNorm)));
+      if (linkedRx && item.status !== "In Consultation") return false;
+      return true;
     }).length;
-  }, [queue, selectedQueueDate, selectedDoctorFilter]);
+  }, [queue, selectedQueueDate, selectedDoctorFilter, prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone]);
 
   // Quick select patient from Directory to Register
   const handleSelectFromDirectory = (pt: Patient) => {
