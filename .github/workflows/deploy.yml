@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: deploy-hostinger
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     name: Build & Deploy Static Site
@@ -68,29 +72,79 @@ jobs:
           FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
           FTP_DIR: ${{ steps.ftp.outputs.dir }}
         run: |
+          # Configure reliable DNS resolvers to avoid transient Ubuntu runner DNS timeouts
+          sudo resolvectl dns eth0 8.8.8.8 1.1.1.1 2>/dev/null || true
+          echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1\nnameserver 8.8.4.4" | sudo tee /etc/resolv.conf >/dev/null || true
+
           if ! command -v lftp >/dev/null 2>&1; then
-            for attempt in 1 2 3 4 5; do
-              echo "Installing lftp (attempt $attempt/5)..."
-              if sudo apt-get update --fix-missing -y && sudo apt-get install -y --fix-missing lftp; then
+            for attempt in 1 2 3; do
+              echo "Installing lftp (attempt $attempt/3)..."
+              if sudo apt-get update -o Acquire::Retries=1 -o Acquire::http::Timeout=15 --fix-missing -y && \
+                 sudo apt-get install -o Acquire::Retries=1 -o Acquire::http::Timeout=15 -y --fix-missing lftp; then
                 break
               fi
-              echo "Attempt $attempt failed. Retrying in 5 seconds..."
-              sleep 5
+              echo "Attempt $attempt failed. Retrying in 3 seconds..."
+              sleep 3
             done
           fi
 
-          lftp -c "
-            set ssl:verify-certificate no;
-            set ftp:ssl-allow true;
-            set ftp:passive-mode true;
-            set ftp:use-site-utime no;
-            set mirror:set-permissions off;
-            set mirror:overwrite true;
-            set net:max-retries 10;
-            set net:reconnect-interval-base 2;
-            set net:timeout 60;
-            set cmd:fail-exit no;
-            open ftp://$FTP_USER:$FTP_PASS@$FTP_HOST;
-            mirror --reverse --only-newer --no-perms --no-umask --parallel=4 --verbose=1 out/ $FTP_DIR;
-            bye;
-          " || true
+          if command -v lftp >/dev/null 2>&1; then
+            lftp -c "
+              set ssl:verify-certificate no;
+              set ftp:ssl-allow true;
+              set ftp:passive-mode true;
+              set ftp:use-site-utime no;
+              set mirror:set-permissions off;
+              set mirror:overwrite true;
+              set net:max-retries 10;
+              set net:reconnect-interval-base 2;
+              set net:timeout 60;
+              set cmd:fail-exit no;
+              open ftp://$FTP_USER:$FTP_PASS@$FTP_HOST;
+              mirror --reverse --only-newer --no-perms --no-umask --parallel=4 --verbose=1 out/ $FTP_DIR;
+              bye;
+            " || true
+          else
+            echo "LFTP not available, executing fallback python FTP deployment..."
+            python3 - << 'EOF'
+          import os, sys, ftplib
+
+          ftp_host = os.environ.get("FTP_HOST")
+          ftp_user = os.environ.get("FTP_USER")
+          ftp_pass = os.environ.get("FTP_PASS")
+          ftp_dir = os.environ.get("FTP_DIR", "./").strip("/")
+
+          ftp = ftplib.FTP(ftp_host, ftp_user, ftp_pass, timeout=60)
+          ftp.set_pasv(True)
+          if ftp_dir:
+              try:
+                  ftp.cwd(ftp_dir)
+              except Exception as e:
+                  print(f"Warning changing dir to {ftp_dir}: {e}")
+
+          out_dir = "out"
+          for root, dirs, files in os.walk(out_dir):
+              rel_path = os.path.relpath(root, out_dir)
+              remote_path = rel_path.replace("\\", "/") if rel_path != "." else ""
+              if remote_path:
+                  for part in remote_path.split("/"):
+                      try:
+                          ftp.mkd(part)
+                      except Exception:
+                          pass
+                      try:
+                          ftp.cwd(part)
+                      except Exception:
+                          pass
+              for f in files:
+                  local_f = os.path.join(root, f)
+                  with open(local_f, "rb") as fp:
+                      ftp.storbinary(f"STOR {f}", fp)
+                  print(f"Uploaded {f}")
+              if remote_path:
+                  for _ in remote_path.split("/"):
+                      ftp.cwd("..")
+          ftp.quit()
+          print("Fallback FTP deployment finished.")
+          EOF
+          fi
