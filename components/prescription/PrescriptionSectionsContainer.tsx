@@ -325,6 +325,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             isGynae={form.isGynaeDoc}
             ccSummary={form.formData.cc}
             onRestorePreviousComplaints={form.restorePreviousComplaints}
+            prescriptionId={form.prescriptionId}
+            onApplyMasterTemplate={form.applyPrescriptionTemplate}
           />
         );
       case 'findings':

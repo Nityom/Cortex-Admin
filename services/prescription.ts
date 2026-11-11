@@ -192,6 +192,36 @@ export const getDiagnosisSuggestions = async (query?: string, limit?: number): P
   }
 };
 
+export const saveMultipleComplaints = async (names: string[], category?: string) => {
+  try {
+    return await (convex as any).mutation(api.prescriptions.saveMultipleComplaints, { names, category });
+  } catch (err) {
+    console.error('Error saving multiple complaints:', err);
+    return [];
+  }
+};
+
+export const getComplaintSuggestions = async (query?: string, limit?: number): Promise<string[]> => {
+  try {
+    return await (convex as any).query(api.prescriptions.getComplaintSuggestions, { query, limit });
+  } catch (err) {
+    console.error('Error fetching complaint suggestions:', err);
+    return [];
+  }
+};
+
+export const autoSavePrescriptionComplaint = async (id: string, chief_complaint: string) => {
+  try {
+    return await (convex as any).mutation(api.prescriptions.autoSavePrescriptionComplaint, {
+      id: id as any,
+      chief_complaint,
+    });
+  } catch (err) {
+    console.error('Error auto-saving prescription complaint:', err);
+    return null;
+  }
+};
+
 export const autoSavePrescriptionDiagnosis = async (id: string, diagnosis: string) => {
   if (!id || id === 'undefined' || id === 'null' || id.toString().startsWith('TMP-')) {
     return false;

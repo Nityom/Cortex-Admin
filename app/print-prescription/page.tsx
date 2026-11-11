@@ -642,7 +642,7 @@ function PrintPrescriptionContent() {
               <th className="col-med">Medicine</th>
               <th className="col-dosage">Dosage</th>
               <th className="col-timing">Timing - Freq. - Duration</th>
-              {isGyno && <th className="col-qty">Qty</th>}
+              <th className="col-qty">Qty</th>
             </tr>
           </thead>
           <tbody>
@@ -719,19 +719,17 @@ function PrintPrescriptionContent() {
                         </div>
                       )}
                     </td>
-                    {isGyno && (
-                      <td className="med-qty-val">
-                        {qtyVal !== undefined && qtyVal !== null && !isNaN(Number(qtyVal))
-                          ? qtyVal
-                          : '—'}
-                      </td>
-                    )}
+                    <td className="med-qty-val">
+                      {qtyVal !== undefined && qtyVal !== null && !isNaN(Number(qtyVal))
+                        ? qtyVal
+                        : '—'}
+                    </td>
                   </tr>
                 );
               })
             ) : (
               <tr className="med-row">
-                <td colSpan={isGyno ? 4 : 3} className="text-center py-4 text-gray-500 italic">
+                <td colSpan={4} className="text-center py-4 text-gray-500 italic">
                   No medicines prescribed.
                 </td>
               </tr>
@@ -1222,17 +1220,17 @@ function PrintPrescriptionContent() {
         }
 
         .med-table th.col-med {
-          width: ${isGyno ? '36%' : '42%'};
+          width: 36%;
           text-align: left;
         }
 
         .med-table th.col-dosage {
-          width: ${isGyno ? '14%' : '12%'};
+          width: 14%;
           text-align: center;
         }
 
         .med-table th.col-timing {
-          width: ${isGyno ? '38%' : '46%'};
+          width: 38%;
           text-align: left;
         }
 

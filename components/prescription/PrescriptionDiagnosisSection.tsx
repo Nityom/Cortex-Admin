@@ -450,17 +450,31 @@ export default function PrescriptionDiagnosisSection({
       }
     }
 
-    if (!q) return list.slice(0, 10);
+    const sortFn = (a: LinkedDiagnosis, b: LinkedDiagnosis) => {
+      const aCat = (a.category || '').toLowerCase();
+      const bCat = (b.category || '').toLowerCase();
+      const aMatches = isGynae
+        ? aCat.includes('gyn') || aCat.includes('obs')
+        : aCat.includes('ortho') || aCat.includes('spine') || aCat.includes('joint');
+      const bMatches = isGynae
+        ? bCat.includes('gyn') || bCat.includes('obs')
+        : bCat.includes('ortho') || bCat.includes('spine') || bCat.includes('joint');
+
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+
+      if (a.type === 'template' && b.type !== 'template') return -1;
+      if (b.type === 'template' && a.type !== 'template') return 1;
+      if (a.type === 'preset' && b.type !== 'preset') return -1;
+      if (b.type === 'preset' && a.type !== 'preset') return 1;
+      return 0;
+    };
+
+    if (!q) return list.sort(sortFn).slice(0, 10);
     return list
-      .sort((a, b) => {
-        if (a.type === 'template' && b.type !== 'template') return -1;
-        if (b.type === 'template' && a.type !== 'template') return 1;
-        if (a.type === 'preset' && b.type !== 'preset') return -1;
-        if (b.type === 'preset' && a.type !== 'preset') return 1;
-        return 0;
-      })
+      .sort(sortFn)
       .slice(0, 15);
-  }, [gynaeQuery, dbSuggestions]);
+  }, [gynaeQuery, dbSuggestions, isGynae]);
 
   const handleSelectGynaeSuggestion = (item: LinkedDiagnosis) => {
     if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
@@ -469,14 +483,21 @@ export default function PrescriptionDiagnosisSection({
 
     const diagText = item.templateObj?.diagnosis || item.name;
     const current = (diagnosisSummary || '').trim();
-    const updatedText = current ? `${current}, ${diagText}` : diagText;
+    let updatedText = '';
+    const parts = current.split(',');
+    if (parts.length > 0 && parts[parts.length - 1].trim().toLowerCase() === gynaeQuery.trim().toLowerCase()) {
+      parts[parts.length - 1] = ' ' + diagText;
+      updatedText = parts.join(',').replace(/^[\s,]+/, '').trim();
+    } else {
+      updatedText = current ? `${current.replace(/,\s*$/, '')}, ${diagText}` : diagText;
+    }
 
     onUpdateDiagnosisSummary(updatedText);
     const singleRow: DiagnosisRow = {
-      id: 'diag_gynae_1',
+      id: 'diag_1',
       diagnosis: updatedText,
-      snomed_code: '',
-      duration: '',
+      snomed_code: item.snomed_code || '',
+      duration: item.duration || '',
       date: date || new Date().toISOString().slice(0, 10),
     };
     setDiagnosesList([singleRow]);
@@ -574,63 +595,31 @@ export default function PrescriptionDiagnosisSection({
           )}
 
           <div className="flex items-center gap-1 text-slate-400">
-            {!isGynae && (
-              <button
-                type="button"
-                title="Focus inline Add Diagnosis"
-                className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-                onClick={() => inlineInputRef.current?.focus()}
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            )}
             <SectionTemplatePicker
               sectionKey="diagnosis"
               sectionTitle="Diagnosis"
-              currentValue={isGynae ? diagnosisSummary : diagnosesList}
+              currentValue={diagnosisSummary || diagnosesList.map((d) => d.diagnosis).join(', ')}
               category={isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics'}
               align="left"
               onApplyPreset={(val) => {
-                if (isGynae) {
-                  const text =
-                    typeof val === 'string'
-                      ? val
-                      : Array.isArray(val)
-                      ? val.map((x: any) => (typeof x === 'string' ? x : x.diagnosis || x.name || JSON.stringify(x))).join(', ')
-                      : JSON.stringify(val);
-                  const updatedText = diagnosisSummary ? `${diagnosisSummary}, ${text}` : text;
-                  onUpdateDiagnosisSummary(updatedText);
-                  const singleRow: DiagnosisRow = {
-                    id: 'diag_gynae_1',
-                    diagnosis: updatedText,
-                    snomed_code: '',
-                    duration: '',
-                    date: date || new Date().toISOString().slice(0, 10),
-                  };
-                  setDiagnosesList([singleRow]);
-                  scheduleAutoSave([singleRow]);
-                  return;
-                }
-                const str =
+                const text =
                   typeof val === 'string'
                     ? val
                     : Array.isArray(val)
-                    ? val.join(', ')
+                    ? val.map((x: any) => (typeof x === 'string' ? x : x.diagnosis || x.name || JSON.stringify(x))).join(', ')
                     : JSON.stringify(val);
-                const matched = CLINICAL_DIAGNOSES_CATALOG.find(
-                  (c) => c.name.toLowerCase() === str.toLowerCase()
-                );
-                const updated: DiagnosisRow = {
-                  id: 'preset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-                  diagnosis: str,
-                  snomed_code: matched?.snomed_code || '',
-                  duration: matched?.duration || '',
+                const current = (diagnosisSummary || '').trim();
+                const updatedText = current ? `${current.replace(/,\s*$/, '')}, ${text}` : text;
+                onUpdateDiagnosisSummary(updatedText);
+                const singleRow: DiagnosisRow = {
+                  id: 'diag_1',
+                  diagnosis: updatedText,
+                  snomed_code: '',
+                  duration: '',
                   date: date || new Date().toISOString().slice(0, 10),
                 };
-                const nextList = [...diagnosesList, updated];
-                setDiagnosesList(nextList);
-                onUpdateDiagnosisSummary(nextList.map((d) => d.diagnosis).filter(Boolean).join(', '));
-                scheduleAutoSave(nextList);
+                setDiagnosesList([singleRow]);
+                scheduleAutoSave([singleRow]);
               }}
             />
             <button
@@ -644,325 +633,122 @@ export default function PrescriptionDiagnosisSection({
           </div>
         </div>
 
-        {!isGynae && diagnosesList.length > 0 && (
+        {(diagnosisSummary || diagnosesList.length > 0) && (
           <button
             type="button"
             onClick={handleClearAll}
             className="text-[11px] text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer font-medium"
           >
             <Trash2 className="w-3 h-3" />
-            Clear List ({diagnosesList.length})
+            Clear List
           </button>
         )}
       </div>
 
-      {isGynae ? (
-        <div className="relative">
-          <AutoResizeTextarea
-            value={diagnosisSummary !== undefined ? diagnosisSummary : (diagnosesList.map((d) => d.diagnosis).join(', '))}
-            onChange={(e) => {
-              const val = e.target.value;
-              onUpdateDiagnosisSummary(val);
-              const parts = val.split(',');
-              const currentTyping = parts[parts.length - 1].trim();
-              setGynaeQuery(currentTyping);
-              setShowGynaeSuggestions(true);
-              if (val.trim()) {
-                const singleRow: DiagnosisRow = {
-                  id: 'diag_gynae_1',
-                  diagnosis: val,
-                  snomed_code: '',
-                  duration: '',
-                  date: date || new Date().toISOString().slice(0, 10),
-                };
-                setDiagnosesList([singleRow]);
-                scheduleAutoSave([singleRow]);
-              } else {
-                setDiagnosesList([]);
-                scheduleAutoSave([]);
-              }
-            }}
-            onFocus={() => {
-              const parts = (diagnosisSummary || '').split(',');
-              setGynaeQuery(parts[parts.length - 1]?.trim() || '');
-              setShowGynaeSuggestions(true);
-            }}
-            minRows={1}
-            placeholder="Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility) or start typing to search templates..."
-            className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
-          />
+      <div className="relative">
+        <AutoResizeTextarea
+          value={diagnosisSummary !== undefined ? diagnosisSummary : diagnosesList.map((d) => d.diagnosis).join(', ')}
+          onChange={(e) => {
+            const val = e.target.value.replace(/^[\s,]+/, '');
+            onUpdateDiagnosisSummary(val);
+            const parts = val.split(',');
+            const currentTyping = parts[parts.length - 1].trim();
+            setGynaeQuery(currentTyping);
+            setShowGynaeSuggestions(true);
+            if (val.trim()) {
+              const singleRow: DiagnosisRow = {
+                id: 'diag_1',
+                diagnosis: val,
+                snomed_code: '',
+                duration: '',
+                date: date || new Date().toISOString().slice(0, 10),
+              };
+              setDiagnosesList([singleRow]);
+              scheduleAutoSave([singleRow]);
+            } else {
+              setDiagnosesList([]);
+              scheduleAutoSave([]);
+            }
+          }}
+          onFocus={() => {
+            const parts = (diagnosisSummary || '').split(',');
+            setGynaeQuery(parts[parts.length - 1]?.trim() || '');
+            setShowGynaeSuggestions(true);
+          }}
+          minRows={1}
+          placeholder={
+            isGynae
+              ? 'Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility) or start typing to search templates...'
+              : 'Enter diagnosis (e.g. Knee Osteoarthritis, Lumbar Spondylosis, Closed fracture, Sciatica) or start typing to search templates...'
+          }
+          className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
+        />
 
-          {/* Autocomplete suggestions dropdown for Gynae */}
-          {showGynaeSuggestions && gynaeSuggestions.length > 0 && (
-            <div
-              ref={gynaeBoxRef}
-              className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]"
-            >
-              <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                  Auto-suggest (Templates & Diagnoses)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowGynaeSuggestions(false)}
-                  className="text-slate-400 hover:text-slate-600 text-xs font-bold"
-                >
-                  ✕ Close
-                </button>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {gynaeSuggestions.map((item, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelectGynaeSuggestion(item);
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {item.type === 'template' ? (
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
-                          ⭐ Template
-                        </span>
-                      ) : item.type === 'preset' ? (
-                        <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
-                          ⚡ Preset
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
-                          Diagnosis
-                        </span>
-                      )}
-                      <span className="font-semibold text-slate-800 truncate">
-                        {item.label || item.name}
-                      </span>
-                    </div>
-                    {item.category && (
-                      <span className="text-[10px] text-slate-400 shrink-0 font-medium">{item.category}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* HealthPlix Diagnosis Table - Fully Editable with Auto-save */
-        <div className="border border-slate-200 rounded-lg overflow-visible text-sm">
-        <div className="grid grid-cols-12 bg-slate-50 text-slate-700 font-semibold py-2 px-3 border-b border-slate-200 text-[11px] uppercase tracking-wider rounded-t-lg">
-          <div className="col-span-1">#</div>
-          <div className="col-span-5">Diagnosis (Click to edit)</div>
-          <div className="col-span-2">SNOMED / ICD</div>
-          <div className="col-span-2">Duration</div>
-          <div className="col-span-1">Date</div>
-          <div className="col-span-1 text-right">Action</div>
-        </div>
-
-        {/* Existing Diagnoses Rows with Inline Editing */}
-        {diagnosesList.length === 0 ? (
-          <div className="py-2.5 px-3 text-slate-400 italic text-xs bg-white">
-            No diagnosis added yet. Type below and press Enter or use the template picker above.
-          </div>
-        ) : (
-          diagnosesList.map((d, idx) => (
-            <div
-              key={d.id}
-              className="grid grid-cols-12 items-center py-1.5 px-3 border-b border-slate-100 bg-white hover:bg-slate-50/50 gap-2"
-            >
-              <div className="col-span-1 text-slate-400 font-mono">{idx + 1}</div>
-              <div className="col-span-5">
-                <input
-                  type="text"
-                  value={d.diagnosis}
-                  onChange={(e) => handleUpdateRow(d.id, 'diagnosis', e.target.value)}
-                  onBlur={() => triggerAutoSave(diagnosesList)}
-                  className="w-full p-1 text-xs font-bold text-slate-800 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
-                  title="Click to edit diagnosis name"
-                />
-              </div>
-              <div className="col-span-2">
-                <input
-                  type="text"
-                  value={d.snomed_code}
-                  onChange={(e) => handleUpdateRow(d.id, 'snomed_code', e.target.value)}
-                  onBlur={() => triggerAutoSave(diagnosesList)}
-                  placeholder="—"
-                  className="w-full p-1 text-xs font-mono text-slate-600 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
-                  title="Click to edit SNOMED / ICD code"
-                />
-              </div>
-              <div className="col-span-2">
-                <input
-                  type="text"
-                  value={d.duration}
-                  onChange={(e) => handleUpdateRow(d.id, 'duration', e.target.value)}
-                  onBlur={() => triggerAutoSave(diagnosesList)}
-                  placeholder="—"
-                  className="w-full p-1 text-xs text-slate-700 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
-                  title="Click to edit duration"
-                />
-              </div>
-              <div className="col-span-1">
-                <input
-                  type="text"
-                  value={d.date || date}
-                  onChange={(e) => handleUpdateRow(d.id, 'date', e.target.value)}
-                  onBlur={() => triggerAutoSave(diagnosesList)}
-                  className="w-full p-1 text-[11px] font-mono text-slate-600 bg-transparent hover:bg-slate-100/70 focus:bg-white border border-transparent hover:border-slate-300 focus:border-emerald-500 rounded outline-none transition"
-                  title="Click to edit date"
-                />
-              </div>
-              <div className="col-span-1 text-right">
-                <button
-                  type="button"
-                  onClick={() => handleRemove(d.id)}
-                  className="text-rose-500 hover:text-rose-700 font-bold p-1 rounded hover:bg-rose-50 cursor-pointer"
-                  title="Remove diagnosis"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-
-        {/* Inline Add Diagnosis Row */}
-        <div className="relative grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/70 gap-2 border-t border-slate-200">
-          <div className="col-span-1 text-slate-400 font-mono font-bold">
-            {diagnosesList.length + 1}
-          </div>
-          <div className="col-span-5 relative">
-            <input
-              ref={inlineInputRef}
-              type="text"
-              value={newDiagnosis}
-              onChange={(e) => {
-                setNewDiagnosis(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddDiagnosis();
-                } else if (e.key === 'Escape') {
-                  setShowSuggestions(false);
-                }
-              }}
-              placeholder="Add diagnosis (e.g. Osteoarthritis, Diabetes, Lumbar spondylosis)..."
-              className="w-full p-1.5 text-xs border border-slate-300 rounded text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
-            />
-
-            {/* Quick Autocomplete dropdown for inline input - NEVER clipped */}
-            {showSuggestions && mergedSuggestions.length > 0 && (
-              <div
-                ref={suggestionsBoxRef}
-                className={`absolute left-0 w-[420px] max-w-lg bg-white border border-slate-300 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-[100] ${
-                  openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                }`}
+        {/* Autocomplete suggestions dropdown */}
+        {showGynaeSuggestions && gynaeSuggestions.length > 0 && (
+          <div
+            ref={gynaeBoxRef}
+            className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]"
+          >
+            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                Auto-suggest (Templates & Diagnoses)
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowGynaeSuggestions(false)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
               >
-                <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
-                  <span className="flex items-center gap-1">
-                    <Search className="w-3 h-3 text-slate-400" />
-                    Clinical Suggestions (Auto-fills 3 fields)
-                  </span>
-                  <span>Click / Enter</span>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {mergedSuggestions.map((item, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSelectSuggestion(item);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
-                    >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {item.type === 'template' ? (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
-                            ⭐ Template
-                          </span>
-                        ) : item.type === 'preset' ? (
-                          <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
-                            ⚡ Preset
-                          </span>
-                        ) : null}
-                        <span className="font-bold text-slate-800 truncate">{item.label || item.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {item.category && (
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            {item.category}
-                          </span>
-                        )}
-                        {item.snomed_code && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold border border-emerald-200">
-                            {item.snomed_code}
-                          </span>
-                        )}
-                        {item.duration && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-[10px] font-semibold border border-amber-200">
-                            {item.duration}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                ✕ Close
+              </button>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {gynaeSuggestions.map((item, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectGynaeSuggestion(item);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {item.type === 'template' ? (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
+                        ⭐ Template
+                      </span>
+                    ) : item.type === 'preset' ? (
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
+                        ⚡ Preset
+                      </span>
+                    ) : item.category?.toLowerCase().includes('ortho') ? (
+                      <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold shrink-0 border border-blue-200">
+                        Ortho
+                      </span>
+                    ) : item.category?.toLowerCase().includes('gyn') || item.category?.toLowerCase().includes('obs') ? (
+                      <span className="px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 text-[10px] font-bold shrink-0 border border-pink-200">
+                        Gynae
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
+                        Diagnosis
+                      </span>
+                    )}
+                    <span className="font-semibold text-slate-800 truncate">
+                      {item.label || item.name}
+                    </span>
+                  </div>
+                  {item.category && (
+                    <span className="text-[10px] text-slate-400 shrink-0 font-medium">{item.category}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="col-span-2">
-            <input
-              type="text"
-              value={newSnomed}
-              onChange={(e) => setNewSnomed(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddDiagnosis();
-                }
-              }}
-              placeholder="SNOMED / ICD"
-              className="w-full p-1.5 text-xs border border-slate-300 rounded text-slate-700 bg-white outline-none"
-            />
-          </div>
-          <div className="col-span-2">
-            <input
-              type="text"
-              value={newDuration}
-              onChange={(e) => setNewDuration(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddDiagnosis();
-                }
-              }}
-              placeholder="Duration (e.g. 2 weeks)"
-              className="w-full p-1.5 text-xs border border-slate-300 rounded text-slate-700 bg-white outline-none"
-            />
-          </div>
-          <div className="col-span-1 text-slate-500 text-[11px] font-mono">
-            {date || 'Today'}
-          </div>
-          <div className="col-span-1 text-right">
-            <button
-              type="button"
-              onClick={handleAddDiagnosis}
-              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs cursor-pointer shadow-xs transition"
-              title="Add diagnosis to table"
-            >
-              +
-            </button>
-          </div>
-        </div>
+        )}
       </div>
-      )}
     </div>
   );
 }

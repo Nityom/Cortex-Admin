@@ -1111,12 +1111,12 @@ export function usePrescriptionForm() {
                 const diffDays = (new Date().getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24);
                 isWithin10Days = diffDays >= 0 && diffDays <= 10;
 
-                if (isGynae && sorted[0] && !isEditMode && !prescriptionId) {
-                  // Auto-fill entire previous prescription for Gynae repeat patient
+                if (sorted[0] && !isEditMode && !prescriptionId) {
+                  // Auto-fill entire previous prescription for repeat patient (both Ortho & Gynae)
                   handleLoadPastPrescription(sorted[0], true);
-                } else {
-                  // Auto-populate & recalculate antenatal EDD / LMP / GA for 2nd / repeat visit
-                  autoPopulateAntenatalFromPastRx(pastRx, formData.date || todayDate);
+                  if (isGynae) {
+                    autoPopulateAntenatalFromPastRx(pastRx, formData.date || todayDate);
+                  }
                 }
               }
             } catch {}
@@ -1125,10 +1125,11 @@ export function usePrescriptionForm() {
               const latestRx = await getLatestPrescriptionByPhone(phoneNumber);
               if (latestRx) {
                 setPreviousPrescription(latestRx);
-                if (isGynae && !isEditMode && !prescriptionId) {
+                if (!isEditMode && !prescriptionId) {
                   handleLoadPastPrescription(latestRx, true);
-                } else {
-                  autoPopulateAntenatalFromPastRx([latestRx], formData.date || todayDate);
+                  if (isGynae) {
+                    autoPopulateAntenatalFromPastRx([latestRx], formData.date || todayDate);
+                  }
                 }
               }
             } catch {}
@@ -1781,9 +1782,10 @@ export function usePrescriptionForm() {
                   if (pastRx && pastRx.length > 0) {
                     const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
                     if (sortedPast[0]) setPreviousPrescription(sortedPast[0]);
-                    if (isGynaeDoc && sortedPast[0]) {
+                    if (sortedPast[0]) {
                       handleLoadPastPrescription(sortedPast[0], true);
-                    } else {
+                    }
+                    if (isGynaeDoc) {
                       autoPopulateAntenatalFromPastRx(pastRx, todayDate);
                     }
                   }
@@ -1796,9 +1798,8 @@ export function usePrescriptionForm() {
                 const latestRx = await getLatestPrescriptionByPhone(qPhone);
                 if (latestRx) {
                   setPreviousPrescription(latestRx);
+                  handleLoadPastPrescription(latestRx, true);
                   if (isGynaeDoc) {
-                    handleLoadPastPrescription(latestRx, true);
-                  } else {
                     autoPopulateAntenatalFromPastRx([latestRx], todayDate);
                   }
                 }
@@ -1812,9 +1813,10 @@ export function usePrescriptionForm() {
               if (pastRx && pastRx.length > 0) {
                 const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
                 if (sortedPast[0]) setPreviousPrescription(sortedPast[0]);
-                if (isGynaeDoc && sortedPast[0]) {
+                if (sortedPast[0]) {
                   handleLoadPastPrescription(sortedPast[0], true);
-                } else {
+                }
+                if (isGynaeDoc) {
                   autoPopulateAntenatalFromPastRx(pastRx, todayDate);
                 }
               }

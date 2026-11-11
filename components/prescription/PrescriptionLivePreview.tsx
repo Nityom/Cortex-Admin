@@ -351,10 +351,10 @@ export default function PrescriptionLivePreview({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
-                <th className={`py-2 px-1 text-left ${isGyno ? 'w-[36%]' : 'w-[42%]'}`}>Medicine</th>
-                <th className={`py-2 px-1 text-center ${isGyno ? 'w-[14%]' : 'w-[12%]'}`}>Dosage</th>
-                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[38%]' : 'w-[46%]'}`}>Timing - Freq. - Duration</th>
-                {isGyno && <th className="py-2 px-1 text-center w-[12%]">Qty</th>}
+                <th className="py-2 px-1 text-left w-[36%]">Medicine</th>
+                <th className="py-2 px-1 text-center w-[14%]">Dosage</th>
+                <th className="py-2 px-2 text-left w-[38%]">Timing - Freq. - Duration</th>
+                <th className="py-2 px-1 text-center w-[12%]">Qty</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
@@ -406,22 +406,20 @@ export default function PrescriptionLivePreview({
                       })()}
                     </td>
 
-                    {/* Quantity for Gynae */}
-                    {isGyno && (
-                      <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
-                        {(() => {
-                          const qty = typeof med.quantity === 'number' && med.quantity > 0
-                            ? med.quantity
-                            : calculateMedicineQuantity(med);
-                          return qty !== undefined && qty !== null && !isNaN(Number(qty)) ? qty : '—';
-                        })()}
-                      </td>
-                    )}
+                    {/* Quantity */}
+                    <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
+                      {(() => {
+                        const qty = typeof med.quantity === 'number' && med.quantity > 0
+                          ? med.quantity
+                          : calculateMedicineQuantity(med);
+                        return qty !== undefined && qty !== null && !isNaN(Number(qty)) ? qty : '—';
+                      })()}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={isGyno ? 4 : 3} className="text-center py-6 text-slate-400 italic">
+                  <td colSpan={4} className="text-center py-6 text-slate-400 italic">
                     No medications added yet. Add medicines from the form above.
                   </td>
                 </tr>

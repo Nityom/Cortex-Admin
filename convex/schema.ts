@@ -576,6 +576,16 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_last_used", ["last_used_at"]),
 
+  complaints: defineTable({
+    name: v.string(),
+    count: v.optional(v.number()),
+    category: v.optional(v.string()),
+    last_used_at: v.optional(v.number()),
+    created_at: v.optional(v.number()),
+  })
+    .index("by_name", ["name"])
+    .index("by_last_used", ["last_used_at"]),
+
   opd_queue: defineTable({
     queue_id: v.string(),
     token: v.string(),

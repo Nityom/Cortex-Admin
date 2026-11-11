@@ -313,6 +313,9 @@ export const create = mutation({
         if (args.diagnosis) {
             await recordDiagnosesToCatalog(ctx, args.diagnosis);
         }
+        if (args.chief_complaint) {
+            await recordComplaintsToCatalog(ctx, args.chief_complaint);
+        }
 
         return newPrescriptionId;
     },
@@ -437,6 +440,9 @@ export const update = mutation({
 
         if (updates.diagnosis) {
             await recordDiagnosesToCatalog(ctx, updates.diagnosis);
+        }
+        if (updates.chief_complaint) {
+            await recordComplaintsToCatalog(ctx, updates.chief_complaint);
         }
 
         return await ctx.db.get(id);
@@ -662,6 +668,50 @@ async function recordDiagnosesToCatalog(ctx: any, diagnosisText?: string) {
         }
     } catch (err) {
         console.error("Error auto-recording diagnosis:", err);
+    }
+}
+
+/**
+ * Internal helper to record one or multiple complaint items to the `complaints` catalog
+ */
+async function recordComplaintsToCatalog(ctx: any, complaintText?: string) {
+    if (!complaintText) return;
+    const parts = complaintText
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 2);
+    if (parts.length === 0) return;
+
+    try {
+        const now = Date.now();
+        const allComplaints = await ctx.db.query("complaints").collect();
+        for (const part of parts) {
+            const existing = allComplaints.find(
+                (c: any) => c.name.trim().toLowerCase() === part.toLowerCase()
+            );
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    count: (existing.count || 1) + 1,
+                    last_used_at: now,
+                });
+            } else {
+                const newId = await ctx.db.insert("complaints", {
+                    name: part,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                });
+                allComplaints.push({
+                    _id: newId,
+                    name: part,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Error auto-recording complaint:", err);
     }
 }
 
@@ -895,6 +945,258 @@ export const autoSavePrescriptionDiagnosis = mutation({
         });
 
         await recordDiagnosesToCatalog(ctx, args.diagnosis);
+        return { success: true };
+    },
+});
+
+/**
+ * Auto-save single complaint to master catalog
+ */
+export const saveComplaint = mutation({
+    args: {
+        name: v.string(),
+        category: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const trimmed = args.name.trim();
+        if (!trimmed || trimmed.length < 2) return null;
+
+        const now = Date.now();
+        const allComplaints = await ctx.db.query("complaints").collect();
+        const existing = allComplaints.find(
+            (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
+        );
+
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                count: (existing.count || 1) + 1,
+                last_used_at: now,
+                category: args.category || existing.category,
+            });
+            return existing._id;
+        } else {
+            return await ctx.db.insert("complaints", {
+                name: trimmed,
+                count: 1,
+                last_used_at: now,
+                created_at: now,
+                category: args.category,
+            });
+        }
+    },
+});
+
+/**
+ * Auto-save multiple complaints (e.g. parsed from multiline or comma separated text)
+ */
+export const saveMultipleComplaints = mutation({
+    args: {
+        names: v.array(v.string()),
+        category: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const now = Date.now();
+        const allComplaints = await ctx.db.query("complaints").collect();
+        const savedIds: any[] = [];
+
+        for (const raw of args.names) {
+            const trimmed = raw.trim();
+            if (!trimmed || trimmed.length < 2) continue;
+
+            const existing = allComplaints.find(
+                (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
+            );
+
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    count: (existing.count || 1) + 1,
+                    last_used_at: now,
+                });
+                savedIds.push(existing._id);
+            } else {
+                const newId = await ctx.db.insert("complaints", {
+                    name: trimmed,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                    category: args.category,
+                });
+                allComplaints.push({
+                    _id: newId,
+                    name: trimmed,
+                    count: 1,
+                    last_used_at: now,
+                    created_at: now,
+                    category: args.category,
+                } as any);
+                savedIds.push(newId);
+            }
+        }
+        return savedIds;
+    },
+});
+
+/**
+ * Query autocomplete suggestions for chief complaints.
+ * Merges complaints table + past prescriptions' chief complaints + standard Ortho/Gynae presets.
+ */
+export const getComplaintSuggestions = query({
+    args: {
+        query: v.optional(v.string()),
+        limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const maxLimit = args.limit || 30;
+        const q = (args.query || "").trim().toLowerCase();
+
+        // 1. Fetch from complaints table
+        const savedComplaints = await ctx.db.query("complaints").collect();
+
+        // 2. Fetch past chief complaints from recent prescriptions
+        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(150);
+
+        const map = new Map<string, { name: string; count: number; lastUsed: number }>();
+
+        // Populate from saved complaints table
+        for (const item of savedComplaints) {
+            if (!item.name || !item.name.trim()) continue;
+            const key = item.name.trim().toLowerCase();
+            map.set(key, {
+                name: item.name.trim(),
+                count: item.count || 1,
+                lastUsed: item.last_used_at || item.created_at || 0,
+            });
+        }
+
+        // Populate from past prescriptions
+        for (const rx of recentPrescriptions) {
+            if (!rx.chief_complaint) continue;
+            const parts = rx.chief_complaint.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+            for (const part of parts) {
+                const key = part.toLowerCase();
+                const existing = map.get(key);
+                if (existing) {
+                    existing.count += 1;
+                } else {
+                    map.set(key, {
+                        name: part,
+                        count: 1,
+                        lastUsed: 0,
+                    });
+                }
+            }
+        }
+
+        // Default clinical complaint presets covering Orthopaedics, Gynaecology and General
+        const defaultComplaintPresets = [
+            // Orthopaedics (Dr. Vipeen Raut)
+            "Knee pain",
+            "Left knee pain",
+            "Right knee pain",
+            "Bilateral knee pain",
+            "Lower back pain",
+            "Severe backache",
+            "Neck pain",
+            "Cervical pain with stiffness",
+            "Shoulder pain",
+            "Frozen shoulder (right)",
+            "Frozen shoulder (left)",
+            "Joint pain and swelling",
+            "Morning stiffness in joints",
+            "Sciatica / Radiating leg pain",
+            "Heel pain (worse in morning)",
+            "Ankle sprain / Pain",
+            "Difficulty in walking",
+            "Wrist pain",
+            "Elbow pain",
+            "Tingling & numbness in extremities",
+            "Post-trauma swelling & pain",
+            // Gynaecology & Obstetrics (Dr. Shillpa Raut)
+            "Lower abdominal pain",
+            "White discharge (excessive)",
+            "Irregular menstrual cycles",
+            "Heavy menstrual bleeding",
+            "Painful menstruation (Dysmenorrhea)",
+            "Amenorrhea / Missed period",
+            "Nausea and vomiting in pregnancy",
+            "Burning sensation during urination",
+            "Generalized weakness and fatigue",
+            "Backache during pregnancy",
+            "Decreased fetal movements",
+            "Pelvic pain and heaviness",
+            "Vaginal itching / burning",
+            // General / Systemic
+            "Fever with chills",
+            "Headache",
+            "Body ache and myalgia",
+            "Loss of appetite",
+            "Gastric discomfort / Acidity",
+        ];
+
+        for (const preset of defaultComplaintPresets) {
+            const key = preset.toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, {
+                    name: preset,
+                    count: 0,
+                    lastUsed: 0,
+                });
+            }
+        }
+
+        const allItems = Array.from(map.values());
+
+        // Filter based on query
+        let filtered = allItems;
+        if (q) {
+            filtered = allItems.filter((item) =>
+                item.name.toLowerCase().includes(q)
+            );
+            filtered.sort((a, b) => {
+                const aName = a.name.toLowerCase();
+                const bName = b.name.toLowerCase();
+                const aExact = aName === q;
+                const bExact = bName === q;
+                if (aExact && !bExact) return -1;
+                if (!aExact && bExact) return 1;
+
+                const aStarts = aName.startsWith(q);
+                const bStarts = bName.startsWith(q);
+                if (aStarts && !bStarts) return -1;
+                if (!aStarts && bStarts) return 1;
+
+                if ((b.count || 0) !== (a.count || 0)) {
+                    return (b.count || 0) - (a.count || 0);
+                }
+                return (b.lastUsed || 0) - (a.lastUsed || 0);
+            });
+        } else {
+            filtered.sort((a, b) => {
+                if ((b.count || 0) !== (a.count || 0)) {
+                    return (b.count || 0) - (a.count || 0);
+                }
+                return (b.lastUsed || 0) - (a.lastUsed || 0);
+            });
+        }
+
+        return filtered.slice(0, maxLimit).map((item) => item.name);
+    },
+});
+
+/**
+ * Auto-save chief complaint directly to an active prescription document and catalog
+ */
+export const autoSavePrescriptionComplaint = mutation({
+    args: {
+        id: v.id("prescriptions"),
+        chief_complaint: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.id, {
+            chief_complaint: args.chief_complaint,
+        });
+
+        await recordComplaintsToCatalog(ctx, args.chief_complaint);
         return { success: true };
     },
 });
