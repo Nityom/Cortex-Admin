@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Edit2, Plus, Undo2, Trash2, Check, Sparkles } from 'lucide-react';
+import { Edit2, Undo2, Trash2, Check, Sparkles } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 import AutoResizeTextarea from './AutoResizeTextarea';
 import {
@@ -10,7 +10,6 @@ import {
   autoSavePrescriptionComplaint,
 } from '@/services/prescription';
 import { getAllTemplates, PrescriptionTemplate } from '@/services/templates';
-import { CLINICAL_SECTION_PRESETS, getSectionCustomTemplates } from '@/services/clinicalSectionPresets';
 
 export interface ComplaintRow {
   id: string;
@@ -22,61 +21,11 @@ export interface ComplaintRow {
 }
 
 export interface LinkedComplaint {
-  type?: 'template' | 'preset' | 'catalog' | 'db';
+  type: 'template' | 'db';
   name: string;
   label?: string;
-  category?: 'Orthopaedics' | 'Obstetrics & Gynaecology' | 'General' | string;
   templateObj?: PrescriptionTemplate;
 }
-
-// Built-in curated clinical complaints for Orthopaedics, Gynaecology, and General Medicine
-const CLINICAL_COMPLAINTS_CATALOG: LinkedComplaint[] = [
-  // Orthopaedics (Dr. Vipeen Raut)
-  { name: 'Knee pain', category: 'Orthopaedics' },
-  { name: 'Left knee pain', category: 'Orthopaedics' },
-  { name: 'Right knee pain', category: 'Orthopaedics' },
-  { name: 'Bilateral knee pain', category: 'Orthopaedics' },
-  { name: 'Lower back pain', category: 'Orthopaedics' },
-  { name: 'Severe backache radiating to legs', category: 'Orthopaedics' },
-  { name: 'Neck pain and stiffness', category: 'Orthopaedics' },
-  { name: 'Cervical pain radiating to arms', category: 'Orthopaedics' },
-  { name: 'Shoulder pain (Right)', category: 'Orthopaedics' },
-  { name: 'Shoulder pain (Left)', category: 'Orthopaedics' },
-  { name: 'Frozen shoulder / Restricted movements', category: 'Orthopaedics' },
-  { name: 'Joint pain with swelling', category: 'Orthopaedics' },
-  { name: 'Morning stiffness in small joints', category: 'Orthopaedics' },
-  { name: 'Sciatica / Tingling & numbness in legs', category: 'Orthopaedics' },
-  { name: 'Heel pain (worse in morning on standing)', category: 'Orthopaedics' },
-  { name: 'Ankle pain and swelling', category: 'Orthopaedics' },
-  { name: 'Difficulty in walking & weight bearing', category: 'Orthopaedics' },
-  { name: 'Wrist pain / Tenderness', category: 'Orthopaedics' },
-  { name: 'Tennis elbow / Lateral elbow pain', category: 'Orthopaedics' },
-  { name: 'Post-fall knee / ankle swelling', category: 'Orthopaedics' },
-  { name: 'Muscle spasm and cramps in calves', category: 'Orthopaedics' },
-
-  // Obstetrics & Gynaecology (Dr. Shillpa Raut)
-  { name: 'Lower abdominal pain', category: 'Obstetrics & Gynaecology' },
-  { name: 'White discharge (foul smelling / pruritus)', category: 'Obstetrics & Gynaecology' },
-  { name: 'Irregular menstrual periods', category: 'Obstetrics & Gynaecology' },
-  { name: 'Heavy menstrual bleeding (Menorrhagia)', category: 'Obstetrics & Gynaecology' },
-  { name: 'Severe painful menstruation (Dysmenorrhea)', category: 'Obstetrics & Gynaecology' },
-  { name: 'Amenorrhea / Missed periods', category: 'Obstetrics & Gynaecology' },
-  { name: 'Nausea and morning vomiting in pregnancy', category: 'Obstetrics & Gynaecology' },
-  { name: 'Burning sensation during micturition', category: 'Obstetrics & Gynaecology' },
-  { name: 'Decreased fetal movements', category: 'Obstetrics & Gynaecology' },
-  { name: 'Generalized weakness and fatigue', category: 'Obstetrics & Gynaecology' },
-  { name: 'Backache during pregnancy', category: 'Obstetrics & Gynaecology' },
-  { name: 'Pelvic heaviness and dragging pain', category: 'Obstetrics & Gynaecology' },
-  { name: 'Vaginal itching and irritation', category: 'Obstetrics & Gynaecology' },
-
-  // General & Systemic
-  { name: 'Fever with chills', category: 'General' },
-  { name: 'Headache', category: 'General' },
-  { name: 'Body ache & generalized fatigue', category: 'General' },
-  { name: 'Loss of appetite', category: 'General' },
-  { name: 'Hyperacidity & gastric discomfort', category: 'General' },
-  { name: 'Cough and sore throat', category: 'General' },
-];
 
 interface PrescriptionComplaintsSectionProps {
   complaintsList: ComplaintRow[];
@@ -175,7 +124,7 @@ export default function PrescriptionComplaintsSection({
     [triggerAutoSave]
   );
 
-  // Load suggestions from Convex
+  // Load real suggestions from Convex DB (actual past complaints entered in the clinic)
   useEffect(() => {
     let isMounted = true;
     getComplaintSuggestions()
@@ -206,13 +155,13 @@ export default function PrescriptionComplaintsSection({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Compute live filtered suggestions
+  // Compute live suggestions strictly from real DB records and user templates
   const filteredSuggestions = useMemo(() => {
     const q = currentQuery.trim().toLowerCase();
     const list: LinkedComplaint[] = [];
     const seen = new Set<string>();
 
-    // 1. Templates matching query
+    // 1. User-created Master Templates
     try {
       const allTemplates = getAllTemplates();
       for (const tmpl of allTemplates) {
@@ -229,7 +178,6 @@ export default function PrescriptionComplaintsSection({
               type: 'template',
               name: tmplCc || tmpl.name,
               label: `⭐ [Template] ${tmpl.name}${tmplCc ? ` (${tmplCc})` : ''}`,
-              category: tmpl.category || 'Template',
               templateObj: tmpl,
             });
           }
@@ -237,41 +185,7 @@ export default function PrescriptionComplaintsSection({
       }
     } catch {}
 
-    // 2. Section Presets
-    try {
-      const presets = [
-        ...(CLINICAL_SECTION_PRESETS.complaints || []),
-        ...getSectionCustomTemplates('complaints'),
-      ];
-      for (const p of presets) {
-        const pDataStr = typeof p.data === 'string' ? p.data : p.name;
-        if (!q || p.name.toLowerCase().includes(q) || pDataStr.toLowerCase().includes(q)) {
-          const key = `preset_${p.id}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            list.push({
-              type: 'preset',
-              name: pDataStr,
-              label: `⚡ [Preset] ${p.name}`,
-              category: p.category || 'Preset',
-            });
-          }
-        }
-      }
-    } catch {}
-
-    // 3. Built-in Catalog items
-    for (const item of CLINICAL_COMPLAINTS_CATALOG) {
-      const key = item.name.toLowerCase();
-      if (!seen.has(key)) {
-        if (!q || key.includes(q)) {
-          seen.add(key);
-          list.push({ ...item, type: 'catalog' });
-        }
-      }
-    }
-
-    // 4. Convex DB Learned suggestions
+    // 2. Real Saved Complaints from Convex DB
     for (const name of dbSuggestions) {
       const key = name.trim().toLowerCase();
       if (!seen.has(key)) {
@@ -280,32 +194,16 @@ export default function PrescriptionComplaintsSection({
           list.push({
             type: 'db',
             name: name.trim(),
-            category: 'Learned',
+            label: name.trim(),
           });
         }
       }
     }
 
-    const sortFn = (a: LinkedComplaint, b: LinkedComplaint) => {
-      // Priority 1: Match current doctor's specialty
-      const aCat = (a.category || '').toLowerCase();
-      const bCat = (b.category || '').toLowerCase();
-      const aMatches = isGynae
-        ? aCat.includes('gyn') || aCat.includes('obs')
-        : aCat.includes('ortho') || aCat.includes('joint') || aCat.includes('spine');
-      const bMatches = isGynae
-        ? bCat.includes('gyn') || bCat.includes('obs')
-        : bCat.includes('ortho') || bCat.includes('joint') || bCat.includes('spine');
-
-      if (aMatches && !bMatches) return -1;
-      if (!aMatches && bMatches) return 1;
-
-      // Priority 2: Master Templates & Presets
+    // Sort: templates first, then alphabetical / matching
+    list.sort((a, b) => {
       if (a.type === 'template' && b.type !== 'template') return -1;
       if (b.type === 'template' && a.type !== 'template') return 1;
-      if (a.type === 'preset' && b.type !== 'preset') return -1;
-      if (b.type === 'preset' && a.type !== 'preset') return 1;
-
       if (q) {
         const aStarts = (a.label || a.name).toLowerCase().startsWith(q);
         const bStarts = (b.label || b.name).toLowerCase().startsWith(q);
@@ -313,11 +211,11 @@ export default function PrescriptionComplaintsSection({
         if (!aStarts && bStarts) return 1;
       }
       return (a.label || a.name).localeCompare(b.label || b.name);
-    };
+    });
 
-    if (!q) return list.sort(sortFn).slice(0, 12);
-    return list.sort(sortFn).slice(0, 15);
-  }, [currentQuery, dbSuggestions, isGynae]);
+    if (!q) return list.slice(0, 10);
+    return list.slice(0, 15);
+  }, [currentQuery, dbSuggestions]);
 
   const handleSelectSuggestion = (item: LinkedComplaint) => {
     if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
@@ -480,15 +378,11 @@ export default function PrescriptionComplaintsSection({
             setShowSuggestions(true);
           }}
           minRows={1}
-          placeholder={
-            isGynae
-              ? 'Enter chief complaints (e.g. Lower abdominal pain, white discharge, irregular periods, nausea)...'
-              : 'Enter chief complaints (e.g. Knee pain, lower back pain, neck stiffness, shoulder pain)...'
-          }
+          placeholder="Enter chief complaints..."
           className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
         />
 
-        {/* Live Autocomplete suggestions dropdown */}
+        {/* Live Autocomplete suggestions dropdown (only shown if there are real saved DB records or templates) */}
         {showSuggestions && filteredSuggestions.length > 0 && (
           <div
             ref={suggestionsBoxRef}
@@ -497,7 +391,7 @@ export default function PrescriptionComplaintsSection({
             <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                Auto-suggest (Templates & Chief Complaints)
+                Suggestions (Saved Records)
               </span>
               <button
                 type="button"
@@ -523,32 +417,15 @@ export default function PrescriptionComplaintsSection({
                       <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
                         ⭐ Template
                       </span>
-                    ) : item.type === 'preset' ? (
-                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
-                        ⚡ Preset
-                      </span>
-                    ) : item.category?.toLowerCase().includes('ortho') ? (
-                      <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold shrink-0 border border-blue-200">
-                        Ortho
-                      </span>
-                    ) : item.category?.toLowerCase().includes('gyn') || item.category?.toLowerCase().includes('obs') ? (
-                      <span className="px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 text-[10px] font-bold shrink-0 border border-pink-200">
-                        Gynae
-                      </span>
                     ) : (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold shrink-0 border border-emerald-200">
-                        Complaint
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-medium shrink-0 border border-emerald-200">
+                        Saved
                       </span>
                     )}
                     <span className="font-semibold text-slate-800 truncate">
                       {item.label || item.name}
                     </span>
                   </div>
-                  {item.category && (
-                    <span className="text-[10px] text-slate-400 shrink-0 font-medium">
-                      {item.category}
-                    </span>
-                  )}
                 </button>
               ))}
             </div>

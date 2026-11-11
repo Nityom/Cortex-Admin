@@ -1087,63 +1087,6 @@ export const getComplaintSuggestions = query({
             }
         }
 
-        // Default clinical complaint presets covering Orthopaedics, Gynaecology and General
-        const defaultComplaintPresets = [
-            // Orthopaedics (Dr. Vipeen Raut)
-            "Knee pain",
-            "Left knee pain",
-            "Right knee pain",
-            "Bilateral knee pain",
-            "Lower back pain",
-            "Severe backache",
-            "Neck pain",
-            "Cervical pain with stiffness",
-            "Shoulder pain",
-            "Frozen shoulder (right)",
-            "Frozen shoulder (left)",
-            "Joint pain and swelling",
-            "Morning stiffness in joints",
-            "Sciatica / Radiating leg pain",
-            "Heel pain (worse in morning)",
-            "Ankle sprain / Pain",
-            "Difficulty in walking",
-            "Wrist pain",
-            "Elbow pain",
-            "Tingling & numbness in extremities",
-            "Post-trauma swelling & pain",
-            // Gynaecology & Obstetrics (Dr. Shillpa Raut)
-            "Lower abdominal pain",
-            "White discharge (excessive)",
-            "Irregular menstrual cycles",
-            "Heavy menstrual bleeding",
-            "Painful menstruation (Dysmenorrhea)",
-            "Amenorrhea / Missed period",
-            "Nausea and vomiting in pregnancy",
-            "Burning sensation during urination",
-            "Generalized weakness and fatigue",
-            "Backache during pregnancy",
-            "Decreased fetal movements",
-            "Pelvic pain and heaviness",
-            "Vaginal itching / burning",
-            // General / Systemic
-            "Fever with chills",
-            "Headache",
-            "Body ache and myalgia",
-            "Loss of appetite",
-            "Gastric discomfort / Acidity",
-        ];
-
-        for (const preset of defaultComplaintPresets) {
-            const key = preset.toLowerCase();
-            if (!map.has(key)) {
-                map.set(key, {
-                    name: preset,
-                    count: 0,
-                    lastUsed: 0,
-                });
-            }
-        }
-
         const allItems = Array.from(map.values());
 
         // Filter based on query
