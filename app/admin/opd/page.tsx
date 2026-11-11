@@ -247,40 +247,62 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
     );
 
     const patientMap = new Map<string, OPDQueueItem>();
+    const apptIdToKey = new Map<string, string>();
 
     for (const item of groupItems) {
       const cleanPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
       const cleanUhid = (item.uhid || "").trim().toUpperCase();
       const cleanName = (item.name || "").trim().toLowerCase();
+      const apptId = item.appointmentId ? String(item.appointmentId) : "";
 
       // Deduplication identifier:
-      // Must NOT collapse distinct family members sharing the same phone number.
-      // Use UHID if available; otherwise use phone + name combination.
-      const key = cleanUhid
+      // Phone + Name uniquely identifies an individual (while keeping distinct family members separate!)
+      // Fall back to non-empty UHID, then Name alone.
+      let key = cleanPhone.length === 10
+        ? `phone_name:${cleanPhone}_${cleanName}`
+        : cleanUhid
         ? `uhid:${cleanUhid}`
-        : (cleanPhone.length === 10
-            ? `phone_name:${cleanPhone}_${cleanName}`
-            : `name:${cleanName}`);
+        : `name:${cleanName}`;
+
+      // If an existing item already has the same appointmentId, map to that existing item's key
+      if (apptId && apptIdToKey.has(apptId)) {
+        key = apptIdToKey.get(apptId)!;
+      }
 
       if (!patientMap.has(key)) {
         patientMap.set(key, item);
+        if (apptId) apptIdToKey.set(apptId, key);
       } else {
         const existing = patientMap.get(key)!;
         const existingRank = getStatusRank(existing.status);
         const currentRank = getStatusRank(item.status);
 
-        // Keep active status over cancelled/waiting/completed
-        if (currentRank > existingRank) {
-          patientMap.set(key, { ...item, token: existing.token || item.token });
-        } else if (currentRank === existingRank) {
-          // If status ranks are identical, prefer the latest registered item
-          const timeExisting = new Date(existing.registeredAt || 0).getTime();
-          const timeCurrent = new Date(item.registeredAt || 0).getTime();
-          if (timeCurrent > timeExisting) {
-            patientMap.set(key, { ...item, token: existing.token || item.token });
-          }
-        }
-        // Duplicate is discarded completely
+        // Merge properties to keep the best data:
+        // 1. Prefer non-empty UHID
+        const mergedUhid = existing.uhid || item.uhid || "";
+        // 2. Prefer non-empty patientId
+        const mergedPatientId = existing.patientId || item.patientId;
+        // 3. Prefer real token (non-"01" if another exists)
+        const existingIsPlaceholder = existing.token === "01" && existing.id.startsWith("appointment_");
+        const itemIsPlaceholder = item.token === "01" && item.id.startsWith("appointment_");
+        const mergedToken = existingIsPlaceholder && !itemIsPlaceholder
+          ? item.token
+          : existing.token || item.token;
+        // 4. Prefer opd_ ID over appointment_ ID
+        const mergedId = existing.id.startsWith("opd_") ? existing.id : item.id;
+        // 5. Keep active/higher status
+        const mergedStatus = currentRank > existingRank ? item.status : existing.status;
+
+        patientMap.set(key, {
+          ...existing,
+          ...item,
+          id: mergedId,
+          uhid: mergedUhid,
+          patientId: mergedPatientId,
+          token: mergedToken,
+          status: mergedStatus,
+        });
+        if (apptId) apptIdToKey.set(apptId, key);
       }
     }
 
@@ -372,6 +394,15 @@ export default function OPDManagementPage() {
         .map((item: any) => item.appointmentId)
         .filter((appointmentId: unknown): appointmentId is string => typeof appointmentId === "string")
     );
+    const queuedPersonKeys = new Set(
+      liveOpdQueue.map((item: any) => {
+        const p = (item.phone || "").replace(/\D/g, "").slice(-10);
+        const n = (item.name || "").trim().toLowerCase();
+        const d = getItemLocalDate(item.registeredAt) || "";
+        const doc = getDoctorKey(item.doctor);
+        return `${d}___${doc}___${p}___${n}`;
+      })
+    );
     const nextTokens = new Map<string, number>();
 
     for (const item of liveOpdQueue) {
@@ -399,8 +430,14 @@ export default function OPDManagementPage() {
       }
 
       const appointmentId = String(appointment._id);
+      const cleanPhone = (appointment.phone || "").replace(/\D/g, "").slice(-10);
+      const cleanName = (appointment.name || "").trim().toLowerCase();
+      const doctorKey = getDoctorKey(appointment.doctor_name || DOCTORS[0].name);
+      const personKey = `${appointmentDate}___${doctorKey}___${cleanPhone}___${cleanName}`;
+
       return (
         !queuedAppointmentIds.has(appointmentId) &&
+        !queuedPersonKeys.has(personKey) &&
         !syncingAppointmentIds.current.has(appointmentId)
       );
     });
