@@ -187,6 +187,17 @@ export function getAllCustomSectionTemplates(): Array<
   return results;
 }
 
+export function cleanTemplateName(raw: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const cleaned = raw
+    .replace(/^⭐\s*(\[.*?\])?\s*/i, '')
+    .replace(/^⚡\s*(\[.*?\])?\s*/i, '')
+    .replace(/^\[(saved\s*template|template|preset)\]\s*/i, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .trim();
+  return cleaned || raw.replace(/^⭐\s*(\[.*?\])?\s*/i, '').replace(/^⚡\s*(\[.*?\])?\s*/i, '').trim();
+}
+
 export function getSectionCustomTemplates(sectionKey: string): ClinicalSectionPreset[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -195,22 +206,27 @@ export function getSectionCustomTemplates(sectionKey: string): ClinicalSectionPr
     const list = JSON.parse(raw);
     if (!Array.isArray(list)) return [];
     // Filter out old hardcoded preset IDs if any were cached in local storage
-    return list.filter((item: any) => 
-      !item.id.startsWith('cmp_') &&
-      !item.id.startsWith('find_') &&
-      !item.id.startsWith('diag_') &&
-      !item.id.startsWith('proc_') &&
-      !item.id.startsWith('dr_') &&
-      !item.id.startsWith('qn_') &&
-      !item.id.startsWith('adv_') &&
-      !item.id.startsWith('tests_') &&
-      !item.id.startsWith('diet_') &&
-      !item.id.startsWith('inv_') &&
-      !item.id.startsWith('gex_') &&
-      !item.id.startsWith('sex_') &&
-      !item.id.startsWith('pmed_') &&
-      !item.id.startsWith('med_')
-    );
+    return list
+      .filter((item: any) => 
+        !item.id.startsWith('cmp_') &&
+        !item.id.startsWith('find_') &&
+        !item.id.startsWith('diag_') &&
+        !item.id.startsWith('proc_') &&
+        !item.id.startsWith('dr_') &&
+        !item.id.startsWith('qn_') &&
+        !item.id.startsWith('adv_') &&
+        !item.id.startsWith('tests_') &&
+        !item.id.startsWith('diet_') &&
+        !item.id.startsWith('inv_') &&
+        !item.id.startsWith('gex_') &&
+        !item.id.startsWith('sex_') &&
+        !item.id.startsWith('pmed_') &&
+        !item.id.startsWith('med_')
+      )
+      .map((item: any) => ({
+        ...item,
+        name: cleanTemplateName(item.name),
+      }));
   } catch (err) {
     console.error(`Error reading section templates for ${sectionKey}:`, err);
     return [];
@@ -224,6 +240,7 @@ export function saveSectionCustomTemplate(
   category = 'Custom'
 ): ClinicalSectionPreset {
   const current = getSectionCustomTemplates(sectionKey);
+  const cleanName = cleanTemplateName(name);
 
   // Normalize tests_requested data into clean array of { name, by_when }
   let normalizedData = data;
@@ -240,13 +257,20 @@ export function saveSectionCustomTemplate(
 
   const newPreset: ClinicalSectionPreset = {
     id: `tmpl_${sectionKey}_${Date.now()}`,
-    name,
+    name: cleanName,
     category,
     data: normalizedData,
   };
   const updated = [newPreset, ...current];
   try {
     localStorage.setItem(`${SECTION_STORAGE_PREFIX}${sectionKey}`, JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cortex_section_templates_updated', {
+          detail: { sectionKey, action: 'save', template: newPreset },
+        })
+      );
+    }
   } catch (err) {
     console.error(`Error saving section template for ${sectionKey}:`, err);
   }
@@ -256,7 +280,7 @@ export function saveSectionCustomTemplate(
     const stringified = typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData);
     convexClient.mutation(api.clinical_templates.upsert, {
       template_id: newPreset.id,
-      name,
+      name: cleanName,
       category,
       section_key: sectionKey,
       data: normalizedData,
@@ -286,6 +310,13 @@ export function deleteSectionCustomTemplate(sectionKey: string, id: string): boo
   const filtered = current.filter((t) => t.id !== id);
   try {
     localStorage.setItem(`${SECTION_STORAGE_PREFIX}${sectionKey}`, JSON.stringify(filtered));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('cortex_section_templates_updated', {
+          detail: { sectionKey, action: 'delete', id },
+        })
+      );
+    }
   } catch (err) {
     console.error(`Error deleting section template for ${sectionKey}:`, err);
     return false;
@@ -307,7 +338,18 @@ export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promi
     const list = await convexClient.query(api.clinical_templates.list, {});
     if (list && Array.isArray(list)) {
       const sectionItems = list
-        .filter((item: any) => item.section_key === sectionKey)
+        .filter((item: any) => 
+          item.section_key === sectionKey &&
+          item.is_preset !== true &&
+          !String(item.template_id || item.id || '').startsWith('cmp_') &&
+          !String(item.template_id || item.id || '').startsWith('find_') &&
+          !String(item.template_id || item.id || '').startsWith('diag_') &&
+          !String(item.template_id || item.id || '').startsWith('proc_') &&
+          !String(item.template_id || item.id || '').startsWith('dr_') &&
+          !String(item.template_id || item.id || '').startsWith('qn_') &&
+          !String(item.template_id || item.id || '').startsWith('adv_') &&
+          !String(item.template_id || item.id || '').startsWith('tests_')
+        )
         .map((item: any) => {
           let templateData: any;
           if (item.data !== undefined && item.data !== null) {
@@ -327,7 +369,7 @@ export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promi
           }
           return {
             id: item.template_id || item._id,
-            name: item.name,
+            name: cleanTemplateName(item.name),
             category: item.category || 'General',
             data: templateData,
             description: item.description,
@@ -341,6 +383,13 @@ export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promi
         const merged = Array.from(map.values());
         try {
           localStorage.setItem(`${SECTION_STORAGE_PREFIX}${sectionKey}`, JSON.stringify(merged));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('cortex_section_templates_updated', {
+                detail: { sectionKey, action: 'sync' },
+              })
+            );
+          }
         } catch {}
         return merged;
       }

@@ -165,6 +165,57 @@ export const getLatestPrescriptionByPhone = async (phoneNumber: string) => {
   return data ? ({ ...data, id: data._id } as any as Prescription) : null;
 };
 
+export const getAllPrescriptionsForPatient = async (
+  referenceNumber?: string | null,
+  phoneNumber?: string | null,
+  patientName?: string | null
+): Promise<Prescription[]> => {
+  try {
+    let results: any[] = [];
+    if (referenceNumber) {
+      const byRef = await convex.query(api.prescriptions.listByPatient, { reference_number: referenceNumber });
+      if (Array.isArray(byRef) && byRef.length > 0) {
+        results = [...byRef];
+      }
+    }
+
+    const cleanPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
+    // If empty or to ensure all historical visits are captured
+    if (cleanPhone || patientName || referenceNumber) {
+      const all = await convex.query(api.prescriptions.list);
+      if (Array.isArray(all)) {
+        const matched = all.filter((p: any) => {
+          const pPhone = (p.phone_number || '').replace(/\D/g, '').slice(-10);
+          const matchPhone = cleanPhone && pPhone && cleanPhone === pPhone;
+          const matchRef = referenceNumber && p.reference_number && p.reference_number.trim().toUpperCase() === referenceNumber.trim().toUpperCase();
+          const matchName = patientName && p.patient_name && p.patient_name.toLowerCase().trim() === patientName.toLowerCase().trim();
+          return matchPhone || matchRef || matchName;
+        });
+        // Merge without duplicates by _id
+        const existingIds = new Set(results.map((r: any) => String(r._id || r.id)));
+        for (const item of matched) {
+          const id = String(item._id || (item as any).id);
+          if (!existingIds.has(id)) {
+            results.push(item);
+            existingIds.add(id);
+          }
+        }
+      }
+    }
+
+    results.sort((a: any, b: any) => {
+      const tA = new Date(a.prescription_date || a._creationTime || 0).getTime();
+      const tB = new Date(b.prescription_date || b._creationTime || 0).getTime();
+      return tB - tA;
+    });
+
+    return results.map((item: any) => ({ ...item, id: item._id })) as Prescription[];
+  } catch (err) {
+    console.warn('Error fetching all prescriptions for patient:', err);
+    return [];
+  }
+};
+
 export const saveDiagnosis = async (name: string, category?: string) => {
   try {
     return await convex.mutation(api.prescriptions.saveDiagnosis, { name, category });

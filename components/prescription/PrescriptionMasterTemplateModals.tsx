@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { FolderOpen, BookmarkPlus, X, Search, ArrowRight } from 'lucide-react';
-import { PrescriptionTemplate } from '@/services/templates';
+import { PrescriptionTemplate, cleanTemplateName } from '@/services/templates';
 
 interface PrescriptionMasterTemplateModalsProps {
   isLoadTemplateModalOpen: boolean;
@@ -150,7 +150,7 @@ export default function PrescriptionMasterTemplateModals({
                           {tmpl.category || 'General'}
                         </span>
                         <h4 className="font-bold text-slate-900 text-xs truncate group-hover:text-emerald-600">
-                          {tmpl.name}
+                          {cleanTemplateName(tmpl.name)}
                         </h4>
                       </div>
                       <p className="text-[11px] text-slate-600 truncate">

@@ -88,7 +88,7 @@ export default function PrescriptionProcedureSection({
             sectionKey="procedure_done"
             sectionTitle="Procedure Done"
             currentValue={dentalProcedures}
-            align="left"
+            align="right"
             onApplyPreset={(val) => {
               if (val && val.name) {
                 setSelectedTreatmentName(val.name);

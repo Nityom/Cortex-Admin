@@ -424,8 +424,11 @@ export default function HealthPlixMedicineTable({
     }, 350);
   };
 
-  const handleSaveMedTemplate = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveMedTemplate = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!newMedTemplateName.trim()) {
       showMedToast('Please enter a medical template name');
       return;
@@ -920,7 +923,7 @@ export default function HealthPlixMedicineTable({
                           onChange(normalizePresetMedicines(presetMeds, prescriptionDate));
                         }
                       }}
-                      align="left"
+                      align="right"
                     />
                     <button
                       type="button"
@@ -1784,7 +1787,7 @@ export default function HealthPlixMedicineTable({
               </button>
             </div>
 
-            <form onSubmit={handleSaveMedTemplate} className="p-5 space-y-4">
+            <div className="p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Medical Template Name *</label>
                 <input
@@ -1836,14 +1839,19 @@ export default function HealthPlixMedicineTable({
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSaveMedTemplate(e);
+                  }}
                   className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition flex items-center gap-1.5"
                 >
                   <BookmarkPlus className="w-4 h-4" />
                   <span>Save Medical Template</span>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

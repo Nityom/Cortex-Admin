@@ -72,6 +72,56 @@ const TEMPLATES_STORAGE_KEY = 'cortex_prescription_templates_v2';
 
 export const DEFAULT_CLINICAL_TEMPLATES: PrescriptionTemplate[] = [];
 
+const DUMMY_PRESET_KEYWORDS = [
+  'acute bronchitis',
+  'hypertension essential',
+  'osteoarthritis bilateral',
+  'lumbar spondylosis',
+  'first trimester routine',
+  'pcos / irregular',
+  'cervical spondylosis',
+  'lateral epicondylitis',
+  'pediatric',
+  'essential hypertension',
+  'bronchitis & upper',
+];
+
+export function isDummyPreset(t: any): boolean {
+  if (!t) return false;
+  if (t.is_preset === true) return true;
+  const id = String(t.id || t.template_id || '').toLowerCase();
+  const name = String(t.name || '').toLowerCase();
+  if (
+    id.startsWith('tmpl_ortho_') ||
+    id.startsWith('tmpl_gynae_') ||
+    id.startsWith('tmpl_gen_') ||
+    id.startsWith('tmpl_general_') ||
+    id.startsWith('tmpl_ped_') ||
+    id.startsWith('tmpl_oa_') ||
+    id.startsWith('tmpl_lumbar_') ||
+    id.startsWith('tmpl_anc_') ||
+    id.startsWith('tmpl_pcos_') ||
+    id.startsWith('tmpl_cervical_') ||
+    id.startsWith('tmpl_tennis_') ||
+    id.startsWith('tmpl_htn_') ||
+    id.startsWith('tmpl_default_')
+  ) {
+    return true;
+  }
+  return DUMMY_PRESET_KEYWORDS.some((kw) => name.includes(kw));
+}
+
+export function cleanTemplateName(raw: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const cleaned = raw
+    .replace(/^⭐\s*(\[.*?\])?\s*/i, '')
+    .replace(/^⚡\s*(\[.*?\])?\s*/i, '')
+    .replace(/^\[(saved\s*template|template|preset)\]\s*/i, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .trim();
+  return cleaned || raw.replace(/^⭐\s*(\[.*?\])?\s*/i, '').replace(/^⚡\s*(\[.*?\])?\s*/i, '').trim();
+}
+
 /**
  * Get all prescription templates from localStorage, returning only saved DB/user templates.
  */
@@ -87,21 +137,18 @@ export function getAllTemplates(): PrescriptionTemplate[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      // Filter out any stale dummy preset IDs
-      return parsed.filter((t) => 
-        !t.id.startsWith("tmpl_ortho_oa_knee") &&
-        !t.id.startsWith("tmpl_oa_knee") &&
-        !t.id.startsWith("tmpl_lumbar_spondylosis") &&
-        !t.id.startsWith("tmpl_anc_1st_trimester") &&
-        !t.id.startsWith("tmpl_pcos_metabolic") &&
-        !t.id.startsWith("tmpl_cervical_spondylosis") &&
-        !t.id.startsWith("tmpl_tennis_elbow") &&
-        !t.id.startsWith("tmpl_ped_urti") &&
-        !t.id.startsWith("tmpl_htn_essential") &&
-        !t.id.startsWith("tmpl_ortho_") &&
-        !t.id.startsWith("tmpl_gynae_") &&
-        !t.id.startsWith("tmpl_gen_")
-      );
+      const cleaned = parsed
+        .filter((t) => !isDummyPreset(t))
+        .map((t) => ({
+          ...t,
+          name: cleanTemplateName(t.name),
+        }));
+      if (cleaned.length !== parsed.length) {
+        try {
+          localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(cleaned));
+        } catch {}
+      }
+      return cleaned;
     }
     return [];
   } catch (err) {
@@ -166,29 +213,31 @@ export async function fetchTemplatesFromConvex(): Promise<PrescriptionTemplate[]
   try {
     const list = await convexClient.query(api.clinical_templates.list, {});
     if (list && Array.isArray(list)) {
-      return list.map((item: any) => ({
-        id: item.template_id || item._id,
-        name: item.name,
-        diagnosis: item.diagnosis || '',
-        category: item.category || 'General',
-        doctor_name: item.doctor_name,
-        advice: item.advice,
-        dr_notes: item.dr_notes,
-        quick_notes: item.quick_notes,
-        findings: item.findings,
-        procedure_advice: item.procedure_advice,
-        diet_exercise: item.diet_exercise,
-        investigations: item.investigations,
-        general_examinations: item.general_examinations,
-        past_medications: item.past_medications,
-        followup_count: item.followup_count,
-        followup_unit: item.followup_unit,
-        medicines: item.medicines || [],
-        complaints: item.complaints,
-        tests_requested: item.tests_requested,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-      }));
+      return list
+        .filter((item: any) => !isDummyPreset(item) && !item.is_preset && !item.section_key)
+        .map((item: any) => ({
+          id: item.template_id || item._id,
+          name: cleanTemplateName(item.name),
+          diagnosis: item.diagnosis || '',
+          category: item.category || 'General',
+          doctor_name: item.doctor_name,
+          advice: item.advice,
+          dr_notes: item.dr_notes,
+          quick_notes: item.quick_notes,
+          findings: item.findings,
+          procedure_advice: item.procedure_advice,
+          diet_exercise: item.diet_exercise,
+          investigations: item.investigations,
+          general_examinations: item.general_examinations,
+          past_medications: item.past_medications,
+          followup_count: item.followup_count,
+          followup_unit: item.followup_unit,
+          medicines: item.medicines || [],
+          complaints: item.complaints,
+          tests_requested: item.tests_requested,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        }));
     }
   } catch (err) {
     console.warn('Could not fetch templates from Convex:', err);
@@ -202,6 +251,7 @@ export async function fetchTemplatesFromConvex(): Promise<PrescriptionTemplate[]
 export function saveTemplate(template: Omit<PrescriptionTemplate, 'id' | 'created_at'> & { id?: string }): PrescriptionTemplate {
   const templates = getAllTemplates();
   const now = Date.now();
+  const cleanName = cleanTemplateName(template.name);
 
   if (template.id) {
     const idx = templates.findIndex(t => t.id === template.id);
@@ -209,6 +259,7 @@ export function saveTemplate(template: Omit<PrescriptionTemplate, 'id' | 'create
       const updated: PrescriptionTemplate = {
         ...templates[idx],
         ...template,
+        name: cleanName,
         id: template.id,
         updated_at: now,
       };
@@ -226,6 +277,7 @@ export function saveTemplate(template: Omit<PrescriptionTemplate, 'id' | 'create
   const newId = `tmpl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const newTemplate: PrescriptionTemplate = {
     ...template,
+    name: cleanName,
     id: newId,
     created_at: now,
     updated_at: now,

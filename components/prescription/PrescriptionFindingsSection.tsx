@@ -34,8 +34,11 @@ export default function PrescriptionFindingsSection({
             sectionTitle="Findings"
             currentValue={value}
             category={category}
-            align="left"
-            onApplyPreset={(val) => onChange(value ? value + '\n' + val : val)}
+            align="right"
+            onApplyPreset={(val) => {
+              const text = typeof val === 'string' ? val : JSON.stringify(val);
+              onChange(text.trim());
+            }}
           />
           <button
             type="button"
@@ -53,7 +56,10 @@ export default function PrescriptionFindingsSection({
         category={category}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onApplyTemplate={(val) => onChange(value ? value + '\n' + val : val)}
+        onApplyTemplate={(val) => {
+          const text = typeof val === 'string' ? val : JSON.stringify(val);
+          onChange(text.trim());
+        }}
         minRows={1}
         placeholder="Clinical findings, general examination, range of motion, swelling, tenderness, systemic signs..."
         className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"

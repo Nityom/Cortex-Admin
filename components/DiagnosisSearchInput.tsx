@@ -286,19 +286,6 @@ export default function DiagnosisSearchInput({
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
             Diagnosis Findings / Conditions
           </label>
-          {/* Live Auto-save badge */}
-          {saveStatus === 'saving' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 animate-pulse border border-emerald-200">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Auto-saving...
-            </span>
-          )}
-          {saveStatus === 'saved' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all duration-300">
-              <Check className="w-3 h-3" />
-              Auto-saved
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-2">

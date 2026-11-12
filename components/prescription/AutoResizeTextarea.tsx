@@ -15,6 +15,7 @@ import {
   getSectionCustomTemplates,
   saveSectionCustomTemplate,
   fetchSectionTemplatesFromConvex,
+  cleanTemplateName,
 } from '@/services/clinicalSectionPresets';
 
 export interface AutoResizeTextareaProps
@@ -137,7 +138,7 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
 
       setMatchingSuggestions(filtered.slice(0, 6));
       setShowSuggestions(filtered.length > 0);
-      setHighlightedIndex(-1);
+      setHighlightedIndex(filtered.length > 0 ? 0 : -1);
     }, [value, sectionKey, allTemplates, isFocused]);
 
     // Click outside listener
@@ -180,7 +181,7 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
       }
 
       setShowSuggestions(false);
-      showToast(`Applied "${item.name}"`);
+      showToast(`Applied "${cleanTemplateName(item.name)}"`);
     };
 
     // Quick Save Current Typed Content as Section Template
@@ -224,12 +225,13 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
           setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : matchingSuggestions.length - 1));
           return;
         }
-        if (e.key === 'Enter' && highlightedIndex >= 0 && matchingSuggestions[highlightedIndex]) {
+        if (e.key === 'Enter' && matchingSuggestions.length > 0) {
           e.preventDefault();
-          handleSelectSuggestion(matchingSuggestions[highlightedIndex]);
+          const target = highlightedIndex >= 0 ? matchingSuggestions[highlightedIndex] : matchingSuggestions[0];
+          handleSelectSuggestion(target);
           return;
         }
-        if (e.key === 'Tab' && matchingSuggestions[0]) {
+        if (e.key === 'Tab' && matchingSuggestions.length > 0) {
           e.preventDefault();
           const target = highlightedIndex >= 0 ? matchingSuggestions[highlightedIndex] : matchingSuggestions[0];
           handleSelectSuggestion(target);
@@ -288,7 +290,7 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
             <div className="px-3 py-1.5 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between text-[11px] font-bold text-emerald-900">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                Template Suggestions (Press Tab or Enter to Apply)
+                Suggestions (Enter to apply)
               </span>
               <button
                 type="button"
@@ -326,18 +328,15 @@ export const AutoResizeTextarea = forwardRef<HTMLTextAreaElement, AutoResizeText
                         : 'hover:bg-slate-50 text-slate-800'
                     }`}
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-slate-900">{item.name}</span>
-                        {item.category && (
-                          <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200">
-                            {item.category}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-normal">
-                        {snippet}
-                      </p>
+                    <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                      <span className="font-bold text-xs text-slate-900 truncate">
+                        {cleanTemplateName(item.name)}
+                      </span>
+                      {item.category && (
+                        <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200 shrink-0">
+                          {item.category}
+                        </span>
+                      )}
                     </div>
                     <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded border border-emerald-300">
                       Apply ↵

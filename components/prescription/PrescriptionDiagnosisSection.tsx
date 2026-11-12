@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Plus, Undo2, Trash2, Check, Loader2, Search, Sparkles } from 'lucide-react';
+import { Plus, Undo2, Trash2, Check, Loader2, Search, Sparkles, Folder } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 import {
   getDiagnosisSuggestions,
   saveMultipleDiagnoses,
   autoSavePrescriptionDiagnosis,
 } from '@/services/prescription';
-import { getAllTemplates, PrescriptionTemplate } from '@/services/templates';
+import { getAllTemplates, PrescriptionTemplate, cleanTemplateName } from '@/services/templates';
 import { CLINICAL_SECTION_PRESETS, getSectionCustomTemplates } from '@/services/clinicalSectionPresets';
 import AutoResizeTextarea from './AutoResizeTextarea';
 
@@ -132,6 +132,7 @@ export default function PrescriptionDiagnosisSection({
   // Gynae mode template & diagnosis suggestions state
   const [gynaeQuery, setGynaeQuery] = useState('');
   const [showGynaeSuggestions, setShowGynaeSuggestions] = useState(false);
+  const [highlightedDiagIdx, setHighlightedDiagIdx] = useState(0);
   const gynaeBoxRef = useRef<HTMLDivElement>(null);
 
   const inlineInputRef = useRef<HTMLInputElement>(null);
@@ -248,7 +249,7 @@ export default function PrescriptionDiagnosisSection({
           map.set(key, {
             type: 'template',
             name: tmpl.diagnosis ? tmpl.diagnosis.split(',')[0].trim() || tmpl.name : tmpl.name,
-            label: `⭐ [Template] ${tmpl.name}${tmpl.diagnosis ? ` (${tmpl.diagnosis})` : ''}`,
+            label: cleanTemplateName(tmpl.name),
             snomed_code: '',
             duration: '',
             category: tmpl.category || 'Template',
@@ -271,7 +272,7 @@ export default function PrescriptionDiagnosisSection({
           map.set(key, {
             type: 'preset',
             name: pDataStr,
-            label: `⚡ [Preset] ${p.name}`,
+            label: cleanTemplateName(p.name),
             snomed_code: '',
             duration: '',
             category: p.category || 'Preset',
@@ -392,6 +393,22 @@ export default function PrescriptionDiagnosisSection({
     setShowSuggestions(false);
   };
 
+  const [templateVersion, setTemplateVersion] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      if (!e.detail?.sectionKey || e.detail.sectionKey === 'diagnosis') {
+        setTemplateVersion((v) => v + 1);
+      }
+    };
+    window.addEventListener('cortex_section_templates_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('cortex_section_templates_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   // Suggestions for Gynae mode (templates, presets, diagnoses)
   const gynaeSuggestions = useMemo(() => {
     const q = gynaeQuery.trim().toLowerCase();
@@ -407,7 +424,7 @@ export default function PrescriptionDiagnosisSection({
           list.push({
             type: 'template',
             name: tmpl.diagnosis || tmpl.name,
-            label: `⭐ [Template] ${tmpl.name}${tmpl.diagnosis ? ` (${tmpl.diagnosis})` : ''}`,
+            label: cleanTemplateName(tmpl.name),
             snomed_code: '',
             duration: '',
             category: tmpl.category || 'Template',
@@ -417,11 +434,11 @@ export default function PrescriptionDiagnosisSection({
       }
     } catch {}
 
-    // Presets
+    // Presets & Saved Templates
     try {
       const presets = [
-        ...(CLINICAL_SECTION_PRESETS.diagnosis || []),
         ...getSectionCustomTemplates('diagnosis'),
+        ...(CLINICAL_SECTION_PRESETS.diagnosis || []),
       ];
       for (const p of presets) {
         const pDataStr = typeof p.data === 'string' ? p.data : p.name;
@@ -429,10 +446,10 @@ export default function PrescriptionDiagnosisSection({
           list.push({
             type: 'preset',
             name: pDataStr,
-            label: `⚡ [Preset] ${p.name}`,
+            label: cleanTemplateName(p.name),
             snomed_code: '',
             duration: '',
-            category: p.category || 'Preset',
+            category: p.category || 'Saved Template',
           });
         }
       }
@@ -451,6 +468,11 @@ export default function PrescriptionDiagnosisSection({
     }
 
     const sortFn = (a: LinkedDiagnosis, b: LinkedDiagnosis) => {
+      if (a.type === 'preset' && b.type !== 'preset') return -1;
+      if (b.type === 'preset' && a.type !== 'preset') return 1;
+      if (a.type === 'template' && b.type !== 'template') return -1;
+      if (b.type === 'template' && a.type !== 'template') return 1;
+
       const aCat = (a.category || '').toLowerCase();
       const bCat = (b.category || '').toLowerCase();
       const aMatches = isGynae
@@ -463,10 +485,6 @@ export default function PrescriptionDiagnosisSection({
       if (aMatches && !bMatches) return -1;
       if (!aMatches && bMatches) return 1;
 
-      if (a.type === 'template' && b.type !== 'template') return -1;
-      if (b.type === 'template' && a.type !== 'template') return 1;
-      if (a.type === 'preset' && b.type !== 'preset') return -1;
-      if (b.type === 'preset' && a.type !== 'preset') return 1;
       return 0;
     };
 
@@ -474,22 +492,22 @@ export default function PrescriptionDiagnosisSection({
     return list
       .sort(sortFn)
       .slice(0, 15);
-  }, [gynaeQuery, dbSuggestions, isGynae]);
+  }, [gynaeQuery, dbSuggestions, isGynae, templateVersion]);
 
   const handleSelectGynaeSuggestion = (item: LinkedDiagnosis) => {
     if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
       onApplyMasterTemplate(item.templateObj);
     }
 
-    const diagText = item.templateObj?.diagnosis || item.name;
+    const diagText = (item.templateObj?.diagnosis || item.name || '').trim();
     const current = (diagnosisSummary || '').trim();
     let updatedText = '';
-    const parts = current.split(',');
-    if (parts.length > 0 && parts[parts.length - 1].trim().toLowerCase() === gynaeQuery.trim().toLowerCase()) {
-      parts[parts.length - 1] = ' ' + diagText;
-      updatedText = parts.join(',').replace(/^[\s,]+/, '').trim();
+    const parts = current.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      parts[parts.length - 1] = diagText;
+      updatedText = parts.join(', ');
     } else {
-      updatedText = current ? `${current.replace(/,\s*$/, '')}, ${diagText}` : diagText;
+      updatedText = diagText;
     }
 
     onUpdateDiagnosisSummary(updatedText);
@@ -503,6 +521,7 @@ export default function PrescriptionDiagnosisSection({
     setDiagnosesList([singleRow]);
     scheduleAutoSave([singleRow]);
     setShowGynaeSuggestions(false);
+    setGynaeQuery('');
   };
 
   const handleAddDiagnosis = () => {
@@ -574,33 +593,31 @@ export default function PrescriptionDiagnosisSection({
     scheduleAutoSave([]);
   };
 
+  const activeVal = (
+    diagnosisSummary !== undefined
+      ? diagnosisSummary
+      : diagnosesList.map((d) => d.diagnosis).join(', ')
+  ).replace(/^[\s,]+/, '');
+
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {/* Removed repeated "Diagnosis" label text as requested */}
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        {/* Left Pill Badge: Diagnosis / Condition */}
+        <div className="px-3.5 py-2 rounded-xl border border-slate-100 bg-slate-50/90 flex items-center gap-2 shrink-0 select-none shadow-2xs w-full sm:w-52">
+          <Folder className="w-4 h-4 text-slate-700 shrink-0" />
+          <span className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">Diagnosis / Condition</span>
+        </div>
 
-          {/* Auto-save status indicator */}
-          {saveStatus === 'saving' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 animate-pulse border border-emerald-200">
-              <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              Auto-saving...
-            </span>
-          )}
-          {saveStatus === 'saved' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition">
-              <Check className="w-2.5 h-2.5" />
-              Auto-saved
-            </span>
-          )}
-
-          <div className="flex items-center gap-1 text-slate-400">
+        {/* Right Pill/Box: Actions + Input + Clear */}
+        <div className="relative flex-1 min-h-[42px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 shadow-2xs focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+          {/* Action Icons: Folder (Templates), Undo */}
+          <div className="flex items-center gap-1 text-slate-400 shrink-0">
             <SectionTemplatePicker
               sectionKey="diagnosis"
               sectionTitle="Diagnosis"
-              currentValue={diagnosisSummary || diagnosesList.map((d) => d.diagnosis).join(', ')}
+              currentValue={activeVal}
               category={isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics'}
-              align="left"
+              align="right"
               onApplyPreset={(val) => {
                 const text =
                   typeof val === 'string'
@@ -608,8 +625,7 @@ export default function PrescriptionDiagnosisSection({
                     : Array.isArray(val)
                     ? val.map((x: any) => (typeof x === 'string' ? x : x.diagnosis || x.name || JSON.stringify(x))).join(', ')
                     : JSON.stringify(val);
-                const current = (diagnosisSummary || '').trim();
-                const updatedText = current ? `${current.replace(/,\s*$/, '')}, ${text}` : text;
+                const updatedText = text.trim();
                 onUpdateDiagnosisSummary(updatedText);
                 const singleRow: DiagnosisRow = {
                   id: 'diag_1',
@@ -620,134 +636,147 @@ export default function PrescriptionDiagnosisSection({
                 };
                 setDiagnosesList([singleRow]);
                 scheduleAutoSave([singleRow]);
+                setGynaeQuery('');
               }}
             />
             <button
               type="button"
               title="Restore Previous Prescription Diagnosis"
-              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              className="p-1 rounded hover:bg-slate-100 hover:text-emerald-700 transition cursor-pointer"
               onClick={onRestorePreviousDiagnosis || handleClearAll}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
 
-        {(diagnosisSummary || diagnosesList.length > 0) && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className="text-[11px] text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer font-medium"
-          >
-            <Trash2 className="w-3 h-3" />
-            Clear List
-          </button>
-        )}
-      </div>
+          <div className="w-px h-4 bg-slate-200 shrink-0 mx-0.5" />
 
-      <div className="relative">
-        <AutoResizeTextarea
-          value={diagnosisSummary !== undefined ? diagnosisSummary : diagnosesList.map((d) => d.diagnosis).join(', ')}
-          onChange={(e) => {
-            const val = e.target.value.replace(/^[\s,]+/, '');
-            onUpdateDiagnosisSummary(val);
-            const parts = val.split(',');
-            const currentTyping = parts[parts.length - 1].trim();
-            setGynaeQuery(currentTyping);
-            setShowGynaeSuggestions(true);
-            if (val.trim()) {
-              const singleRow: DiagnosisRow = {
-                id: 'diag_1',
-                diagnosis: val,
-                snomed_code: '',
-                duration: '',
-                date: date || new Date().toISOString().slice(0, 10),
-              };
-              setDiagnosesList([singleRow]);
-              scheduleAutoSave([singleRow]);
-            } else {
-              setDiagnosesList([]);
-              scheduleAutoSave([]);
-            }
-          }}
-          onFocus={() => {
-            const parts = (diagnosisSummary || '').split(',');
-            setGynaeQuery(parts[parts.length - 1]?.trim() || '');
-            setShowGynaeSuggestions(true);
-          }}
-          minRows={1}
-          placeholder={
-            isGynae
-              ? 'Enter diagnosis (e.g. Antenatal care, PCOD, Primary infertility) or start typing to search templates...'
-              : 'Enter diagnosis (e.g. Knee Osteoarthritis, Lumbar Spondylosis, Closed fracture, Sciatica) or start typing to search templates...'
-          }
-          className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
-        />
-
-        {/* Autocomplete suggestions dropdown */}
-        {showGynaeSuggestions && gynaeSuggestions.length > 0 && (
-          <div
-            ref={gynaeBoxRef}
-            className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]"
-          >
-            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                Auto-suggest (Templates & Diagnoses)
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowGynaeSuggestions(false)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-              >
-                ✕ Close
-              </button>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {gynaeSuggestions.map((item, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onMouseDown={(e) => {
+          {/* Input Field with Auto-Suggest */}
+          <div className="relative flex-1 flex items-center min-w-0">
+            <input
+              ref={inlineInputRef}
+              type="text"
+              value={activeVal}
+              onChange={(e) => {
+                const val = e.target.value.replace(/^[\s,]+/, '');
+                onUpdateDiagnosisSummary(val);
+                const parts = val.split(',');
+                const currentTyping = parts[parts.length - 1].trim();
+                setGynaeQuery(currentTyping);
+                setShowGynaeSuggestions(true);
+                if (val.trim()) {
+                  const singleRow: DiagnosisRow = {
+                    id: 'diag_1',
+                    diagnosis: val,
+                    snomed_code: '',
+                    duration: '',
+                    date: date || new Date().toISOString().slice(0, 10),
+                  };
+                  setDiagnosesList([singleRow]);
+                  scheduleAutoSave([singleRow]);
+                } else {
+                  setDiagnosesList([]);
+                  scheduleAutoSave([]);
+                }
+              }}
+              onFocus={() => {
+                const parts = (diagnosisSummary || '').split(',');
+                setGynaeQuery(parts[parts.length - 1]?.trim() || '');
+                setHighlightedDiagIdx(0);
+                setShowGynaeSuggestions(true);
+              }}
+              onKeyDown={(e) => {
+                if (showGynaeSuggestions && gynaeSuggestions.length > 0) {
+                  if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    handleSelectGynaeSuggestion(item);
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {item.type === 'template' ? (
-                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
-                        ⭐ Template
-                      </span>
-                    ) : item.type === 'preset' ? (
-                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold shrink-0">
-                        ⚡ Preset
-                      </span>
-                    ) : item.category?.toLowerCase().includes('ortho') ? (
-                      <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold shrink-0 border border-blue-200">
-                        Ortho
-                      </span>
-                    ) : item.category?.toLowerCase().includes('gyn') || item.category?.toLowerCase().includes('obs') ? (
-                      <span className="px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 text-[10px] font-bold shrink-0 border border-pink-200">
-                        Gynae
-                      </span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
-                        Diagnosis
-                      </span>
-                    )}
-                    <span className="font-semibold text-slate-800 truncate">
-                      {item.label || item.name}
-                    </span>
-                  </div>
-                  {item.category && (
-                    <span className="text-[10px] text-slate-400 shrink-0 font-medium">{item.category}</span>
-                  )}
-                </button>
-              ))}
-            </div>
+                    setHighlightedDiagIdx((prev) => (prev < gynaeSuggestions.length - 1 ? prev + 1 : 0));
+                    return;
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedDiagIdx((prev) => (prev > 0 ? prev - 1 : gynaeSuggestions.length - 1));
+                    return;
+                  }
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const target = gynaeSuggestions[highlightedDiagIdx >= 0 ? highlightedDiagIdx : 0];
+                    if (target) {
+                      handleSelectGynaeSuggestion(target);
+                    }
+                    return;
+                  }
+                  if (e.key === 'Escape') {
+                    setShowGynaeSuggestions(false);
+                    return;
+                  }
+                }
+              }}
+              placeholder="Add diagnosis / condition..."
+              className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
+            />
+
+            {/* Live Autocomplete suggestions dropdown */}
+            {showGynaeSuggestions && gynaeSuggestions.length > 0 && (
+              <div
+                ref={gynaeBoxRef}
+                className="absolute left-0 top-full mt-2 w-full min-w-[280px] sm:min-w-[340px] bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-[9999]"
+              >
+                <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    Suggestions (Enter to pick)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowGynaeSuggestions(false)}
+                    className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {gynaeSuggestions.map((item, i) => {
+                    const isSelected = highlightedDiagIdx === i;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectGynaeSuggestion(item);
+                        }}
+                        onMouseEnter={() => setHighlightedDiagIdx(i)}
+                        className={`w-full text-left px-3.5 py-2.5 text-xs transition cursor-pointer flex items-center justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-emerald-50 text-emerald-950 font-bold'
+                            : 'hover:bg-slate-50 text-slate-800'
+                        }`}
+                      >
+                        <span className="truncate">
+                          {cleanTemplateName(item.label || item.name)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right Clear Button */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+            <div className="w-px h-4 bg-slate-200" />
+            <button
+              type="button"
+              onClick={handleClearAll}
+              title="Clear Diagnosis"
+              className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-md transition cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

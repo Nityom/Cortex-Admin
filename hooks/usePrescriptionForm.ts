@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllMedicines, Medicine } from '@/services/medicine';
 import {
@@ -18,6 +18,7 @@ import {
   MedicineEntry,
   getPrescriptionsByPatient,
   getLatestPrescriptionByPhone,
+  getAllPrescriptionsForPatient,
 } from '@/services/prescription';
 import {
   getOrCreatePatient,
@@ -202,6 +203,7 @@ export function usePrescriptionForm() {
 
   // Email Prescription Modal State
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailModalCustomData, setEmailModalCustomData] = useState<PrescriptionEmailModalData | null>(null);
   const [emailSuccessPrompt, setEmailSuccessPrompt] = useState(false);
 
   // Active top navigation tab ('1st Visit' vs 'Repeat Patient' vs 'View Past')
@@ -209,23 +211,54 @@ export function usePrescriptionForm() {
 
   const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  const [formData, setFormData] = useState<FormData>({
-    patientName: '',
-    email: '',
-    age: '',
-    sex: 'Male',
-    phoneNumber: '',
-    date: todayDate,
-    cc: '',
-    mh: '',
-    investigation: '',
-    de: '',
-    advice: '',
-    followupDate: '',
+  const [formData, setFormData] = useState<FormData>(() => {
+    let initialName = '';
+    let initialPhone = '';
+    let initialAge = '';
+    let initialSex: any = 'Male';
+    let initialRef = '';
+    let initialEmail = '';
+    if (typeof window !== 'undefined') {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        initialName = p.get('patientName') || p.get('name') || '';
+        initialPhone = p.get('phoneNumber') || p.get('phone') || '';
+        initialAge = p.get('age') || '';
+        initialSex = p.get('sex') || 'Male';
+        initialRef = p.get('reference_number') || p.get('uhid') || '';
+        initialEmail = p.get('email') || '';
+      } catch {}
+    }
+    return {
+      patientName: initialName,
+      email: initialEmail,
+      age: initialAge,
+      sex: initialSex,
+      phoneNumber: initialPhone,
+      reference_number: initialRef,
+      date: new Date().toISOString().slice(0, 10),
+      cc: '',
+      mh: '',
+      investigation: '',
+      de: '',
+      advice: '',
+      followupDate: '',
+    };
   });
 
   // Doctor Selector State
-  const [selectedDoctorName, setSelectedDoctorName] = useState<string>('Dr. Vipeen Raut');
+  const [selectedDoctorName, setSelectedDoctorName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc');
+        if (qDoc) return qDoc;
+        const savedDoc = localStorage.getItem('cortex_active_doctor');
+        if (savedDoc) return savedDoc;
+      } catch {}
+    }
+    return 'Dr. Vipeen Raut';
+  });
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([]);
   const [includeSignature, setIncludeSignature] = useState(true);
   const [nextReadyPatient, setNextReadyPatient] = useState<any | null>(null);
@@ -237,8 +270,9 @@ export function usePrescriptionForm() {
   const [consultationCharge, setConsultationCharge] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const savedDoc = localStorage.getItem('cortex_active_doctor') || 'Dr. Vipeen Raut';
-        const isGynae = savedDoc.toLowerCase().includes('shilpa') || savedDoc.toLowerCase().includes('shillpa');
+        const p = new URLSearchParams(window.location.search);
+        const qDoc = p.get('doctorName') || p.get('doctor') || p.get('doc') || localStorage.getItem('cortex_active_doctor') || 'Dr. Vipeen Raut';
+        const isGynae = qDoc.toLowerCase().includes('shilpa') || qDoc.toLowerCase().includes('shillpa');
         return isGynae ? 200 : 400;
       } catch {}
     }
@@ -253,7 +287,19 @@ export function usePrescriptionForm() {
     paymentMethod: 'Cash',
   });
 
-  // Past Visits Modal
+  // Past Visits Dashboard & History
+  const [pastVisitsList, setPastVisitsList] = useState<any[]>([]);
+  const [selectedPastVisit, setSelectedPastVisit] = useState<any | null>(null);
+  const [showPastDashboard, setShowPastDashboard] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const p = new URLSearchParams(window.location.search);
+        return p.get('viewMode') === 'history' || p.get('hasHistory') === 'true';
+      } catch {}
+    }
+    return false;
+  });
+  const [isCheckingHistory, setIsCheckingHistory] = useState<boolean>(true);
   const [isPastVisitsModalOpen, setIsPastVisitsModalOpen] = useState(false);
 
   // Complaints & Findings
@@ -694,11 +740,14 @@ export function usePrescriptionForm() {
   const handleTabChange = (tab: '1st Visit' | 'Repeat Patient' | 'View Past') => {
     setActiveTab(tab);
     if (tab === 'View Past') {
-      setIsPastVisitsModalOpen(true);
-    } else if (tab === 'Repeat Patient') {
-      setRepeatPatient(true);
+      setShowPastDashboard(true);
     } else {
-      setRepeatPatient(false);
+      setShowPastDashboard(false);
+      if (tab === 'Repeat Patient') {
+        setRepeatPatient(true);
+      } else {
+        setRepeatPatient(false);
+      }
     }
   };
 
@@ -732,11 +781,16 @@ export function usePrescriptionForm() {
         ]);
       }
       if (pastRx.medicines) {
-        const meds = Array.isArray(pastRx.medicines)
+        let meds = Array.isArray(pastRx.medicines)
           ? pastRx.medicines
           : typeof pastRx.medicines === 'string'
           ? JSON.parse(pastRx.medicines)
           : [];
+        // Refresh start_from to todayDate for the new consultation
+        meds = meds.map((m: any) => ({
+          ...m,
+          start_from: todayDate,
+        }));
         if (meds.length > 0) setMedicines(meds);
       }
       if (pastRx.advice) {
@@ -798,6 +852,40 @@ export function usePrescriptionForm() {
     },
     [autoPopulateAntenatalFromPastRx, todayDate]
   );
+
+  // Create brand new consultation from past prescription (HealthPlix IMG_0902 flow)
+  const handleCreateNewVisit = useCallback(
+    (sourceVisit?: any) => {
+      const targetVisit =
+        sourceVisit || selectedPastVisit || (pastVisitsList.length > 0 ? pastVisitsList[0] : null);
+      if (targetVisit) {
+        handleLoadPastPrescription(targetVisit, false);
+      } else {
+        setIsEditMode(false);
+        setPrescriptionId(null);
+        setFormData((prev) => ({
+          ...prev,
+          date: todayDate,
+          followupDate: '',
+        }));
+      }
+      setShowPastDashboard(false);
+      setActiveTab('Repeat Patient');
+      setRepeatPatient(true);
+    },
+    [handleLoadPastPrescription, pastVisitsList, selectedPastVisit, todayDate]
+  );
+
+  // Quick Print of a past consultation
+  const handlePrintPastVisit = useCallback((visit: any) => {
+    if (!visit) return;
+    const visitId = visit._id || visit.id;
+    if (visitId) {
+      window.open(`/print-prescription?id=${visitId}`, '_blank');
+    } else {
+      window.print();
+    }
+  }, []);
 
   // Restore handlers for Undo2 buttons in each clinical section
   const getEffectivePreviousRx = useCallback(() => {
@@ -1146,6 +1234,21 @@ export function usePrescriptionForm() {
             } catch {}
           }
 
+          // Retrieve all past prescriptions for patient history
+          try {
+            const allPast = await getAllPrescriptionsForPatient(
+              existingPatient.reference_number,
+              phoneNumber,
+              existingPatient.name
+            );
+            if (allPast && allPast.length > 0) {
+              setPastVisitsList(allPast);
+              setSelectedPastVisit(allPast[0]);
+            }
+          } catch (e) {
+            console.warn('Error fetching all past Rx in phone change:', e);
+          }
+
           const fee = isGynae
             ? (isWithin10Days ? 100 : 200)
             : (isWithin10Days ? 200 : 400);
@@ -1165,7 +1268,7 @@ export function usePrescriptionForm() {
 
   // Save Prescription to Database & Convex
   const savePrescriptionToDatabase = async (
-    options: { skipOperationalSideEffects?: boolean } = {}
+    options: { skipOperationalSideEffects?: boolean; skipWhatsApp?: boolean } = {}
   ): Promise<any> => {
     try {
       setSaving(true);
@@ -1273,8 +1376,8 @@ export function usePrescriptionForm() {
         }
       }
 
-      // Automatically send prescription link to patient on WhatsApp
-      if (savedPrescription?.id && formData.phoneNumber) {
+      // Automatically send prescription link to patient on WhatsApp only on explicit save/update
+      if (!options.skipWhatsApp && savedPrescription?.id && formData.phoneNumber) {
         sendPrescriptionOnWhatsApp({
           phoneNumber: formData.phoneNumber,
           patientName: formData.patientName,
@@ -1347,7 +1450,7 @@ export function usePrescriptionForm() {
     if (!opdVisitId || !nextReadyPatient || movingToNextPatient) return;
     setMovingToNextPatient(true);
     try {
-      const savedPrescription = await savePrescriptionToDatabase({ skipOperationalSideEffects: true });
+      const savedPrescription = await savePrescriptionToDatabase({ skipOperationalSideEffects: true, skipWhatsApp: true });
       if (!savedPrescription) return;
 
       const queue = JSON.parse(localStorage.getItem('cortex_opd_queue_v1') || '[]');
@@ -1464,7 +1567,52 @@ export function usePrescriptionForm() {
     gestationalDays,
   ]);
 
-  const handleOpenEmailModal = () => {
+  const handleOpenEmailModal = (targetVisit?: any) => {
+    if (targetVisit) {
+      const diagStr = Array.isArray(targetVisit.diagnoses)
+        ? targetVisit.diagnoses.map((d: any) => typeof d === 'string' ? d : d.diagnosis).filter(Boolean).join(', ')
+        : (targetVisit.diagnosis || targetVisit.de || '');
+      const ccStr = Array.isArray(targetVisit.complaints)
+        ? targetVisit.complaints.map((c: any) => typeof c === 'string' ? c : c.complaint).filter(Boolean).join(', ')
+        : (targetVisit.chief_complaints || targetVisit.cc || '');
+      const testsStr = Array.isArray(targetVisit.tests_requested)
+        ? targetVisit.tests_requested.map((t: any) => typeof t === 'string' ? t : `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`).join(', ')
+        : (targetVisit.investigation || '');
+      const adviceStr = [targetVisit.advice, targetVisit.procedure_advice].filter(Boolean).join('\n');
+
+      setEmailModalCustomData({
+        patientName: targetVisit.patient_name || targetVisit.patientName || formData.patientName,
+        phoneNumber: targetVisit.phone_number || targetVisit.phoneNumber || formData.phoneNumber,
+        email: targetVisit.patient_email || targetVisit.email || (formData as any).email || '',
+        age: targetVisit.age || formData.age,
+        gender: targetVisit.gender || targetVisit.sex || formData.sex,
+        referenceNumber: targetVisit.reference_number || targetVisit.patient_reference || patientReferenceNumber,
+        doctorName: targetVisit.doctor_name || selectedDoctorName,
+        prescriptionDate: targetVisit.prescription_date || targetVisit.date || formData.date,
+        chiefComplaint: ccStr,
+        diagnosis: diagStr,
+        medicalHistory: targetVisit.medical_history || targetVisit.mh || '',
+        findings: targetVisit.findings || '',
+        advice: adviceStr,
+        dietExercise: targetVisit.diet_exercise || '',
+        investigation: testsStr,
+        followupDate: targetVisit.followup_date || targetVisit.followupDate || '',
+        medicines: targetVisit.medicines || [],
+        vitals: targetVisit.vitals || {
+          bp: targetVisit.bp || '',
+          pulse: targetVisit.pulse || '',
+          spo2: targetVisit.spo2 || '',
+          height: targetVisit.height || '',
+          weight: targetVisit.weight || '',
+          temp: targetVisit.temp || '',
+          bmi: targetVisit.bmi || '',
+          lmp: targetVisit.lmp || '',
+          edd: targetVisit.edd || '',
+        },
+      });
+    } else {
+      setEmailModalCustomData(null);
+    }
     setIsEmailModalOpen(true);
   };
 
@@ -1571,7 +1719,7 @@ export function usePrescriptionForm() {
 
     if (formData.patientName) {
       try {
-        const saved = await savePrescriptionToDatabase();
+        const saved = await savePrescriptionToDatabase({ skipWhatsApp: true });
         if (saved?.id) currentId = saved.id;
       } catch (saveErr) {
         console.warn('Could not auto-save before print, using local snapshot:', saveErr);
@@ -1641,20 +1789,34 @@ export function usePrescriptionForm() {
     window.open(printUrl, '_blank');
   };
 
-  // Initial Load from URL & Services
+  // Safety timeout: Ensure loading skeleton NEVER hangs indefinitely under any circumstances
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsCheckingHistory(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Initial Load from URL & Services - runs strictly once on mount
+  useEffect(() => {
+    let isMounted = true;
     const initPage = async () => {
       try {
-        const meds = await getAllMedicines();
-        setMedicineOptions(meds);
+        // Run medicine catalog and doctor list asynchronously in background
+        getAllMedicines().then((meds) => {
+          if (meds && isMounted) setMedicineOptions(meds);
+        }).catch(() => {});
 
-        const docs = await doctorService.list({ status: 'ACTIVE' });
-        if (docs && docs.length > 0) setAvailableDoctors(docs);
+        doctorService.list({ status: 'ACTIVE' }).then((docs) => {
+          if (docs && docs.length > 0 && isMounted) setAvailableDoctors(docs);
+        }).catch(() => {});
 
         const savedProcs = localStorage.getItem('cortex_custom_procedures_v1');
         if (savedProcs) {
-          const parsed = JSON.parse(savedProcs);
-          if (Array.isArray(parsed)) setDentalProcedures(parsed);
+          try {
+            const parsed = JSON.parse(savedProcs);
+            if (Array.isArray(parsed) && isMounted) setDentalProcedures(parsed);
+          } catch {}
         }
 
         const params = new URLSearchParams(window.location.search);
@@ -1677,10 +1839,27 @@ export function usePrescriptionForm() {
         }
 
         if (qId) {
-          setIsEditMode(true);
-          setPrescriptionId(qId);
           const existing = await getPrescriptionById(qId);
           if (existing) {
+            const normDate = (d?: string) => {
+              if (!d) return '';
+              const parts = d.split(/[-/]/);
+              if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+              }
+              return d;
+            };
+            const isCreatedToday = normDate(existing.prescription_date) === normDate(todayDate);
+            if (isCreatedToday) {
+              setIsEditMode(true);
+              setPrescriptionId(qId);
+              setShowPastDashboard(false);
+            } else {
+              setIsEditMode(false);
+              setPrescriptionId(null);
+            }
+
             if (existing.doctor_name) setSelectedDoctorName(existing.doctor_name);
             let patientEmail = (existing as any).email || '';
             if (!patientEmail && existing.phone_number) {
@@ -1700,13 +1879,13 @@ export function usePrescriptionForm() {
               age: existing.age ? String(existing.age) : '',
               sex: existing.sex || 'Male',
               phoneNumber: existing.phone_number || '',
-              date: existing.prescription_date || new Date().toISOString().slice(0, 10),
+              date: isCreatedToday ? (existing.prescription_date || todayDate) : todayDate,
               cc: existing.chief_complaint || '',
               mh: existing.medical_history || '',
               investigation: existing.investigation || '',
               de: existing.diagnosis || '',
               advice: existing.advice || '',
-              followupDate: existing.followup_date || '',
+              followupDate: isCreatedToday ? (existing.followup_date || '') : '',
               reference_number: existing.reference_number,
             });
             const existingFindings = (existing as any).findings || existing.oral_exam_notes;
@@ -1717,8 +1896,13 @@ export function usePrescriptionForm() {
               setDrNotes(existing.dr_notes);
             }
             if (existing.medicines) {
-              const parsedMeds = typeof existing.medicines === 'string' ? JSON.parse(existing.medicines) : existing.medicines;
-              if (Array.isArray(parsedMeds)) setMedicines(parsedMeds);
+              let parsedMeds = typeof existing.medicines === 'string' ? JSON.parse(existing.medicines) : existing.medicines;
+              if (Array.isArray(parsedMeds)) {
+                if (!isCreatedToday) {
+                  parsedMeds = parsedMeds.map((m: any) => ({ ...m, start_from: todayDate }));
+                }
+                setMedicines(parsedMeds);
+              }
             }
             if (existing.vitals) {
               const v = existing.vitals;
@@ -1736,6 +1920,32 @@ export function usePrescriptionForm() {
                 if (parts[0]) setGestationalWeeks(parts[0].replace(/\D/g, ''));
                 if (parts[2]) setGestationalDays(parts[2].replace(/\D/g, ''));
               }
+            }
+
+            // Retrieve past visits history
+            try {
+              const pastRx = await getAllPrescriptionsForPatient(
+                existing.reference_number,
+                existing.phone_number,
+                existing.patient_name
+              );
+              const effectiveList = pastRx && pastRx.length > 0 ? pastRx : [existing];
+              setPastVisitsList(effectiveList);
+              setSelectedPastVisit(existing);
+
+              const qViewMode = params.get('viewMode');
+              const shouldShowDashboard = !isCreatedToday || qViewMode === 'history' || params.get('hasHistory') === 'true';
+
+              if (shouldShowDashboard) {
+                setShowPastDashboard(true);
+                setActiveTab('View Past');
+                const isGynaeDoc = (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('shilpa') || (existing.doctor_name || selectedDoctorName || '').toLowerCase().includes('shillpa');
+                if (isGynaeDoc) {
+                  autoPopulateAntenatalFromPastRx(effectiveList, todayDate);
+                }
+              }
+            } catch (err) {
+              console.warn('Could not fetch past prescriptions for existing Rx:', err);
             }
           }
         } else {
@@ -1778,63 +1988,55 @@ export function usePrescriptionForm() {
 
           const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('shilpa') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('shillpa');
 
+          let patientRef = qReference;
           if (qPhone && qPhone.length === 10) {
-            const existingPatient = await getPatientByPhoneNumber(qPhone);
-            if (existingPatient) {
-              setIsNewPatient(false);
-              setConsultationCharge(200);
-              if (existingPatient.email) {
-                setFormData((prev) => ({ ...prev, email: existingPatient.email }));
-              }
-              const targetRef = existingPatient.reference_number || qReference;
-              if (targetRef) {
-                try {
-                  const pastRx = await getPrescriptionsByPatient(targetRef);
-                  if (pastRx && pastRx.length > 0) {
-                    const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
-                    if (sortedPast[0]) setPreviousPrescription(sortedPast[0]);
-                    if (sortedPast[0]) {
-                      handleLoadPastPrescription(sortedPast[0], true);
-                    }
-                    if (isGynaeDoc) {
-                      autoPopulateAntenatalFromPastRx(pastRx, todayDate);
-                    }
-                  }
-                } catch (e) {
-                  console.warn('Could not auto-populate antenatal data by reference in initPage:', e);
-                }
-              }
-            } else {
-              try {
-                const latestRx = await getLatestPrescriptionByPhone(qPhone);
-                if (latestRx) {
-                  setPreviousPrescription(latestRx);
-                  handleLoadPastPrescription(latestRx, true);
-                  if (isGynaeDoc) {
-                    autoPopulateAntenatalFromPastRx([latestRx], todayDate);
-                  }
-                }
-              } catch (e) {
-                console.warn('Could not auto-populate antenatal data by phone in initPage:', e);
-              }
-            }
-          } else if (qReference) {
             try {
-              const pastRx = await getPrescriptionsByPatient(qReference);
-              if (pastRx && pastRx.length > 0) {
-                const sortedPast = [...pastRx].sort((a, b) => new Date(b.prescription_date || 0).getTime() - new Date(a.prescription_date || 0).getTime());
-                if (sortedPast[0]) setPreviousPrescription(sortedPast[0]);
-                if (sortedPast[0]) {
-                  handleLoadPastPrescription(sortedPast[0], true);
+              const existingPatient = await getPatientByPhoneNumber(qPhone);
+              if (existingPatient) {
+                setIsNewPatient(false);
+                setConsultationCharge(200);
+                if (existingPatient.email) {
+                  setFormData((prev) => ({ ...prev, email: existingPatient.email }));
                 }
-                if (isGynaeDoc) {
-                  autoPopulateAntenatalFromPastRx(pastRx, todayDate);
+                if (existingPatient.reference_number) {
+                  patientRef = existingPatient.reference_number;
+                  setPatientReferenceNumber(existingPatient.reference_number);
+                  setFormData((prev) => ({ ...prev, reference_number: existingPatient.reference_number }));
                 }
               }
             } catch (e) {
-              console.warn('Could not auto-populate antenatal data by qReference in initPage:', e);
+              console.warn('Error fetching patient by phone in initPage:', e);
             }
           }
+
+          // Fetch all past prescriptions for this patient
+          try {
+            const pastRxList = await getAllPrescriptionsForPatient(
+              patientRef || undefined,
+              qPhone || undefined,
+              qName || undefined
+            );
+            if (pastRxList && pastRxList.length > 0) {
+              setPastVisitsList(pastRxList);
+              setSelectedPastVisit(pastRxList[0]);
+              setPreviousPrescription(pastRxList[0]);
+              setIsNewPatient(false);
+              setConsultationCharge(200);
+
+              // Pre-fill latest past prescription into form with today's date in background
+              handleLoadPastPrescription(pastRxList[0], true);
+              if (isGynaeDoc) {
+                autoPopulateAntenatalFromPastRx(pastRxList, todayDate);
+              }
+
+              // OPEN THE HEALTHPLIX PAST VISITS DASHBOARD!
+              setShowPastDashboard(true);
+              setActiveTab('View Past');
+            }
+          } catch (e) {
+            console.warn('Error fetching past prescriptions in initPage:', e);
+          }
+
           if (qTmplId) {
             const tmpl = getTemplateById(qTmplId);
             if (tmpl) applyPrescriptionTemplate(tmpl);
@@ -1842,11 +2044,16 @@ export function usePrescriptionForm() {
         }
       } catch (err) {
         console.error('Initialization error:', err);
+      } finally {
+        setIsCheckingHistory(false);
       }
     };
 
     initPage();
-  }, [applyPrescriptionTemplate, autoPopulateAntenatalFromPastRx, handleLoadPastPrescription, todayDate]);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return {
     // Basic Form
@@ -1890,10 +2097,19 @@ export function usePrescriptionForm() {
     setPaymentDetails,
     handlePrintBill,
 
-    // Past Visits Modal
+    // Past Visits Modal & Dashboard
     isPastVisitsModalOpen,
     setIsPastVisitsModalOpen,
     handleLoadPastPrescription,
+    pastVisitsList,
+    setPastVisitsList,
+    selectedPastVisit,
+    setSelectedPastVisit,
+    showPastDashboard,
+    setShowPastDashboard,
+    isCheckingHistory,
+    handleCreateNewVisit,
+    handlePrintPastVisit,
 
     // Complaints & Findings
     complaintsList,
@@ -2010,6 +2226,8 @@ export function usePrescriptionForm() {
     // Email Prescription Modal
     isEmailModalOpen,
     setIsEmailModalOpen,
+    emailModalCustomData,
+    setEmailModalCustomData,
     emailSuccessPrompt,
     setEmailSuccessPrompt,
     handleOpenEmailModal,

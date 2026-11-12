@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Edit2, Undo2, Trash2, Check, Sparkles } from 'lucide-react';
+import { Edit2, Undo2, Trash2, Check, Sparkles, Stethoscope } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 import AutoResizeTextarea from './AutoResizeTextarea';
 import {
@@ -9,7 +9,8 @@ import {
   saveMultipleComplaints,
   autoSavePrescriptionComplaint,
 } from '@/services/prescription';
-import { getAllTemplates, PrescriptionTemplate } from '@/services/templates';
+import { getAllTemplates, PrescriptionTemplate, cleanTemplateName } from '@/services/templates';
+import { getSectionCustomTemplates } from '@/services/clinicalSectionPresets';
 
 export interface ComplaintRow {
   id: string;
@@ -55,6 +56,7 @@ export default function PrescriptionComplaintsSection({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dbSuggestions, setDbSuggestions] = useState<string[]>([]);
   const suggestionsBoxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -141,6 +143,24 @@ export default function PrescriptionComplaintsSection({
     };
   }, []);
 
+  // Reactive listener for template updates
+  const [templateVersion, setTemplateVersion] = useState(0);
+  const [highlightedComplaintIdx, setHighlightedComplaintIdx] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      if (!e.detail?.sectionKey || e.detail.sectionKey === 'complaints') {
+        setTemplateVersion((v) => v + 1);
+      }
+    };
+    window.addEventListener('cortex_section_templates_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('cortex_section_templates_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   // Click outside to close suggestion dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -161,7 +181,39 @@ export default function PrescriptionComplaintsSection({
     const list: LinkedComplaint[] = [];
     const seen = new Set<string>();
 
-    // 1. User-created Master Templates
+    // 1. Saved Custom Section Templates (localStorage + Convex DB)
+    try {
+      const customComplaints = getSectionCustomTemplates('complaints');
+      for (const tmpl of customComplaints) {
+        const tmplName = tmpl.name.trim();
+        let dataStr = '';
+        if (Array.isArray(tmpl.data)) {
+          dataStr = tmpl.data
+            .map((c: any) => (typeof c === 'string' ? c : c.complaint || c.name || ''))
+            .filter(Boolean)
+            .join(', ');
+        } else if (typeof tmpl.data === 'string') {
+          dataStr = tmpl.data.trim();
+        } else if (tmpl.data && typeof tmpl.data === 'object') {
+          dataStr = tmpl.data.complaint || tmpl.data.name || '';
+        }
+        const textToUse = dataStr || tmplName;
+        const searchStr = `${tmplName} ${textToUse}`.toLowerCase();
+        if (!q || searchStr.includes(q)) {
+          const key = `custom_tmpl_${tmpl.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            list.push({
+              type: 'template',
+              name: textToUse,
+              label: cleanTemplateName(tmplName),
+            });
+          }
+        }
+      }
+    } catch {}
+
+    // 2. User-created Master Templates
     try {
       const allTemplates = getAllTemplates();
       for (const tmpl of allTemplates) {
@@ -177,7 +229,7 @@ export default function PrescriptionComplaintsSection({
             list.push({
               type: 'template',
               name: tmplCc || tmpl.name,
-              label: `⭐ [Template] ${tmpl.name}${tmplCc ? ` (${tmplCc})` : ''}`,
+              label: cleanTemplateName(tmpl.name),
               templateObj: tmpl,
             });
           }
@@ -185,7 +237,7 @@ export default function PrescriptionComplaintsSection({
       }
     } catch {}
 
-    // 2. Real Saved Complaints from Convex DB
+    // 3. Real Saved Complaints from Convex DB
     for (const name of dbSuggestions) {
       const key = name.trim().toLowerCase();
       if (!seen.has(key)) {
@@ -215,7 +267,7 @@ export default function PrescriptionComplaintsSection({
 
     if (!q) return list.slice(0, 10);
     return list.slice(0, 15);
-  }, [currentQuery, dbSuggestions]);
+  }, [currentQuery, dbSuggestions, templateVersion]);
 
   const handleSelectSuggestion = (item: LinkedComplaint) => {
     if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
@@ -225,14 +277,14 @@ export default function PrescriptionComplaintsSection({
     const complaintText = (item.templateObj ? item.name : item.name).trim();
     const currentVal = (ccSummary !== undefined ? ccSummary : complaintsList.map((c) => c.complaint).join(', ')).trim();
 
-    // Replace partial query at the end or append
+    // Cleanly replace partial search query so search characters never prepend or merge with template
     let updatedText = '';
-    const parts = currentVal.split(',');
-    if (parts.length > 0 && parts[parts.length - 1].trim().toLowerCase() === currentQuery.trim().toLowerCase()) {
-      parts[parts.length - 1] = ' ' + complaintText;
-      updatedText = parts.join(',').replace(/^[\s,]+/, '').trim();
+    const parts = currentVal.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      parts[parts.length - 1] = complaintText;
+      updatedText = parts.join(', ');
     } else {
-      updatedText = currentVal ? `${currentVal.replace(/,\s*$/, '')}, ${complaintText}` : complaintText;
+      updatedText = complaintText;
     }
 
     if (onUpdateCcSummary) onUpdateCcSummary(updatedText);
@@ -268,21 +320,23 @@ export default function PrescriptionComplaintsSection({
   ).replace(/^[\s,]+/, '');
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          {saveStatus === 'saved' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition">
-              <Check className="w-2.5 h-2.5" />
-              Auto-saved
-            </span>
-          )}
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        {/* Left Pill Badge: Chief Complaint */}
+        <div className="px-3.5 py-2 rounded-xl border border-slate-100 bg-slate-50/90 flex items-center gap-2 shrink-0 select-none shadow-2xs w-full sm:w-52">
+          <Stethoscope className="w-4 h-4 text-slate-700 shrink-0" />
+          <span className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">Chief Complaint</span>
+        </div>
 
-          <div className="flex items-center gap-1.5 text-slate-400">
+        {/* Right Pill/Box: Actions + Input + Clear */}
+        <div className="relative flex-1 min-h-[42px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 shadow-2xs focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+          {/* Action Icons: Edit, Folder (Templates), Undo */}
+          <div className="flex items-center gap-1 text-slate-400 shrink-0">
             <button
               type="button"
-              title="Edit Complaints"
-              className="p-0.5 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+              onClick={() => inputRef.current?.focus()}
+              title="Edit Chief Complaint"
+              className="p-1 rounded hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -291,7 +345,7 @@ export default function PrescriptionComplaintsSection({
               sectionTitle="Complaints"
               currentValue={activeValue}
               category={isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics'}
-              align="left"
+              align="right"
               onApplyPreset={(val) => {
                 const text =
                   typeof val === 'string'
@@ -299,7 +353,7 @@ export default function PrescriptionComplaintsSection({
                     : Array.isArray(val)
                     ? val.map((x: any) => (typeof x === 'string' ? x : x.complaint || x.name || JSON.stringify(x))).join(', ')
                     : String(val);
-                const updated = activeValue ? `${activeValue.replace(/,\s*$/, '')}, ${text.trim()}` : text.trim();
+                const updated = text.trim();
                 if (onUpdateCcSummary) onUpdateCcSummary(updated);
                 const newRows = updated
                   .split(/[\n,;]+/)
@@ -315,122 +369,153 @@ export default function PrescriptionComplaintsSection({
                   }));
                 setComplaintsList(newRows);
                 scheduleAutoSave(updated);
+                setCurrentQuery('');
               }}
             />
             <button
               type="button"
               title="Restore Previous Prescription Complaints"
-              className="p-1 rounded text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+              className="p-1 rounded hover:bg-slate-100 hover:text-emerald-700 transition cursor-pointer"
               onClick={onRestorePreviousComplaints || handleClearAll}
             >
               <Undo2 className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
 
-        {activeValue && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className="text-[11px] text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer font-medium"
-          >
-            <Trash2 className="w-3 h-3" />
-            Clear Complaints
-          </button>
-        )}
-      </div>
+          <div className="w-px h-4 bg-slate-200 shrink-0 mx-0.5" />
 
-      <div className="relative">
-        <AutoResizeTextarea
-          value={activeValue}
-          onChange={(e) => {
-            const val = e.target.value.replace(/^[\s,]+/, '');
-            if (onUpdateCcSummary) onUpdateCcSummary(val);
+          {/* Input Field with Auto-Suggest */}
+          <div className="relative flex-1 flex items-center min-w-0">
+            <input
+              ref={inputRef}
+              type="text"
+              value={activeValue}
+              onChange={(e) => {
+                const val = e.target.value.replace(/^[\s,]+/, '');
+                if (onUpdateCcSummary) onUpdateCcSummary(val);
 
-            // Extract the word being typed after the last comma
-            const parts = val.split(',');
-            const typingPart = parts[parts.length - 1]?.trim() || '';
-            setCurrentQuery(typingPart);
-            setShowSuggestions(true);
+                const parts = val.split(',');
+                const typingPart = parts[parts.length - 1]?.trim() || '';
+                setCurrentQuery(typingPart);
+                setShowSuggestions(true);
 
-            if (val.trim()) {
-              const newRows = val
-                .split(/[\n,;]+/)
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .map((txt, idx) => ({
-                  id: `c_${Date.now()}_${idx}`,
-                  complaint: txt,
-                  frequency: '',
-                  severity: '',
-                  duration: '',
-                  date: date || new Date().toISOString().slice(0, 10),
-                }));
-              setComplaintsList(newRows);
-            } else {
-              setComplaintsList([]);
-            }
-            scheduleAutoSave(val);
-          }}
-          onFocus={() => {
-            const parts = activeValue.split(',');
-            setCurrentQuery(parts[parts.length - 1]?.trim() || '');
-            setShowSuggestions(true);
-          }}
-          minRows={1}
-          placeholder="Enter chief complaints..."
-          className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
-        />
-
-        {/* Live Autocomplete suggestions dropdown (only shown if there are real saved DB records or templates) */}
-        {showSuggestions && filteredSuggestions.length > 0 && (
-          <div
-            ref={suggestionsBoxRef}
-            className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-[100]"
-          >
-            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                Suggestions (Saved Records)
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowSuggestions(false)}
-                className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-              >
-                ✕ Close
-              </button>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {filteredSuggestions.map((item, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onMouseDown={(e) => {
+                if (val.trim()) {
+                  const newRows = val
+                    .split(/[\n,;]+/)
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map((txt, idx) => ({
+                      id: `c_${Date.now()}_${idx}`,
+                      complaint: txt,
+                      frequency: '',
+                      severity: '',
+                      duration: '',
+                      date: date || new Date().toISOString().slice(0, 10),
+                    }));
+                  setComplaintsList(newRows);
+                } else {
+                  setComplaintsList([]);
+                }
+                scheduleAutoSave(val);
+              }}
+              onFocus={() => {
+                const parts = activeValue.split(',');
+                setCurrentQuery(parts[parts.length - 1]?.trim() || '');
+                setHighlightedComplaintIdx(0);
+                setShowSuggestions(true);
+              }}
+              onKeyDown={(e) => {
+                if (showSuggestions && filteredSuggestions.length > 0) {
+                  if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    handleSelectSuggestion(item);
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition cursor-pointer flex items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {item.type === 'template' ? (
-                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">
-                        ⭐ Template
-                      </span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-medium shrink-0 border border-emerald-200">
-                        Saved
-                      </span>
-                    )}
-                    <span className="font-semibold text-slate-800 truncate">
-                      {item.label || item.name}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+                    setHighlightedComplaintIdx((prev) => (prev < filteredSuggestions.length - 1 ? prev + 1 : 0));
+                    return;
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedComplaintIdx((prev) => (prev > 0 ? prev - 1 : filteredSuggestions.length - 1));
+                    return;
+                  }
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const target = filteredSuggestions[highlightedComplaintIdx >= 0 ? highlightedComplaintIdx : 0];
+                    if (target) {
+                      handleSelectSuggestion(target);
+                    }
+                    return;
+                  }
+                  if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    return;
+                  }
+                }
+              }}
+              placeholder="Add chief complaint..."
+              className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
+            />
+
+            {/* Live Autocomplete suggestions dropdown */}
+            {showSuggestions && filteredSuggestions.length > 0 && (
+              <div
+                ref={suggestionsBoxRef}
+                className="absolute left-0 top-full mt-2 w-full min-w-[280px] sm:min-w-[340px] bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-[9999]"
+              >
+                <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-slate-50/95 backdrop-blur-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    Suggestions (Enter to pick)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSuggestions(false)}
+                    className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {filteredSuggestions.map((item, i) => {
+                    const isSelected = highlightedComplaintIdx === i;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectSuggestion(item);
+                        }}
+                        onMouseEnter={() => setHighlightedComplaintIdx(i)}
+                        className={`w-full text-left px-3.5 py-2.5 text-xs transition cursor-pointer flex items-center justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-emerald-50 text-emerald-950 font-bold'
+                            : 'hover:bg-slate-50 text-slate-800'
+                        }`}
+                      >
+                        <span className="truncate">
+                          {cleanTemplateName(item.label || item.name)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right Clear Button */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+            <div className="w-px h-4 bg-slate-200" />
+            <button
+              type="button"
+              onClick={handleClearAll}
+              title="Clear Chief Complaint"
+              className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-md transition cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

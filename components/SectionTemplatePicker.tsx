@@ -17,6 +17,7 @@ import {
   saveSectionCustomTemplate,
   deleteSectionCustomTemplate,
   fetchSectionTemplatesFromConvex,
+  cleanTemplateName,
 } from '@/services/clinicalSectionPresets';
 
 interface SectionTemplatePickerProps {
@@ -35,16 +36,36 @@ export default function SectionTemplatePicker({
   currentValue,
   onApplyPreset,
   className = '',
-  align = 'left',
+  align = 'right',
   category,
 }: SectionTemplatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'saved' | 'presets'>('saved');
   const [searchQuery, setSearchQuery] = useState('');
   const [newTemplateName, setNewTemplateName] = useState('');
+  const [directContentInput, setDirectContentInput] = useState('');
   const [savedTemplates, setSavedTemplates] = useState<ClinicalSectionPreset[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [popoverAlign, setPopoverAlign] = useState<'left' | 'right'>(align);
+
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const popoverWidth = 384;
+      const spaceRight = window.innerWidth - rect.left;
+      const spaceLeft = rect.right;
+
+      // Prevent clipping on right screen boundary
+      if (spaceRight < popoverWidth + 24) {
+        setPopoverAlign('right');
+      } else if (spaceLeft < popoverWidth + 24) {
+        setPopoverAlign('left');
+      } else {
+        setPopoverAlign(align);
+      }
+    }
+  }, [isOpen, align]);
 
   const presets = CLINICAL_SECTION_PRESETS[sectionKey] || [];
 
@@ -66,6 +87,21 @@ export default function SectionTemplatePicker({
       loadSavedTemplates();
     }
   }, [isOpen, loadSavedTemplates]);
+
+  // Keep templates synced reactively when any section updates
+  useEffect(() => {
+    const handleTemplateUpdate = (e: any) => {
+      if (!e.detail?.sectionKey || e.detail.sectionKey === sectionKey) {
+        loadSavedTemplates();
+      }
+    };
+    window.addEventListener('cortex_section_templates_updated', handleTemplateUpdate);
+    window.addEventListener('storage', handleTemplateUpdate);
+    return () => {
+      window.removeEventListener('cortex_section_templates_updated', handleTemplateUpdate);
+      window.removeEventListener('storage', handleTemplateUpdate);
+    };
+  }, [sectionKey, loadSavedTemplates]);
 
   // Click outside listener
   useEffect(() => {
@@ -95,37 +131,62 @@ export default function SectionTemplatePicker({
     return false;
   };
 
-  const handleApply = (preset: ClinicalSectionPreset) => {
+  const handleApply = (preset: ClinicalSectionPreset, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     onApplyPreset(preset.data);
     showToast(`Applied "${preset.name}"`);
+    setSearchQuery('');
     setTimeout(() => {
       setIsOpen(false);
-    }, 400);
+    }, 350);
   };
 
-  const handleQuickSaveWithName = (name: string) => {
+  const handleQuickSaveWithName = (name: string, customData?: any) => {
     const trimmed = name.trim();
     if (!trimmed) {
       showToast('Please enter a template name');
       return;
     }
-    if (isCurrentValueEmpty()) {
-      showToast(`Current ${sectionTitle} is empty. Enter details first.`);
+    const dataToSave =
+      customData !== undefined
+        ? customData
+        : !isCurrentValueEmpty()
+        ? currentValue
+        : directContentInput.trim();
+
+    if (
+      !dataToSave ||
+      (typeof dataToSave === 'string' && !dataToSave.trim()) ||
+      (Array.isArray(dataToSave) && dataToSave.length === 0)
+    ) {
+      showToast(`Current ${sectionTitle} is empty. Enter instructions below or in form first.`);
       return;
     }
-    const saved = saveSectionCustomTemplate(sectionKey, trimmed, currentValue, category || 'General');
-    loadSavedTemplates();
+    const saved = saveSectionCustomTemplate(sectionKey, trimmed, dataToSave, category || 'General');
+    // Instantly update component state so the item shows immediately
+    setSavedTemplates((prev) => [saved, ...prev.filter((p) => p.id !== saved.id)]);
     setNewTemplateName('');
+    setDirectContentInput('');
     setActiveTab('saved');
     showToast(`Saved "${saved.name}" to templates!`);
   };
 
-  const handleSaveCurrent = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveCurrent = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     handleQuickSaveWithName(newTemplateName || searchQuery);
   };
 
-  const handleDeleteSaved = (id: string, name: string) => {
+  const handleDeleteSaved = (id: string, name: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (confirm(`Delete template "${name}"?`)) {
       deleteSectionCustomTemplate(sectionKey, id);
       loadSavedTemplates();
@@ -182,7 +243,10 @@ export default function SectionTemplatePicker({
 
       {/* Popover */}
       {isOpen && (
-        <div className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-2xl z-[999] p-3 text-xs animate-in fade-in zoom-in-95 duration-100`}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute ${popoverAlign === 'right' ? 'right-0' : 'left-0'} top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-2xl z-[999] p-3 text-xs animate-in fade-in zoom-in-95 duration-100`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
             <div className="flex items-center gap-1.5 font-bold text-slate-800">
@@ -219,13 +283,19 @@ export default function SectionTemplatePicker({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
               placeholder={`Search ${sectionTitle.toLowerCase()} templates...`}
               className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
 
-          {/* Quick Save Current as Template Form */}
-          <form onSubmit={handleSaveCurrent} className="mb-2 p-2 bg-emerald-50/70 border border-emerald-200/90 rounded-lg">
+          {/* Quick Save Current as Template Box (Div, never nested form) */}
+          <div className="mb-2 p-2 bg-emerald-50/70 border border-emerald-200/90 rounded-lg">
             <div className="flex items-center justify-between mb-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
@@ -242,11 +312,23 @@ export default function SectionTemplatePicker({
                 type="text"
                 value={newTemplateName}
                 onChange={(e) => setNewTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSaveCurrent(e);
+                  }
+                }}
                 placeholder={`Name (e.g. ${sectionTitle} Protocol)`}
                 className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSaveCurrent(e);
+                }}
                 title={`Save current ${sectionTitle} content as template`}
                 className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition cursor-pointer flex items-center gap-1 shadow-xs whitespace-nowrap"
               >
@@ -254,7 +336,18 @@ export default function SectionTemplatePicker({
                 <span>Save</span>
               </button>
             </div>
-          </form>
+            {isCurrentValueEmpty() && (
+              <div className="mt-1.5">
+                <textarea
+                  value={directContentInput}
+                  onChange={(e) => setDirectContentInput(e.target.value)}
+                  placeholder={`Or type ${sectionTitle.toLowerCase()} instructions here to save as template...`}
+                  rows={2}
+                  className="w-full px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-md text-slate-800 focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed resize-none"
+                />
+              </div>
+            )}
+          </div>
 
           {/* Template List */}
           <div className="max-h-56 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-thin">
@@ -287,7 +380,7 @@ export default function SectionTemplatePicker({
                   >
                     <div className="flex items-center justify-between gap-1">
                       <span className="font-bold text-slate-800 text-[11px] group-hover:text-emerald-900 block truncate">
-                        {saved.name}
+                        {cleanTemplateName(saved.name)}
                       </span>
                       {saved.category && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
