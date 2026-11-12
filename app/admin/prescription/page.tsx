@@ -115,6 +115,7 @@ export default function PrescriptionPage() {
           selectedVisit={form.selectedPastVisit}
           onSelectVisit={form.setSelectedPastVisit}
           onCreateNewVisit={form.handleCreateNewVisit}
+          onEditPastVisit={form.handleEditPastVisit}
           onCloseDashboard={() => form.setShowPastDashboard(false)}
           selectedDoctorName={form.selectedDoctorName}
           handleDoctorSelect={form.handleDoctorSelect}
@@ -124,6 +125,22 @@ export default function PrescriptionPage() {
         />
       ) : (
         <div className="max-w-7xl mx-auto space-y-5">
+          {form.isEditMode && (
+            <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-2.5 flex items-center justify-between text-amber-900 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span>Editing Previous Prescription ({form.formData.date || 'Past Visit'})</span>
+                <span className="text-amber-700 font-normal hidden sm:inline">— Saving will update this existing record in the database.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => form.handleCreateNewVisit()}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer ml-3 shrink-0"
+              >
+                Create As New Visit Instead
+              </button>
+            </div>
+          )}
           <form onSubmit={form.handleSubmit} className="space-y-5">
           {/* 1. Patient Info Banner with Visit Controls & Doctor Selection */}
           <PrescriptionPatientBanner

@@ -890,6 +890,94 @@ export function usePrescriptionForm() {
     [handleLoadPastPrescription, pastVisitsList, selectedPastVisit, todayDate]
   );
 
+  // Edit existing past prescription document in-place
+  const handleEditPastVisit = useCallback(
+    (sourceVisit?: any) => {
+      const targetVisit =
+        sourceVisit || selectedPastVisit || (pastVisitsList.length > 0 ? pastVisitsList[0] : null);
+      if (!targetVisit) return;
+
+      const rxId = String(targetVisit.id || targetVisit._id || '');
+      setPreviousPrescription(targetVisit);
+      setIsEditMode(true);
+      setPrescriptionId(rxId);
+
+      const rxDate = targetVisit.prescription_date || todayDate;
+      setFormData((prev) => ({
+        ...prev,
+        patientName: targetVisit.patient_name || prev.patientName,
+        phoneNumber: targetVisit.phone_number || prev.phoneNumber,
+        age: targetVisit.age !== undefined ? String(targetVisit.age) : prev.age,
+        sex: targetVisit.sex || prev.sex,
+        email: targetVisit.email || prev.email,
+        reference_number: targetVisit.reference_number || prev.reference_number,
+        date: rxDate,
+        followupDate: targetVisit.followup_date || targetVisit.follow_up_date || '',
+        de: targetVisit.diagnosis || '',
+        cc: targetVisit.chief_complaint || '',
+        advice: targetVisit.advice || '',
+      }));
+
+      if (targetVisit.diagnosis) {
+        setDiagnosesList([{ id: 'd_edit_1', diagnosis: targetVisit.diagnosis, snomed_code: '', duration: '', date: '' }]);
+      } else {
+        setDiagnosesList([]);
+      }
+
+      if (targetVisit.chief_complaint) {
+        const cleanCc = String(targetVisit.chief_complaint).replace(/^[\s,]+/, '').trim();
+        setComplaintsList([
+          { id: 'c_edit_1', complaint: cleanCc, frequency: 'Regular', severity: 'Moderate', duration: '' },
+        ]);
+      } else {
+        setComplaintsList([]);
+      }
+
+      if (targetVisit.medicines) {
+        let meds = Array.isArray(targetVisit.medicines)
+          ? targetVisit.medicines
+          : typeof targetVisit.medicines === 'string'
+          ? JSON.parse(targetVisit.medicines)
+          : [];
+        setMedicines(meds);
+      } else {
+        setMedicines([]);
+      }
+
+      setFindingsText(targetVisit.findings || targetVisit.oral_exam_notes || '');
+      setDrNotes(targetVisit.dr_notes || '');
+      setQuickNotes(targetVisit.quick_notes || '');
+      setProcedureAdvice(targetVisit.procedure_advice || '');
+      setDietExercise(targetVisit.diet_exercise || '');
+      setInvestigationText(targetVisit.investigations || '');
+      setTestsRequested(Array.isArray(targetVisit.tests_requested) ? targetVisit.tests_requested : []);
+      setGeneralExam(targetVisit.general_examinations || '');
+      setSystemicExam(targetVisit.systemic_examinations || '');
+      setPastMedication(targetVisit.past_medications || '');
+
+      if (targetVisit.vitals) {
+        const v = targetVisit.vitals;
+        setBpSystolic(v.bp_systolic || '');
+        setBpDiastolic(v.bp_diastolic || '');
+        setPulseVal(v.pulse || '');
+        setSpo2Val(v.spo2 || '');
+        setWeightVal(v.weight || '');
+        setHeightVal(v.height || '');
+        setTempVal(v.temperature || '');
+      }
+
+      if (targetVisit.doctor_name) {
+        setSelectedDoctorName(targetVisit.doctor_name);
+      }
+
+      setShowPastDashboard(false);
+      setIsNewPatient(false);
+      setRepeatPatient(true);
+      showTemplateToast(`Editing prescription (${rxDate}). Save will update this record.`);
+    },
+    [pastVisitsList, selectedPastVisit, todayDate]
+  );
+
   // Quick Print of a past consultation
   const handlePrintPastVisit = useCallback((visit: any) => {
     if (!visit) return;
@@ -2123,6 +2211,7 @@ export function usePrescriptionForm() {
     setShowPastDashboard,
     isCheckingHistory,
     handleCreateNewVisit,
+    handleEditPastVisit,
     handlePrintPastVisit,
 
     // Complaints & Findings

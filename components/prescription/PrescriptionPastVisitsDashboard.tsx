@@ -23,6 +23,7 @@ import {
   Share2,
   Stethoscope,
   Sparkles,
+  Edit3,
 } from 'lucide-react';
 
 interface PrescriptionPastVisitsDashboardProps {
@@ -35,6 +36,7 @@ interface PrescriptionPastVisitsDashboardProps {
   selectedVisit?: any;
   onSelectVisit: (visit: any) => void;
   onCreateNewVisit: (sourceVisit?: any) => void;
+  onEditPastVisit?: (sourceVisit?: any) => void;
   onCloseDashboard: () => void;
   selectedDoctorName?: string;
   handleDoctorSelect?: (name: string) => void;
@@ -87,6 +89,7 @@ export default function PrescriptionPastVisitsDashboard({
   selectedVisit: controlledSelectedVisit,
   onSelectVisit,
   onCreateNewVisit,
+  onEditPastVisit,
   onCloseDashboard,
   selectedDoctorName = 'Dr. Shillpa Raut',
   handleDoctorSelect,
@@ -381,8 +384,21 @@ export default function PrescriptionPastVisitsDashboard({
             </span>
           </div>
 
-          {/* Quick Print & Email Actions for Selected Visit */}
+          {/* Quick Print, Email & Edit Actions for Selected Visit */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (onEditPastVisit && activeVisit) {
+                  onEditPastVisit(activeVisit);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 hover:border-amber-400 transition shadow-2xs cursor-pointer"
+              title="Edit this previous prescription"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+              <span>Edit</span>
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -498,14 +514,30 @@ export default function PrescriptionPastVisitsDashboard({
                     </h4>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onCreateNewVisit(activeVisit)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
-                  >
-                    <span>Use As Base For Today</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onEditPastVisit && activeVisit) {
+                          onEditPastVisit(activeVisit);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+                      title="Edit this previous prescription"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Edit Prescription</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onCreateNewVisit(activeVisit)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+                    >
+                      <span>Use As Base For Today</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Complaints & Diagnosis Badges */}
@@ -750,14 +782,30 @@ export default function PrescriptionPastVisitsDashboard({
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => onCreateNewVisit(activeVisit)}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-md transition cursor-pointer"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Create New Visit With This Data</span>
-                  </button>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onEditPastVisit && activeVisit) {
+                          onEditPastVisit(activeVisit);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+                      title="Edit this previous prescription"
+                    >
+                      <Edit3 className="w-4 h-4 text-amber-700" />
+                      <span>Edit Prescription</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onCreateNewVisit(activeVisit)}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow-md transition cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>Create New Visit With This Data</span>
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (
