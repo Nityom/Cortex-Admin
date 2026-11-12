@@ -81,7 +81,8 @@ export const create = mutation({
       )
       .collect();
     
-    if (existing.length > 0) {
+    const activeExisting = existing.filter((a) => a.status !== "CANCELLED");
+    if (activeExisting.length > 0) {
       throw new Error("This slot is already booked for this doctor.");
     }
     
