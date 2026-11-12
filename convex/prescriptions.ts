@@ -1144,3 +1144,43 @@ export const autoSavePrescriptionComplaint = mutation({
     },
 });
 
+export const repairMismatchedVisitIds = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const allRx = await ctx.db.query("prescriptions").collect();
+        let unlinked = 0;
+        const unlinkedQueueIds: string[] = [];
+
+        for (const rx of allRx) {
+            if (!rx.opd_visit_id) continue;
+            const match = rx.opd_visit_id.match(/opd_(\d+)/);
+            if (!match) continue;
+            const visitTs = Number(match[1]);
+            const visitDate = new Date(visitTs).toISOString().split("T")[0];
+            if (visitDate !== rx.prescription_date) {
+                unlinkedQueueIds.push(rx.opd_visit_id);
+                await ctx.db.patch(rx._id, {
+                    opd_visit_id: undefined,
+                });
+                unlinked++;
+            }
+        }
+
+        let queueReset = 0;
+        for (const qId of unlinkedQueueIds) {
+            const queueItem = await ctx.db
+                .query("opd_queue")
+                .withIndex("by_queue_id", (q) => q.eq("queue_id", qId))
+                .first();
+            if (queueItem && queueItem.status === "Completed") {
+                await ctx.db.patch(queueItem._id, {
+                    status: "Waiting",
+                });
+                queueReset++;
+            }
+        }
+
+        return { unlinked, queueReset };
+    },
+});
+
