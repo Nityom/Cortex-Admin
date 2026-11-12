@@ -2,6 +2,7 @@
 import { ConvexHttpClient } from "convex/browser";
 // @ts-ignore
 import { api } from "@/convex/_generated/api";
+import { MASTER_MEDICINE_CATALOG, findMasterMedicine } from "./defaultMedicinesCatalog";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -30,51 +31,100 @@ export type Medicine = {
 };
 
 export const addMedicine = async (medicine: Medicine) => {
+  const master = findMasterMedicine(medicine.name);
+  const composition = medicine.composition || master?.composition || undefined;
+
   const data = await convex.mutation(api.medicines.create, {
     name: medicine.name,
-    composition: medicine.composition,
+    composition,
     description: medicine.description,
     quantity: medicine.quantity !== undefined ? Number(medicine.quantity) : undefined,
     rate: medicine.rate !== undefined ? Number(medicine.rate) : undefined,
     cost_price: medicine.cost_price ? Number(medicine.cost_price) : undefined,
     selling_price: medicine.selling_price ? Number(medicine.selling_price) : undefined,
-    company: medicine.company,
+    company: medicine.company || master?.category || undefined,
     low_stock_threshold: medicine.low_stock_threshold ? Number(medicine.low_stock_threshold) : undefined,
     strips: medicine.strips ? Number(medicine.strips) : undefined,
     quantity_per_strip: medicine.quantity_per_strip ? Number(medicine.quantity_per_strip) : undefined,
-    doctor_name: medicine.doctor_name || undefined,
+    doctor_name: medicine.doctor_name || master?.doctor_name || undefined,
   });
   return data;
 };
 
-export const getAllMedicines = async () => {
-  const data = await convex.query(api.medicines.list);
-  return data.map((item: any) => {
-    const costPrice = item.cost_price ? Number(item.cost_price) : undefined;
-    const sellingPrice = item.selling_price ? Number(item.selling_price) : undefined;
-    let profitMargin: number | undefined;
-    if (costPrice && sellingPrice && costPrice > 0) {
-      profitMargin = ((sellingPrice - costPrice) / costPrice) * 100;
+export const getAllMedicines = async (): Promise<Medicine[]> => {
+  const medicineMap = new Map<string, Medicine>();
+
+  // 1. Prepopulate with Master Catalog (242 medicines with chemical compositions)
+  MASTER_MEDICINE_CATALOG.forEach((item, idx) => {
+    const key = item.name.toLowerCase().trim();
+    medicineMap.set(key, {
+      id: `master_med_${idx + 1}`,
+      name: item.name,
+      composition: item.composition,
+      doctor_name: item.doctor_name || 'Both Doctors',
+      quantity: 100,
+      rate: 0,
+      price: 0,
+      company: item.category || 'General',
+    });
+  });
+
+  // 2. Query Convex DB and merge, taking DB data as primary
+  try {
+    const data = await convex.query(api.medicines.list);
+    if (data && Array.isArray(data)) {
+      data.forEach((item: any) => {
+        const costPrice = item.cost_price ? Number(item.cost_price) : undefined;
+        const sellingPrice = item.selling_price ? Number(item.selling_price) : undefined;
+        let profitMargin: number | undefined;
+        if (costPrice && sellingPrice && costPrice > 0) {
+          profitMargin = ((sellingPrice - costPrice) / costPrice) * 100;
+        }
+
+        const key = (item.name || '').toLowerCase().trim();
+        const existingMaster = medicineMap.get(key) || (item.name ? findMasterMedicine(item.name) : undefined);
+
+        medicineMap.set(key, {
+          ...item,
+          id: item._id,
+          name: item.name,
+          composition: item.composition || existingMaster?.composition || '',
+          doctor_name: item.doctor_name || existingMaster?.doctor_name || 'Both Doctors',
+          quantity: item.quantity !== undefined ? Number(item.quantity) : 0,
+          rate: item.rate !== undefined ? Number(item.rate) : 0,
+          selling_price: sellingPrice,
+          cost_price: costPrice,
+          profit_margin: profitMargin,
+          price: sellingPrice ? sellingPrice : Number(item.rate || 0),
+          company: item.company || (existingMaster && 'category' in existingMaster ? existingMaster.category : '') || '',
+          low_stock_threshold: item.low_stock_threshold !== undefined ? Number(item.low_stock_threshold) : 10,
+          strips: item.strips !== undefined ? Number(item.strips) : undefined,
+          quantity_per_strip: item.quantity_per_strip !== undefined ? Number(item.quantity_per_strip) : undefined,
+        });
+      });
     }
-    return {
-      ...item,
-      id: item._id,
-      composition: item.composition || '',
-      doctor_name: item.doctor_name || '',
-      quantity: item.quantity !== undefined ? Number(item.quantity) : 0,
-      rate: item.rate !== undefined ? Number(item.rate) : 0,
-      selling_price: sellingPrice,
-      cost_price: costPrice,
-      profit_margin: profitMargin,
-      price: sellingPrice ? sellingPrice : Number(item.rate || 0),
-      low_stock_threshold: item.low_stock_threshold !== undefined ? Number(item.low_stock_threshold) : 10,
-      strips: item.strips !== undefined ? Number(item.strips) : undefined,
-      quantity_per_strip: item.quantity_per_strip !== undefined ? Number(item.quantity_per_strip) : undefined,
-    };
-  }) as Medicine[];
+  } catch (err) {
+    console.warn('Convex medicines query error (using master catalog fallback):', err);
+  }
+
+  return Array.from(medicineMap.values());
 };
 
 export const updateMedicine = async (id: string, updates: Partial<Medicine>) => {
+  // If editing an item that originated from master catalog and hasn't been saved to Convex yet
+  if (id.startsWith('master_med_')) {
+    return addMedicine({
+      name: updates.name || '',
+      composition: updates.composition,
+      company: updates.company,
+      quantity: updates.quantity,
+      rate: updates.rate,
+      selling_price: updates.selling_price,
+      cost_price: updates.cost_price,
+      doctor_name: updates.doctor_name,
+    });
+  }
+
   // Only pass fields accepted by the Convex medicines.update mutation
   const validUpdate: Record<string, any> = { id: id as any };
   if (updates.name !== undefined) validUpdate.name = updates.name;
@@ -95,6 +145,9 @@ export const updateMedicine = async (id: string, updates: Partial<Medicine>) => 
 };
 
 export const deleteMedicine = async (id: string) => {
+  if (id.startsWith('master_med_')) {
+    return true;
+  }
   await convex.mutation(api.medicines.remove, { id: id as any });
   return true;
 };

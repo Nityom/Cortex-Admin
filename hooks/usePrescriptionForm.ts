@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAllMedicines, Medicine } from '@/services/medicine';
+import { MASTER_MEDICINE_CATALOG, findMasterMedicine } from '@/services/defaultMedicinesCatalog';
 import {
   getAllTemplates,
   getTemplateById,
@@ -581,7 +582,18 @@ export function usePrescriptionForm() {
 
   // Medicines State
   const [medicines, setMedicines] = useState<MedicineEntry[]>([]);
-  const [medicineOptions, setMedicineOptions] = useState<Medicine[]>([]);
+  const [medicineOptions, setMedicineOptions] = useState<Medicine[]>(() => {
+    return MASTER_MEDICINE_CATALOG.map((item, idx) => ({
+      id: `master_med_${idx + 1}`,
+      name: item.name,
+      composition: item.composition,
+      doctor_name: item.doctor_name || 'Both Doctors',
+      quantity: 100,
+      rate: 0,
+      price: 0,
+      company: item.category || 'General',
+    }));
+  });
 
   // Clinical Notes & Other Sections
   const [drNotes, setDrNotes] = useState('');
@@ -672,12 +684,14 @@ export function usePrescriptionForm() {
       );
       if (!exists) {
         try {
+          const master = findMasterMedicine(trimmed);
+          const finalComposition = composition?.trim() || master?.composition || '';
           const newMed: Medicine = {
             name: trimmed,
-            composition: composition?.trim() || '',
+            composition: finalComposition,
             price: 0,
             quantity: 100,
-            doctor_name: selectedDoctorName || 'Both Doctors',
+            doctor_name: selectedDoctorName || master?.doctor_name || 'Both Doctors',
           };
           const { addMedicine } = await import('@/services/medicine');
           const savedId = await addMedicine(newMed);

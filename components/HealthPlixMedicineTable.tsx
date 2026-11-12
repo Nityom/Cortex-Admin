@@ -22,6 +22,7 @@ import {
 import MedicineSearchInput from './MedicineSearchInput';
 import SectionTemplatePicker from './SectionTemplatePicker';
 import { Medicine } from '@/services/medicine';
+import { findMasterMedicine } from '@/services/defaultMedicinesCatalog';
 import { MedicineEntry, DosageSchedule } from '@/services/prescription';
 import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
 import {
@@ -188,6 +189,21 @@ const getLinkedMedicineDefaults = (name: string): LinkedMedicineProfile => {
   if (customMap[cleanName]) return customMap[cleanName];
   if (DEFAULT_LINKED_MEDICINES[cleanName]) return DEFAULT_LINKED_MEDICINES[cleanName];
 
+  const master = findMasterMedicine(cleanName);
+  if (master) {
+    return {
+      dosage: master.dosage || '0-0-1',
+      unit: master.unit || 'tab',
+      time: '',
+      when: master.when || 'After Food',
+      where: master.where || 'oral',
+      frequency: master.frequency || 'daily',
+      duration: master.duration || '15 days',
+      details: master.composition || '',
+      notes: '',
+    };
+  }
+
   for (const [k, v] of Object.entries(customMap)) {
     if (cleanName.includes(k) || k.includes(cleanName)) return v;
   }
@@ -317,15 +333,18 @@ function normalizePresetMedicines(rawList: any[], baseDate?: string): MedicineEn
             },
           ];
 
+    const master = findMasterMedicine(m.name || '');
+    const comp = m.composition || master?.composition || '';
+
     return {
       name: m.name || '',
-      dosage: m.dosage || schedules[0].dosage || '1-0-1',
-      unit: m.unit || schedules[0].unit || 'tab',
-      when: m.when || schedules[0].when || 'After Food',
-      where: m.where || schedules[0].where || '',
-      frequency: m.frequency || schedules[0].frequency || 'daily',
+      dosage: m.dosage || schedules[0].dosage || master?.dosage || '1-0-1',
+      unit: m.unit || schedules[0].unit || master?.unit || 'tab',
+      when: m.when || schedules[0].when || master?.when || 'After Food',
+      where: m.where || schedules[0].where || master?.where || '',
+      frequency: m.frequency || schedules[0].frequency || master?.frequency || 'daily',
       duration: dur,
-      composition: m.composition || '',
+      composition: comp,
       note: m.note || m.notes || schedules[0].notes || '',
       instructions: m.instructions || '',
       quantity: typeof m.quantity === 'number' ? m.quantity : calculateMedicineQuantity({ schedules }),
@@ -721,34 +740,36 @@ export default function HealthPlixMedicineTable({
   // Add new medicine from bottom row
   const handleSelectNewMedicine = (med: Medicine) => {
     const linked = getLinkedMedicineDefaults(med.name);
-    const defaultDuration = linked.duration || '15 days';
+    const master = findMasterMedicine(med.name);
+    const defaultDuration = linked.duration || master?.duration || '15 days';
+    const comp = med.composition || master?.composition || linked.details || '';
 
     const newEntry: MedicineEntry = {
       name: med.name.toUpperCase(),
-      dosage: linked.dosage || '0-0-1',
-      unit: linked.unit || 'tab',
-      frequency: linked.frequency || 'daily',
+      dosage: linked.dosage || master?.dosage || '0-0-1',
+      unit: linked.unit || master?.unit || 'tab',
+      frequency: linked.frequency || master?.frequency || 'daily',
       duration: defaultDuration,
-      quantity: calculateMedicineQuantity({ dosage: linked.dosage || '0-0-1', frequency: linked.frequency || 'daily', duration: defaultDuration }),
-      when: linked.when || 'After Food',
-      where: linked.where || 'oral',
-      composition: med.composition || linked.details || '',
+      quantity: calculateMedicineQuantity({ dosage: linked.dosage || master?.dosage || '0-0-1', frequency: linked.frequency || master?.frequency || 'daily', duration: defaultDuration }),
+      when: linked.when || master?.when || 'After Food',
+      where: linked.where || master?.where || 'oral',
+      composition: comp,
       note: linked.notes || '',
       start_from: prescriptionDate,
       to_date: calculateEndDate(prescriptionDate, defaultDuration),
       schedules: [
         {
           id: `sch_${Date.now()}`,
-          dosage: linked.dosage || '0-0-1',
-          unit: linked.unit || 'tab',
+          dosage: linked.dosage || master?.dosage || '0-0-1',
+          unit: linked.unit || master?.unit || 'tab',
           time: linked.time || '',
-          when: linked.when || 'After Food',
-          where: linked.where || 'oral',
-          frequency: linked.frequency || 'daily',
+          when: linked.when || master?.when || 'After Food',
+          where: linked.where || master?.where || 'oral',
+          frequency: linked.frequency || master?.frequency || 'daily',
           duration: defaultDuration,
           start_from: prescriptionDate,
           to_date: calculateEndDate(prescriptionDate, defaultDuration),
-          details: med.composition || linked.details || '',
+          details: comp,
           notes: linked.notes || '',
         },
       ],
@@ -771,7 +792,7 @@ export default function HealthPlixMedicineTable({
     });
 
     if (onAutoSaveMedicine) {
-      onAutoSaveMedicine(med.name.toUpperCase(), med.composition || '');
+      onAutoSaveMedicine(med.name.toUpperCase(), comp);
     }
     triggerMedAutoSaved();
   };
@@ -779,34 +800,36 @@ export default function HealthPlixMedicineTable({
   const handleAddNewCustomMedicine = (name: string) => {
     if (!name.trim()) return;
     const linked = getLinkedMedicineDefaults(name);
-    const defaultDuration = linked.duration || '15 days';
+    const master = findMasterMedicine(name);
+    const defaultDuration = linked.duration || master?.duration || '15 days';
+    const comp = master?.composition || linked.details || '';
 
     const newEntry: MedicineEntry = {
       name: name.trim().toUpperCase(),
-      dosage: linked.dosage || '0-0-1',
-      unit: linked.unit || 'tab',
-      frequency: linked.frequency || 'daily',
+      dosage: linked.dosage || master?.dosage || '0-0-1',
+      unit: linked.unit || master?.unit || 'tab',
+      frequency: linked.frequency || master?.frequency || 'daily',
       duration: defaultDuration,
-      quantity: calculateMedicineQuantity({ dosage: linked.dosage || '0-0-1', frequency: linked.frequency || 'daily', duration: defaultDuration }),
-      when: linked.when || 'After Food',
-      where: linked.where || 'oral',
-      composition: linked.details || '',
+      quantity: calculateMedicineQuantity({ dosage: linked.dosage || master?.dosage || '0-0-1', frequency: linked.frequency || master?.frequency || 'daily', duration: defaultDuration }),
+      when: linked.when || master?.when || 'After Food',
+      where: linked.where || master?.where || 'oral',
+      composition: comp,
       note: linked.notes || '',
       start_from: prescriptionDate,
       to_date: calculateEndDate(prescriptionDate, defaultDuration),
       schedules: [
         {
           id: `sch_${Date.now()}`,
-          dosage: linked.dosage || '0-0-1',
-          unit: linked.unit || 'tab',
+          dosage: linked.dosage || master?.dosage || '0-0-1',
+          unit: linked.unit || master?.unit || 'tab',
           time: linked.time || '',
-          when: linked.when || 'After Food',
-          where: linked.where || 'oral',
-          frequency: linked.frequency || 'daily',
+          when: linked.when || master?.when || 'After Food',
+          where: linked.where || master?.where || 'oral',
+          frequency: linked.frequency || master?.frequency || 'daily',
           duration: defaultDuration,
           start_from: prescriptionDate,
           to_date: calculateEndDate(prescriptionDate, defaultDuration),
-          details: linked.details || '',
+          details: comp,
           notes: linked.notes || '',
         },
       ],
@@ -829,7 +852,7 @@ export default function HealthPlixMedicineTable({
     });
 
     if (onAutoSaveMedicine) {
-      onAutoSaveMedicine(name.trim().toUpperCase(), '');
+      onAutoSaveMedicine(name.trim().toUpperCase(), comp);
     }
     triggerMedAutoSaved();
   };

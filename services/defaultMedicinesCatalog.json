@@ -1,0 +1,874 @@
+[
+  {
+    "name": "Aircross-40",
+    "composition": "Pantoprazole 40 mg"
+  },
+  {
+    "name": "Amlovas-5",
+    "composition": "Amlodipine besilate"
+  },
+  {
+    "name": "Aqua-E 400",
+    "composition": "Vitamin E"
+  },
+  {
+    "name": "Acenac-MR",
+    "composition": "Aceclofenac + Paracetamol + Thiocolchicoside"
+  },
+  {
+    "name": "Acenac-P",
+    "composition": "Aceclofenac + Paracetamol"
+  },
+  {
+    "name": "ALL9/BOH",
+    "composition": "L-methylfolate calcium + Pyridoxal-5-phosphate + Multivitamins + Minerals"
+  },
+  {
+    "name": "Aldosmin 500",
+    "composition": "Micronized purified flavonoid fraction"
+  },
+  {
+    "name": "Atpara",
+    "composition": "Tramadol hydrochloride + Paracetamol"
+  },
+  {
+    "name": "Acecloplace",
+    "composition": "Aceclofenac + Paracetamol"
+  },
+  {
+    "name": "Aphimust Syrup",
+    "composition": "Cyproheptadine HCl + Tricholine citrate + Sorbitol"
+  },
+  {
+    "name": "Azibact 500",
+    "composition": "Azithromycin 500 mg / 250 mg"
+  },
+  {
+    "name": "Azibact 250",
+    "composition": "Azithromycin 500 mg / 250 mg"
+  },
+  {
+    "name": "Arginhope Sachet",
+    "composition": "L-Arginine granules 3 g"
+  },
+  {
+    "name": "Anitas Sachet",
+    "composition": "L-Arginine + Zinc + Folic acid"
+  },
+  {
+    "name": "Argygold-P",
+    "composition": "Amino acids + Vitamins + Minerals + Antioxidants"
+  },
+  {
+    "name": "Arginhope",
+    "composition": "L-Arginine (micronised)"
+  },
+  {
+    "name": "AF Kit",
+    "composition": "Ornidazole + Fluconazole + Azithromycin"
+  },
+  {
+    "name": "AEVON",
+    "composition": "Multivitamins + Multiminerals + Antioxidants"
+  },
+  {
+    "name": "Acfvert-16",
+    "composition": "Betahistine"
+  },
+  {
+    "name": "AFZ Plus",
+    "composition": "L-Arginine + Proanthocyanidin + L-Glutathione"
+  },
+  {
+    "name": "Allegra 180",
+    "composition": "Fexofenadine hydrochloride 180 mg"
+  },
+  {
+    "name": "Azithral-500",
+    "composition": "Azithromycin 500 mg"
+  },
+  {
+    "name": "Aciver 400 DT",
+    "composition": "Aciclovir 400 mg"
+  },
+  {
+    "name": "Aciver 200 DT",
+    "composition": "Aciclovir 200 mg"
+  },
+  {
+    "name": "Avil 25",
+    "composition": "Pheniramine maleate 25 mg"
+  },
+  {
+    "name": "Brufen- 400",
+    "composition": "Ibuprofen 400 mg / 200 mg"
+  },
+  {
+    "name": "Brufen- 200",
+    "composition": "Ibuprofen 400 mg / 200 mg"
+  },
+  {
+    "name": "BTR",
+    "composition": "Bromelain + Trypsin + Rutoside trihydrate"
+  },
+  {
+    "name": "Becosules",
+    "composition": "Vitamin B-complex forte + Vitamin C"
+  },
+  {
+    "name": "Becosules-Z",
+    "composition": "Vitamin B-complex forte + Vitamin C + Zinc"
+  },
+  {
+    "name": "Byzepta",
+    "composition": "Coffee Arabica green seed extract (standardized to beta-aminoisobutyric acid) + Ficus carica extract (standardized to abscisic acid)"
+  },
+  {
+    "name": "Brevoflam-MR 4",
+    "composition": "Etoricoxib + Thiocolchicoside"
+  },
+  {
+    "name": "Bio-D3 Strong",
+    "composition": "Calcitriol + Calcium carbonate + Methylcobalamin + Vitamin K2-7 + L-methylfolate + Zinc + Magnesium"
+  },
+  {
+    "name": "B-29",
+    "composition": "Alpha-lipoic acid + Folic acid + Methylcobalamin + Pyridoxine hydrochloride + Vitamin D3"
+  },
+  {
+    "name": "B-Long",
+    "composition": "Pyridoxine hydrochloride"
+  },
+  {
+    "name": "B-Long-F",
+    "composition": "Pyridoxine (SR) + Folic acid"
+  },
+  {
+    "name": "Bestofer",
+    "composition": "Ferrous bisglycinate + Zinc bisglycinate + Folic acid + Methylcobalamin"
+  },
+  {
+    "name": "Blamox-CA 625",
+    "composition": "Amoxicillin + Potassium clavulanate"
+  },
+  {
+    "name": "Bufoen 200",
+    "composition": "Ibuprofen 200 mg"
+  },
+  {
+    "name": "Coecoral 250",
+    "composition": "Calcium"
+  },
+  {
+    "name": "Ciss More",
+    "composition": "Cissus quadrangularis + Moringa oleifera"
+  },
+  {
+    "name": "Crampcule Forte",
+    "composition": "Magnesium bisglycinate + L-carnitine L-tartrate + Vitamin E + Methylcobalamin"
+  },
+  {
+    "name": "Cfen-K2",
+    "composition": "Calcium citrate malate + Vitamin K2-7 + Methylcobalamin + Calcitriol + Zinc oxide + Magnesium oxide"
+  },
+  {
+    "name": "Calmove Max",
+    "composition": "Calcium citrate malate + Vitamin K2-7 + Methylcobalamin + Calcitriol + Zinc oxide + Magnesium oxide"
+  },
+  {
+    "name": "CBank HD",
+    "composition": "Calcium citrate malate + DHA + Minerals + Boron + Pyridoxal-5-phosphate + L-methylfolate calcium + Vitamin K2-7 + Vitamin B12 + Calcium"
+  },
+  {
+    "name": "CDIP",
+    "composition": "Lycopene + Multivitamins + Antioxidants"
+  },
+  {
+    "name": "Cefakind 250",
+    "composition": "Cefuroxime axetil"
+  },
+  {
+    "name": "Cefakind 500",
+    "composition": "Cefuroxime axetil"
+  },
+  {
+    "name": "Cotrimax-12",
+    "composition": "Deflazacort 12 mg"
+  },
+  {
+    "name": "CZ Daily",
+    "composition": "Sodium ascorbate + Ascorbic acid + Zinc sulphate monohydrate + Vitamin D"
+  },
+  {
+    "name": "Candycal-K2",
+    "composition": "Calcium citrate malate + Vitamin K2-7 + Vitamin D3 + Methylcobalamin + Zinc oxide + Magnesium oxide"
+  },
+  {
+    "name": "Cyra-D",
+    "composition": "Rabeprazole sodium + Domperidone"
+  },
+  {
+    "name": "Defcoet 30",
+    "composition": "Deflazacort 30 mg"
+  },
+  {
+    "name": "Defcoet 12",
+    "composition": "Deflazacort 12 mg"
+  },
+  {
+    "name": "Defcoet 6",
+    "composition": "Deflazacort 6 mg"
+  },
+  {
+    "name": "Dolo 650",
+    "composition": "Paracetamol 650 mg"
+  },
+  {
+    "name": "Daypro DF",
+    "composition": "Protein powder"
+  },
+  {
+    "name": "Feedpro HP",
+    "composition": "Protein powder"
+  },
+  {
+    "name": "C-Tax 200",
+    "composition": "Cefixime 200 mg"
+  },
+  {
+    "name": "CalciBuzz M2",
+    "composition": "Calcium carbonate + Vitamin D3 + Methylcobalamin + L-methylfolate calcium + Pyridoxal-5-phosphate"
+  },
+  {
+    "name": "CB Fol-L",
+    "composition": "L-methylfolate calcium + Methylcobalamin + Pyridoxal-5-phosphate"
+  },
+  {
+    "name": "Cyclopam",
+    "composition": "Dicyclomine hydrochloride + Paracetamol"
+  },
+  {
+    "name": "Clinsup V3",
+    "composition": "Clindamycin + Clotrimazole"
+  },
+  {
+    "name": "Clid 300",
+    "composition": "Clindamycin hydrochloride 300 mg"
+  },
+  {
+    "name": "Clinagen 3",
+    "composition": "Clindamycin phosphate 100 mg"
+  },
+  {
+    "name": "Cheerfol",
+    "composition": "Choline 250 mg + L-methylfolate calcium"
+  },
+  {
+    "name": "Crigest-NCR 10",
+    "composition": "Norethisterone acetate 10 mg"
+  },
+  {
+    "name": "Crigest-NCR 15",
+    "composition": "Norethisterone acetate 15 mg"
+  },
+  {
+    "name": "CalciBuzz MZ",
+    "composition": "Calcium carbonate + Vitamin D3 + Methylcobalamin + L-methylfolate calcium + Pyridoxal-5-phosphate"
+  },
+  {
+    "name": "D3",
+    "composition": "Cholecalciferol 60,000 IU"
+  },
+  {
+    "name": "Enhance XT",
+    "composition": "Lycopene + Grape seed extract + L-Arginine + Zinc sulphate + Selenium + Vitamin B6 + Folic acid + Chromium"
+  },
+  {
+    "name": "Etos MR",
+    "composition": "Etoricoxib + Thiocolchicoside"
+  },
+  {
+    "name": "Sera-Th4",
+    "composition": "Thiocolchicoside + Etoricoxib"
+  },
+  {
+    "name": "Evion 200",
+    "composition": "Vitamin E capsules"
+  },
+  {
+    "name": "Ezorb Forte",
+    "composition": "Calcium aspartate + Calcium orotate + Calcitriol + Minerals + Vitamins"
+  },
+  {
+    "name": "Eithvik-TH",
+    "composition": "Etoricoxib + Thiocolchicoside"
+  },
+  {
+    "name": "Electrical Orange (powder)",
+    "composition": "ORS-based formulation"
+  },
+  {
+    "name": "Evict Syrup",
+    "composition": "Lactulose solution"
+  },
+  {
+    "name": "Enhance-F",
+    "composition": "Myo-inositol + D-chiro-inositol + Metformin hydrochloride + L-methylfolate calcium + Methylcobalamin"
+  },
+  {
+    "name": "EO-Dine",
+    "composition": "Dienogest + Ethinylestradiol"
+  },
+  {
+    "name": "EPO9",
+    "composition": "Beta-nicotinamide mononucleotide + L-ergothioneine"
+  },
+  {
+    "name": "Etosys-MF",
+    "composition": "Tranexamic acid + Mefenamic acid"
+  },
+  {
+    "name": "Estrobenz",
+    "composition": "Estradiol valerate"
+  },
+  {
+    "name": "Ecosprin-150",
+    "composition": "Aspirin 150 mg"
+  },
+  {
+    "name": "Ecosprin-75",
+    "composition": "Aspirin 75 mg"
+  },
+  {
+    "name": "Emanzen-D",
+    "composition": "Serratiopeptidase + Diclofenac sodium"
+  },
+  {
+    "name": "Ezorb D3",
+    "composition": "Calcium aspartate + Magnesium hydroxide + Vitamin D3"
+  },
+  {
+    "name": "Eferm 500",
+    "composition": "Evening primrose oil + Tocotrienols"
+  },
+  {
+    "name": "Eferm 1000",
+    "composition": "Evening primrose oil + Tocotrienols"
+  },
+  {
+    "name": "IFA XT",
+    "composition": "Ferrous ascorbate + Folic acid (elemental iron)"
+  },
+  {
+    "name": "Betadine vaginal pessaries",
+    "composition": "Povidone-iodine"
+  },
+  {
+    "name": "Fefol",
+    "composition": "Ferrous ascorbate + Folic acid"
+  },
+  {
+    "name": "Folirax-5",
+    "composition": "Methotrexate 5 mg"
+  },
+  {
+    "name": "Folirax-7.5",
+    "composition": "Methotrexate 7.5 mg"
+  },
+  {
+    "name": "Folirax-2.5",
+    "composition": "Methotrexate 2.5 mg"
+  },
+  {
+    "name": "Folirax-20",
+    "composition": "Methotrexate 20 mg"
+  },
+  {
+    "name": "Folirax-15",
+    "composition": "Methotrexate 15 mg"
+  },
+  {
+    "name": "Folirax-10",
+    "composition": "Methotrexate 10 mg"
+  },
+  {
+    "name": "Folvite",
+    "composition": "Folic acid 5 mg"
+  },
+  {
+    "name": "Flavoxate",
+    "composition": "Flavoxate hydrochloride"
+  },
+  {
+    "name": "Fertisure-F",
+    "composition": "Amino acids + Vitamins + Minerals + Antioxidants"
+  },
+  {
+    "name": "Fertyl-M",
+    "composition": "Clomifene citrate 25 mg"
+  },
+  {
+    "name": "Forcan 150",
+    "composition": "Fluconazole 150 mg"
+  },
+  {
+    "name": "Fertisure-M",
+    "composition": "L-carnitine tartrate + Coenzyme Q10 + Zinc + Lycopene + Astaxanthin"
+  },
+  {
+    "name": "Folica",
+    "composition": "Folic acid 5 mg"
+  },
+  {
+    "name": "Fosfocin",
+    "composition": "Fosfomycin trometamol powder"
+  },
+  {
+    "name": "Femzac",
+    "composition": "Ferric maltol + Vitamin C + Vitamin B12 + Folic acid + Vitamin D2"
+  },
+  {
+    "name": "Fertisure Fem",
+    "composition": "N-acetyl L-cysteine + Coenzyme Q10 + Melatonin + Astaxanthin + Folic acid + Vitamin B6 + Vitamin B12 + Vitamin D2"
+  },
+  {
+    "name": "Flavix",
+    "composition": "Oseltamivir phosphate 75 mg"
+  },
+  {
+    "name": "Fitcozol",
+    "composition": "Fenticonazole nitrate vaginal capsules"
+  },
+  {
+    "name": "Fibo...",
+    "composition": "Tripterygium wilfordii root extract + Green tea extract 400 mg + Vitamin D3 15 mcg"
+  },
+  {
+    "name": "Funzi-IT 200",
+    "composition": "Itraconazole 200 mg"
+  },
+  {
+    "name": "Freedase 30",
+    "composition": "Ethinyloestradiol 30 mcg + Dienogest 2 mg"
+  },
+  {
+    "name": "Femssil",
+    "composition": "Sildenafil citrate 25 mg"
+  },
+  {
+    "name": "Farozight ER 300",
+    "composition": "Faropenem sodium extended-release 300 mg"
+  },
+  {
+    "name": "Gudmuv 3D",
+    "composition": "Glucosamine + Diacerein + Methylsulfonylmethane"
+  },
+  {
+    "name": "GIB-29",
+    "composition": "Pregabalin + Nortriptyline + Methylcobalamin"
+  },
+  {
+    "name": "H7lico",
+    "composition": "Lycopene + Multivitamins"
+  },
+  {
+    "name": "H7lico",
+    "composition": "Lycopene + Multivitamin tablet"
+  },
+  {
+    "name": "Indocap SR",
+    "composition": "Indomethacin sustained-release capsules"
+  },
+  {
+    "name": "Instaflex BR",
+    "composition": "Trypsin + Bromelain + Rutoside trihydrate"
+  },
+  {
+    "name": "Imcee",
+    "composition": "Ascorbic acid + Sodium ascorbate"
+  },
+  {
+    "name": "Itrazoom 200",
+    "composition": "Itraconazole 200 mg"
+  },
+  {
+    "name": "IT-Mac SB 65",
+    "composition": "Itraconazole 65 mg"
+  },
+  {
+    "name": "Intimacy Plus 2",
+    "composition": "Desogestrel + Ethinylestradiol"
+  },
+  {
+    "name": "Joint Plus",
+    "composition": "Collagen peptide type II + Sodium hyaluronate + Chondroitin sulphate sodium + Vitamin C + Rosehip"
+  },
+  {
+    "name": "KJoint-DN",
+    "composition": "Glucosamine sulphate potassium chloride + Diacerein + Methylsulfonylmethane"
+  },
+  {
+    "name": "Joint Plus",
+    "composition": "Collagen peptide type II + Glucosamine sulphate + Potassium + Boswellia serrata + L-Proline"
+  },
+  {
+    "name": "Klonaz-0.25",
+    "composition": "Clonazepam 0.25 mg"
+  },
+  {
+    "name": "Klonaz-0.5",
+    "composition": "Clonazepam 0.5 mg"
+  },
+  {
+    "name": "Kivipac-T",
+    "composition": "Paracetamol + Tramadol hydrochloride"
+  },
+  {
+    "name": "Kivipac-T",
+    "composition": "Paracetamol 325 mg + Tramadol hydrochloride 37.5 mg"
+  },
+  {
+    "name": "Levosiz",
+    "composition": "Levocetirizine dihydrochloride 5 mg"
+  },
+  {
+    "name": "Ligaflex",
+    "composition": "Collagen peptide type I + Glucosamine sulphate potassium + Boswellia serrata + L-Proline + L-Lysine HCl + Curcumin + L-Glutamine + Chondroitin sulphate + Vitamin C + Quercetin + Bambusa arundinacea + Vitamin B3 + Zinc + Vitamin B6 + Manganese"
+  },
+  {
+    "name": "Lycopene (brand unclear)",
+    "composition": "Lycopene + Multivitamins"
+  },
+  {
+    "name": "Multizorb",
+    "composition": "Green tea extract + Lycopene + Vitamins + Minerals + Trace elements"
+  },
+  {
+    "name": "Mefrogyl 400",
+    "composition": "Metronidazole 400 mg"
+  },
+  {
+    "name": "Myodil Max",
+    "composition": "Thiocolchicoside + Paracetamol + Aceclofenac"
+  },
+  {
+    "name": "ME-PR",
+    "composition": "Pregabalin 75 mg + Methylcobalamin"
+  },
+  {
+    "name": "Me-PR",
+    "composition": "Pregabalin + Methylcobalamin"
+  },
+  {
+    "name": "Myo-PR",
+    "composition": "Pregabalin 75 mg + Methylcobalamin"
+  },
+  {
+    "name": "Moxikind-CV 625",
+    "composition": "Amoxicillin + Potassium clavulanate"
+  },
+  {
+    "name": "Metformin + Inositol",
+    "composition": "Myo-inositol + D-chiro-inositol + Metformin hydrochloride"
+  },
+  {
+    "name": "Moxikind-CV 250",
+    "composition": "Amoxicillin + Potassium clavulanate"
+  },
+  {
+    "name": "Neurotop",
+    "composition": "Pregabalin 75 mg (SR) + Nortriptyline 10 mg"
+  },
+  {
+    "name": "Norkiv-25",
+    "composition": "Nortriptyline hydrochloride 25 mg"
+  },
+  {
+    "name": "Neurobion Forte",
+    "composition": "Vitamin B-complex + Vitamin B12"
+  },
+  {
+    "name": "Nexito Forte",
+    "composition": "Escitalopram oxalate 10 mg + Clonazepam 0.5 mg"
+  },
+  {
+    "name": "Nexito 10",
+    "composition": "Escitalopram 10 mg"
+  },
+  {
+    "name": "Normaxin",
+    "composition": "Clidinium bromide + Chlordiazepoxide + Dicyclomine HCl"
+  },
+  {
+    "name": "Norflox 400",
+    "composition": "Norfloxacin + Lactic acid bacillus"
+  },
+  {
+    "name": "Nortripan-M",
+    "composition": "Nortriptyline + Mecobalamin + Pregabalin (SR)"
+  },
+  {
+    "name": "Nootropan-M",
+    "composition": "Nortriptyline + Mecobalamin + Pregabalin (SR)"
+  },
+  {
+    "name": "Nortriptyline 25 (brand unclear)",
+    "composition": "Nortriptyline hydrochloride 25 mg"
+  },
+  {
+    "name": "PNV (Meclizine)",
+    "composition": "Meclizine HCl"
+  },
+  {
+    "name": "Oncet CF",
+    "composition": "Paracetamol + Phenylephrine hydrochloride + Chlorpheniramine maleate"
+  },
+  {
+    "name": "Orofer XT",
+    "composition": "Ferrous ascorbate + Folic acid"
+  },
+  {
+    "name": "Ostofos 70",
+    "composition": "Sodium alendronate / Alendronic acid 70 mg"
+  },
+  {
+    "name": "Ortho Cort-12",
+    "composition": "Deflazacort 12 mg"
+  },
+  {
+    "name": "Zifi 200",
+    "composition": "Cefixime 200 mg"
+  },
+  {
+    "name": "Ondem MD-4",
+    "composition": "Ondansetron 4 mg"
+  },
+  {
+    "name": "Ototal",
+    "composition": "Omega-3 fatty acids + Lycopene + Green tea extract + L-methionine + Astaxanthin + Ginkgo biloba extract + Ginseng extract + Antioxidants + Vitamins + Minerals"
+  },
+  {
+    "name": "Proxym ER",
+    "composition": "S(+) Etodolac 300 mg"
+  },
+  {
+    "name": "Ototal Capsule",
+    "composition": "Omega-3 fatty acids + Lycopene + Green tea extract + L-methionine + Astaxanthin + Ginkgo biloba extract + Ginseng extract + Antioxidants + Vitamins + Minerals"
+  },
+  {
+    "name": "Ototal Syrup",
+    "composition": "Lycopene + Multivitamins"
+  },
+  {
+    "name": "Pan 40",
+    "composition": "Pantoprazole 40 mg"
+  },
+  {
+    "name": "PMD Care",
+    "composition": "Safflower + Palmitoylethanolamide + Vitex agnus-castus + Magnesium + Pyridoxine-5-phosphate"
+  },
+  {
+    "name": "Pregnidoxin",
+    "composition": "Doxylamine succinate + Pyridoxine hydrochloride"
+  },
+  {
+    "name": "Pefmacef-250",
+    "composition": "Cefuroxime axetil 250 mg"
+  },
+  {
+    "name": "Pamaspas Plus",
+    "composition": "Mefenamic acid + Paracetamol + Dicyclomine hydrochloride"
+  },
+  {
+    "name": "Primox",
+    "composition": "Nortriptyline 25 mg"
+  },
+  {
+    "name": "Perinorm",
+    "composition": "Metoclopramide hydrochloride"
+  },
+  {
+    "name": "PNV",
+    "composition": "Meclizine HCl"
+  },
+  {
+    "name": "Pause-500",
+    "composition": "Tranexamic acid 500 mg"
+  },
+  {
+    "name": "Palmiber",
+    "composition": "Palmitoylethanolamide 300 mg + Genistein 4 mg + Daidzein 50 mg + N-acetyl L-cysteine 300 mg + Magnesium 150 mg"
+  },
+  {
+    "name": "Pulmocef CV 250",
+    "composition": "Cefuroxime axetil + Potassium clavulanate"
+  },
+  {
+    "name": "Prowel-1",
+    "composition": "Prucalopride 1 mg"
+  },
+  {
+    "name": "Pantop HP Kit",
+    "composition": "Combination pack of Clarithromycin + Pantoprazole + Amoxicillin"
+  },
+  {
+    "name": "99F 650",
+    "composition": "Paracetamol 650 mg"
+  },
+  {
+    "name": "Parimol Active",
+    "composition": "Paracetamol + Caffeine"
+  },
+  {
+    "name": "Tryptomer 10",
+    "composition": "Amitriptyline hydrochloride 10 mg"
+  },
+  {
+    "name": "Trypic-500",
+    "composition": "Tranexamic acid 500 mg"
+  },
+  {
+    "name": "Tentex Royal",
+    "composition": "Gokshura (Tribulus terrestris) + Kokilaksha + Vacha + Sunishannaka + Kumkuma + Musali + Nagavalli"
+  },
+  {
+    "name": "Trufol",
+    "composition": "L-methylfolate"
+  },
+  {
+    "name": "T3 D3",
+    "composition": "Tocotrienols + Vitamin D3 + Vitamin B6 + Methylcobalamin + L-methylfolate"
+  },
+  {
+    "name": "Triofert-M",
+    "composition": "Myo-inositol + Metformin hydrochloride"
+  },
+  {
+    "name": "Proguard",
+    "composition": "D-mannose + Cranberry extract + Hibiscus sabdariffa extract + Diluent (L-plantarum) + L-rhamnosus + Glidant"
+  },
+  {
+    "name": "Polydol 30",
+    "composition": "Trypsin + Bromelain + Rutoside trihydrate"
+  },
+  {
+    "name": "Progestin MZS",
+    "composition": "Pregabalin + Methylcobalamin"
+  },
+  {
+    "name": "Rabekind 20",
+    "composition": "Rabeprazole sodium 20 mg"
+  },
+  {
+    "name": "Rabekind 40",
+    "composition": "Rabeprazole sodium 40 mg"
+  },
+  {
+    "name": "Rabe",
+    "composition": "Rabeprazole sodium"
+  },
+  {
+    "name": "Rabe-D / Cyra-D",
+    "composition": "Rabeprazole + Domperidone"
+  },
+  {
+    "name": "Sefolac 300 ER",
+    "composition": "S(+) Etodolac prolonged-release 300 mg"
+  },
+  {
+    "name": "SODAMINT",
+    "composition": "Sodium bicarbonate 300 mg + Peppermint oil"
+  },
+  {
+    "name": "Solprom",
+    "composition": "Escitalopram oxalate + Clonazepam"
+  },
+  {
+    "name": "Sestan 10",
+    "composition": "Escitalopram 10 mg"
+  },
+  {
+    "name": "Seeniace 0.5",
+    "composition": "Haloperidol 0.5 mg"
+  },
+  {
+    "name": "Sensival 25",
+    "composition": "Nortriptyline hydrochloride 25 mg"
+  },
+  {
+    "name": "Stamarlo-5",
+    "composition": "Amlodipine besilate"
+  },
+  {
+    "name": "Stemefil MD 5 mg",
+    "composition": "Prochlorperazine maleate 5 mg"
+  },
+  {
+    "name": "Sazo 500",
+    "composition": "Sulfasalazine 500 mg"
+  },
+  {
+    "name": "Sowl K2",
+    "composition": "Calcium citrate + Calcitriol + Folic acid + Zinc sulphate monohydrate + Methylcobalamin + Vitamin K2-7"
+  },
+  {
+    "name": "Tricium Max",
+    "composition": "Cissus quadrangularis + Calcium + Vitamin D3"
+  },
+  {
+    "name": "Trinity-DS",
+    "composition": "Trypsin + Bromelain + Rutoside trihydrate"
+  },
+  {
+    "name": "TOCOZIN-LC",
+    "composition": "L-carnitine L-tartrate + Magnesium bisglycinate + Tocotrienols + Methylcobalamin + L-methylfolate calcium + Vitamin B6 + Zinc"
+  },
+  {
+    "name": "SIS TCLC",
+    "composition": "Magnesium glycinate complex + L-carnitine + CoQ10 + Ginkgo biloba + Vitamin E + Vitamin C + Hydroxocobalamin + Folic acid"
+  },
+  {
+    "name": "Testosterone 40",
+    "composition": "Testosterone undecanoate 40 mg"
+  },
+  {
+    "name": "Dubg-NM",
+    "composition": "Pregabalin (SR) + Nortriptyline + Methylcobalamin"
+  },
+  {
+    "name": "Uprise D3",
+    "composition": "Cholecalciferol 60,000 IU"
+  },
+  {
+    "name": "Ultrecet",
+    "composition": "Paracetamol + Tramadol hydrochloride"
+  },
+  {
+    "name": "Tofolac 300 ER",
+    "composition": "S(+) Etodolac prolonged-release 300 mg"
+  },
+  {
+    "name": "Triocet Max",
+    "composition": "Cissus quadrangularis + Calcium + Vitamin D3"
+  },
+  {
+    "name": "Vitofem D3",
+    "composition": "Cholecalciferol 60,000 IU"
+  },
+  {
+    "name": "Vitofem D3",
+    "composition": "Vitamin D3 (Cholecalciferol) 60,000 IU"
+  },
+  {
+    "name": "Well 9 NVP",
+    "composition": "Doxylamine succinate + L-methylfolate calcium + Pyridoxal-5-phosphate + Mecobalamin"
+  },
+  {
+    "name": "Xynore-P",
+    "composition": "Aceclofenac + Paracetamol"
+  },
+  {
+    "name": "Xynore-PTH4",
+    "composition": "Aceclofenac + Paracetamol + Thiocolchicoside"
+  }
+]
