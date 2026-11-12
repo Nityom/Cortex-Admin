@@ -1646,24 +1646,24 @@ export default function OPDManagementPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 border-b border-slate-200 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 overflow-x-auto min-w-0 flex-1">
+        <div className="mt-5 flex flex-col gap-2 border-b border-slate-200 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex gap-1 overflow-x-auto min-w-0 flex-1 no-scrollbar">
             {([
-              ["queue", <Clock key="queue" className="h-4 w-4" />, `OPD queue${todayQueueCount ? ` · ${todayQueueCount}` : ""}`],
-              ["waitingQueue", <Clock key="waitingQueue" className="h-4 w-4 text-amber-600" />, `Waiting queue${waitingQueueCount ? ` · ${waitingQueueCount}` : ""}`],
-              ["billingQueue", <Receipt key="billingQueue" className="h-4 w-4" />, `Billing queue${todayQueueSummary.completed ? ` · ${todayQueueSummary.completed}` : ""}`],
-              ["appointments", <Calendar key="appointments" className="h-4 w-4" />, `Appointments${todayAppointments.length ? ` · ${todayAppointments.length}` : ""}`],
-              ["register", <UserPlus key="register" className="h-4 w-4" />, "Walk-in registration"],
-              ["directory", <Users key="directory" className="h-4 w-4" />, "Patient directory"],
+              ["queue", <Clock key="queue" className="h-4 w-4 shrink-0" />, `OPD queue${todayQueueCount ? ` · ${todayQueueCount}` : ""}`],
+              ["waitingQueue", <Clock key="waitingQueue" className="h-4 w-4 shrink-0 text-amber-600" />, `Waiting queue${waitingQueueCount ? ` · ${waitingQueueCount}` : ""}`],
+              ["billingQueue", <Receipt key="billingQueue" className="h-4 w-4 shrink-0" />, `Billing queue${todayQueueSummary.completed ? ` · ${todayQueueSummary.completed}` : ""}`],
+              ["appointments", <Calendar key="appointments" className="h-4 w-4 shrink-0" />, `Appointments${todayAppointments.length ? ` · ${todayAppointments.length}` : ""}`],
+              ["register", <UserPlus key="register" className="h-4 w-4 shrink-0" />, "Walk-in registration"],
+              ["directory", <Users key="directory" className="h-4 w-4 shrink-0" />, "Patient directory"],
             ] as const).map(([tab, icon, label]) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`relative inline-flex shrink-0 items-center gap-2 rounded-t-lg px-4 py-3 text-sm font-semibold transition ${activeTab === tab ? "text-emerald-800" : "text-slate-500 hover:text-slate-800"}`}>
-                {icon}{label}{activeTab === tab && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-emerald-700" />}
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`relative inline-flex shrink-0 items-center gap-1.5 rounded-t-lg px-3 py-2.5 text-sm font-semibold transition whitespace-nowrap ${activeTab === tab ? "text-emerald-800" : "text-slate-500 hover:text-slate-800"}`}>
+                {icon}{label}{activeTab === tab && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-emerald-700" />}
               </button>
             ))}
           </div>
           {(activeTab === "queue" || activeTab === "waitingQueue" || activeTab === "billingQueue") && (
-            <div className="mb-2 flex flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs whitespace-nowrap">
-              <span className="px-2 font-semibold uppercase tracking-wide text-slate-400">Doctor</span>
+            <div className="mb-1.5 flex h-8 flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 text-xs whitespace-nowrap self-end">
+              <span className="px-1.5 font-semibold uppercase tracking-wider text-slate-400 text-[11px]">Doctor</span>
               {[
                 ["Dr. Vipeen Raut", "Dr. Vipeen Raut"],
                 ["Dr. Shillpa Raut", "Dr. Shilpa Raut"],
@@ -1681,7 +1681,7 @@ export default function OPDManagementPage() {
                         handleDoctorChange(value);
                       } catch (_) {}
                     }}
-                    className={`rounded-md px-2.5 py-1.5 font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                    className={`h-6 rounded-md px-2.5 font-semibold transition cursor-pointer whitespace-nowrap shrink-0 flex items-center justify-center ${
                       isSelected
                         ? "bg-emerald-50 text-emerald-800 shadow-2xs font-bold"
                         : "text-slate-500 hover:bg-slate-50"
