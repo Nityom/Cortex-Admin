@@ -1647,7 +1647,7 @@ export default function OPDManagementPage() {
         </div>
 
         <div className="mt-5 flex flex-col gap-3 border-b border-slate-200 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-1 overflow-x-auto">
+          <div className="flex gap-1 overflow-x-auto min-w-0 flex-1">
             {([
               ["queue", <Clock key="queue" className="h-4 w-4" />, `OPD queue${todayQueueCount ? ` · ${todayQueueCount}` : ""}`],
               ["waitingQueue", <Clock key="waitingQueue" className="h-4 w-4 text-amber-600" />, `Waiting queue${waitingQueueCount ? ` · ${waitingQueueCount}` : ""}`],
@@ -1662,7 +1662,7 @@ export default function OPDManagementPage() {
             ))}
           </div>
           {(activeTab === "queue" || activeTab === "waitingQueue" || activeTab === "billingQueue") && (
-            <div className="mb-2 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs">
+            <div className="mb-2 flex flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-xs whitespace-nowrap">
               <span className="px-2 font-semibold uppercase tracking-wide text-slate-400">Doctor</span>
               {[
                 ["Dr. Vipeen Raut", "Dr. Vipeen Raut"],
@@ -1681,7 +1681,7 @@ export default function OPDManagementPage() {
                         handleDoctorChange(value);
                       } catch (_) {}
                     }}
-                    className={`rounded-md px-2.5 py-1.5 font-semibold transition cursor-pointer ${
+                    className={`rounded-md px-2.5 py-1.5 font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
                       isSelected
                         ? "bg-emerald-50 text-emerald-800 shadow-2xs font-bold"
                         : "text-slate-500 hover:bg-slate-50"
