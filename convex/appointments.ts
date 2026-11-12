@@ -49,6 +49,7 @@ export const getBookedSlots = query({
     // Filter out CANCELLED appointments and match doctor if provided
     return appointments
       .filter((a) => typeof a.time === "string")
+      .filter((a) => a.status !== "CANCELLED")
       .filter(a => !args.doctor_name || a.doctor_name === args.doctor_name)
       .map(a => a.time);
   },

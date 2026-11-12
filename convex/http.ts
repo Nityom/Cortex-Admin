@@ -1135,7 +1135,7 @@ http.route({
             <div class="footer-clinic-title">Dedicated to Complete Orthopaedic, Maternity &amp; Family Care</div>
 
             <div class="footer-opd-line">
-              <span class="footer-opd-label">OPD Time : </span>Mon. to Fri. - 10 am to 1 pm &amp; 6 pm to 8 pm | Sat. - 10 am to 1 pm | Sunday Closed
+              <span class="footer-opd-label">OPD Time : </span>Mon. to Sat. - 10:30 am to 1:00 pm &amp; 6:00 pm to 7:30 pm | Sunday Closed
             </div>
 
             <div class="footer-sunday-line">Sunday OPD Closed</div>
