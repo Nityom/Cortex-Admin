@@ -371,7 +371,7 @@ export function usePrescriptionForm() {
       setEddDate(`${yyyy}-${mm}-${dd}`);
 
       // Gestational Age = calendar difference from LMP to visit date (or today)
-      const visitDate = parseNoon(formData.date);
+      const visitDate = parseNoon(formData.date || todayDate);
       const diffMs = visitDate.getTime() - lmp.getTime();
       const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
       if (diffDays >= 0) {
@@ -386,7 +386,7 @@ export function usePrescriptionForm() {
     } catch (err) {
       console.warn('Error calculating EDD / GA:', err);
     }
-  }, [lmpDate, formData.date]);
+  }, [lmpDate, formData.date, todayDate]);
 
   // Manual EDD change: Auto-derives LMP (EDD - 280 days) & calculates Gestational Age
   const updateEddDate = useCallback(
@@ -408,7 +408,7 @@ export function usePrescriptionForm() {
         const lmpStr = `${yyyy}-${mm}-${dd}`;
         setLmpDate(lmpStr);
 
-        const vParts = (formData.date || '').split('-').map(Number);
+        const vParts = (formData.date || todayDate || '').split('-').map(Number);
         const visitDate = vParts.length === 3 && !isNaN(vParts[0])
           ? new Date(vParts[0], vParts[1] - 1, vParts[2], 12, 0, 0)
           : new Date();
@@ -422,7 +422,7 @@ export function usePrescriptionForm() {
         console.warn('Error calculating LMP from EDD:', err);
       }
     },
-    [formData.date]
+    [formData.date, todayDate]
   );
 
   // Auto-populate & calculate Antenatal (LMP • EDD • GA) for Gynae on 2nd / subsequent visits
@@ -453,8 +453,8 @@ export function usePrescriptionForm() {
         }
       }
 
-      // If LMP is present but EDD is missing, derive EDD = LMP + 280 days
-      if (effectiveLmp && !effectiveEdd) {
+      // If LMP is present, always dynamically calculate standard EDD = LMP + 280 days
+      if (effectiveLmp) {
         const lmpParts = String(effectiveLmp).split('-').map(Number);
         const lmpDateObj = lmpParts.length === 3 && !isNaN(lmpParts[0])
           ? new Date(lmpParts[0], lmpParts[1] - 1, lmpParts[2], 12, 0, 0)
@@ -497,13 +497,13 @@ export function usePrescriptionForm() {
         return d;
       };
 
-      const visitDate = parseNoon(currentVisitDateStr || formData.date);
+      const visitDate = parseNoon(currentVisitDateStr || formData.date || todayDate);
 
-      // Ensure pregnancy is from an ongoing gestation (within ~315 days of LMP)
+      // Ensure pregnancy is from an ongoing gestation (within ~294 days / 42 weeks of LMP)
       if (effectiveLmp) {
         const lmpObj = parseNoon(effectiveLmp);
         const daysSinceLmp = Math.round((visitDate.getTime() - lmpObj.getTime()) / (24 * 60 * 60 * 1000));
-        if (daysSinceLmp > 315 || daysSinceLmp < -30) {
+        if (daysSinceLmp > 294 || daysSinceLmp < -30) {
           return false;
         }
       }
@@ -525,7 +525,7 @@ export function usePrescriptionForm() {
 
       return true;
     },
-    [formData.date]
+    [formData.date, todayDate]
   );
   const [diagnosesList, setDiagnosesList] = useState<any[]>([]);
 
@@ -708,6 +708,18 @@ export function usePrescriptionForm() {
       if (!pastRx) return;
       setPreviousPrescription(pastRx);
 
+      // CRITICAL: Always treat loaded past records as a BRAND NEW prescription for TODAY!
+      // Never overwrite the previous prescription document in the database.
+      setIsEditMode(false);
+      setPrescriptionId(null);
+
+      // ALWAYS guarantee date remains TODAY'S VISIT DATE
+      setFormData((prev) => ({
+        ...prev,
+        date: todayDate,
+        followupDate: '', // Clear stale followup date from past visit
+      }));
+
       if (pastRx.diagnosis) {
         setFormData((prev) => ({ ...prev, de: pastRx.diagnosis }));
         setDiagnosesList([{ id: 'd_past_1', diagnosis: pastRx.diagnosis, snomed_code: '', duration: '', date: '' }]);
@@ -770,7 +782,7 @@ export function usePrescriptionForm() {
         if (v.height) setHeightVal(v.height);
         if (v.temperature) setTempVal(v.temperature);
         if (v.lmp || v.edd || v.gestational_age || v.gestational_weeks || pastRx.gestational_age) {
-          autoPopulateAntenatalFromPastRx([pastRx], formData.date || todayDate);
+          autoPopulateAntenatalFromPastRx([pastRx], todayDate);
         }
       }
 
@@ -779,12 +791,12 @@ export function usePrescriptionForm() {
 
       const visitDateStr = pastRx.prescription_date || 'past consultation';
       if (isGynaeAutoFill) {
-        showTemplateToast(`Gynae Repeat Visit: Auto-filled previous prescription (${visitDateStr})`);
+        showTemplateToast(`Gynae Repeat Visit: Loaded previous prescription into new visit (${todayDate})`);
       } else {
-        showTemplateToast(`Loaded records from visit (${visitDateStr}) into active prescription!`);
+        showTemplateToast(`Loaded records from visit (${visitDateStr}) into new active prescription!`);
       }
     },
-    [autoPopulateAntenatalFromPastRx, formData.date, todayDate]
+    [autoPopulateAntenatalFromPastRx, todayDate]
   );
 
   // Restore handlers for Undo2 buttons in each clinical section
@@ -874,15 +886,14 @@ export function usePrescriptionForm() {
       if (v.height) setHeightVal(v.height);
       if (v.temperature) setTempVal(v.temperature);
       if (v.waist_hip) setWaistHipVal(v.waist_hip);
-      if (v.lmp) setLmpDate(v.lmp);
-      if (v.edd) setEddDate(v.edd);
-      if (v.gestational_weeks) setGestationalWeeks(v.gestational_weeks);
-      if (v.gestational_days) setGestationalDays(v.gestational_days);
+      if (v.lmp || v.edd || v.gestational_age || v.gestational_weeks) {
+        autoPopulateAntenatalFromPastRx([prev], todayDate);
+      }
       showTemplateToast(`Restored vitals from previous visit (${prev.prescription_date || ''})`);
     } else {
       showTemplateToast('No vitals found in previous prescription.');
     }
-  }, [getEffectivePreviousRx, showTemplateToast]);
+  }, [autoPopulateAntenatalFromPastRx, getEffectivePreviousRx, showTemplateToast, todayDate]);
 
   const restorePreviousMedicines = useCallback(() => {
     const prev = getEffectivePreviousRx();
@@ -1115,7 +1126,7 @@ export function usePrescriptionForm() {
                   // Auto-fill entire previous prescription for repeat patient (both Ortho & Gynae)
                   handleLoadPastPrescription(sorted[0], true);
                   if (isGynae) {
-                    autoPopulateAntenatalFromPastRx(pastRx, formData.date || todayDate);
+                    autoPopulateAntenatalFromPastRx(pastRx, todayDate);
                   }
                 }
               }
@@ -1128,7 +1139,7 @@ export function usePrescriptionForm() {
                 if (!isEditMode && !prescriptionId) {
                   handleLoadPastPrescription(latestRx, true);
                   if (isGynae) {
-                    autoPopulateAntenatalFromPastRx([latestRx], formData.date || todayDate);
+                    autoPopulateAntenatalFromPastRx([latestRx], todayDate);
                   }
                 }
               }

@@ -84,15 +84,47 @@ export const upsert = mutation({
       updated_at: now,
     };
 
+    let recordId: any;
     if (existing) {
       await ctx.db.patch(existing._id, payload);
-      return existing._id;
+      recordId = existing._id;
     } else {
-      return await ctx.db.insert("opd_queue", {
+      recordId = await ctx.db.insert("opd_queue", {
         ...payload,
         created_at: now,
       });
     }
+
+    // When an active OPD check-in/registration (opd_*) is saved,
+    // clean up any corresponding scheduled appointment placeholder (appointment_*)
+    // so no patient is duplicated in the database or queue.
+    if (args.id.startsWith("opd_")) {
+      const cleanPhone = (args.phone || "").replace(/\D/g, "").slice(-10);
+      const cleanName = (args.name || "").trim().toLowerCase();
+      const targetDate = (args.registeredAt || "").split("T")[0];
+
+      const allPlaceholders = await ctx.db
+        .query("opd_queue")
+        .filter((q) => q.eq(q.field("status"), "Waiting"))
+        .collect();
+
+      for (const item of allPlaceholders) {
+        if (!item.queue_id || !item.queue_id.startsWith("appointment_")) continue;
+        const pApptId = item.appointmentId ? String(item.appointmentId) : "";
+        const pPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+        const pName = (item.name || "").trim().toLowerCase();
+        const pDate = (item.registeredAt || "").split("T")[0];
+
+        const matchAppt = args.appointmentId && pApptId && args.appointmentId === pApptId;
+        const matchPhoneAndName = cleanPhone.length === 10 && pPhone === cleanPhone && (cleanName === pName || pDate === targetDate);
+
+        if (matchAppt || matchPhoneAndName) {
+          await ctx.db.delete(item._id);
+        }
+      }
+    }
+
+    return recordId;
   },
 });
 
@@ -196,4 +228,43 @@ export const syncLocalItems = mutation({
     return synced;
   },
 });
+
+export const cleanupDuplicatePlaceholders = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allItems = await ctx.db.query("opd_queue").collect();
+    const opdItems = allItems.filter((i) => i.queue_id && i.queue_id.startsWith("opd_"));
+    const appointmentPlaceholders = allItems.filter(
+      (i) => i.queue_id && i.queue_id.startsWith("appointment_")
+    );
+
+    let deletedCount = 0;
+    for (const placeholder of appointmentPlaceholders) {
+      const pApptId = placeholder.appointmentId ? String(placeholder.appointmentId) : "";
+      const pPhone = (placeholder.phone || "").replace(/\D/g, "").slice(-10);
+      const pName = (placeholder.name || "").trim().toLowerCase();
+      const pDate = (placeholder.registeredAt || "").split("T")[0];
+
+      const hasMatchingOpd = opdItems.some((opd) => {
+        const oApptId = opd.appointmentId ? String(opd.appointmentId) : "";
+        const oPhone = (opd.phone || "").replace(/\D/g, "").slice(-10);
+        const oName = (opd.name || "").trim().toLowerCase();
+        const oDate = (opd.registeredAt || "").split("T")[0];
+
+        if (pApptId && oApptId && pApptId === oApptId) return true;
+        if (pPhone && oPhone && pPhone === oPhone && pDate === oDate) return true;
+        if (pName && oName && pName === oName && pDate === oDate) return true;
+        return false;
+      });
+
+      if (hasMatchingOpd) {
+        await ctx.db.delete(placeholder._id);
+        deletedCount++;
+      }
+    }
+
+    return deletedCount;
+  },
+});
+
 

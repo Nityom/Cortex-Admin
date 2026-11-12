@@ -229,7 +229,7 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
   // Step 2: Group by date and doctor key
   const groups = new Map<string, OPDQueueItem[]>();
   for (const item of normalized) {
-    const itemDate = getItemLocalDate(item.registeredAt) || "today";
+    const itemDate = getItemLocalDate(item.registeredAt) || getTodayString();
     const docKey = getDoctorKey(item.doctor);
     const groupKey = `${itemDate}___${docKey}`;
     if (!groups.has(groupKey)) {
@@ -246,8 +246,7 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
       (a, b) => new Date(a.registeredAt || 0).getTime() - new Date(b.registeredAt || 0).getTime()
     );
 
-    const patientMap = new Map<string, OPDQueueItem>();
-    const apptIdToKey = new Map<string, string>();
+    const mergedList: OPDQueueItem[] = [];
 
     for (const item of groupItems) {
       const cleanPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
@@ -255,60 +254,68 @@ const deduplicateOpdQueue = (items: OPDQueueItem[]): OPDQueueItem[] => {
       const cleanName = (item.name || "").trim().toLowerCase();
       const apptId = item.appointmentId ? String(item.appointmentId) : "";
 
-      // Deduplication identifier:
-      // Phone + Name uniquely identifies an individual (while keeping distinct family members separate!)
-      // Fall back to non-empty UHID, then Name alone.
-      let key = cleanPhone.length === 10
-        ? `phone_name:${cleanPhone}_${cleanName}`
-        : cleanUhid
-        ? `uhid:${cleanUhid}`
-        : `name:${cleanName}`;
+      // Match against already processed items in this doctor/date group
+      const matchIndex = mergedList.findIndex((existing) => {
+        const exPhone = (existing.phone || "").replace(/\D/g, "").slice(-10);
+        const exUhid = (existing.uhid || "").trim().toUpperCase();
+        const exName = (existing.name || "").trim().toLowerCase();
+        const exApptId = existing.appointmentId ? String(existing.appointmentId) : "";
 
-      // If an existing item already has the same appointmentId, map to that existing item's key
-      if (apptId && apptIdToKey.has(apptId)) {
-        key = apptIdToKey.get(apptId)!;
-      }
+        // 1. Same appointment ID
+        if (apptId && exApptId && apptId === exApptId) return true;
+        // 2. Same non-empty UHID
+        if (cleanUhid && exUhid && cleanUhid === exUhid) return true;
+        // 3. Same phone (10 digits) AND same name
+        if (cleanPhone.length === 10 && exPhone.length === 10 && cleanPhone === exPhone && cleanName === exName) return true;
+        // 4. Same phone (10 digits) if both names are similar
+        if (cleanPhone.length === 10 && exPhone.length === 10 && cleanPhone === exPhone) {
+          if (!cleanName || !exName || cleanName === exName || cleanName.includes(exName) || exName.includes(cleanName)) return true;
+        }
+        // 5. Exact same patient name for the same doctor on the same day
+        if (cleanName && exName && cleanName === exName) {
+          if (cleanPhone.length === 10 && exPhone.length === 10 && cleanPhone !== exPhone) {
+            return false;
+          }
+          return true;
+        }
+        return false;
+      });
 
-      if (!patientMap.has(key)) {
-        patientMap.set(key, item);
-        if (apptId) apptIdToKey.set(apptId, key);
+      if (matchIndex === -1) {
+        mergedList.push(item);
       } else {
-        const existing = patientMap.get(key)!;
+        const existing = mergedList[matchIndex];
         const existingRank = getStatusRank(existing.status);
         const currentRank = getStatusRank(item.status);
 
         // Merge properties to keep the best data:
-        // 1. Prefer non-empty UHID
         const mergedUhid = existing.uhid || item.uhid || "";
-        // 2. Prefer non-empty patientId
         const mergedPatientId = existing.patientId || item.patientId;
-        // 3. Prefer real token (non-"01" if another exists)
-        const existingIsPlaceholder = existing.token === "01" && existing.id.startsWith("appointment_");
-        const itemIsPlaceholder = item.token === "01" && item.id.startsWith("appointment_");
+        const mergedApptId = existing.appointmentId || item.appointmentId;
+        const mergedPhone = existing.phone && existing.phone.replace(/\D/g, "").length >= 10 ? existing.phone : item.phone;
+        const existingIsPlaceholder = existing.id.startsWith("appointment_");
+        const itemIsPlaceholder = item.id.startsWith("appointment_");
         const mergedToken = existingIsPlaceholder && !itemIsPlaceholder
           ? item.token
           : existing.token || item.token;
-        // 4. Prefer opd_ ID over appointment_ ID
         const mergedId = existing.id.startsWith("opd_") ? existing.id : item.id;
-        // 5. Keep active/higher status
         const mergedStatus = currentRank > existingRank ? item.status : existing.status;
 
-        patientMap.set(key, {
+        mergedList[matchIndex] = {
           ...existing,
           ...item,
           id: mergedId,
           uhid: mergedUhid,
           patientId: mergedPatientId,
+          appointmentId: mergedApptId,
+          phone: mergedPhone,
           token: mergedToken,
           status: mergedStatus,
-        });
-        if (apptId) apptIdToKey.set(apptId, key);
+        };
       }
     }
 
-    patientMap.forEach((dedupedItem) => {
-      dedupedAll.push(dedupedItem);
-    });
+    dedupedAll.push(...mergedList);
   });
 
   return dedupedAll;
@@ -1518,11 +1525,15 @@ export default function OPDManagementPage() {
         const uhidNorm = (item.uhid || "").trim().toUpperCase();
         const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
         const itemCleanName = (item.name || "").trim().toLowerCase();
+        const queueItemDate = getItemLocalDate(item.registeredAt) || todayStr;
         const linkedRx =
           (item.id && prescriptionByVisitId.get(item.id)) ||
           (uhidNorm && prescriptionByUhid.get(uhidNorm)) ||
           (phoneNorm && (prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) || prescriptionByPhone.get(phoneNorm)));
-        if (linkedRx && item.status !== "In Consultation") return false;
+        if (linkedRx && item.status !== "In Consultation") {
+          const rxDate = linkedRx.prescription_date || (linkedRx.created_at ? String(linkedRx.created_at).split("T")[0] : "");
+          if (rxDate === queueItemDate) return false;
+        }
       } else if (activeTab !== "billingQueue" && selectedStatusFilter !== "All" && item.status !== selectedStatusFilter) {
         return false;
       }
@@ -1578,11 +1589,15 @@ export default function OPDManagementPage() {
       const uhidNorm = (item.uhid || "").trim().toUpperCase();
       const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
       const itemCleanName = (item.name || "").trim().toLowerCase();
+      const queueItemDate = getItemLocalDate(item.registeredAt) || todayStr;
       const linkedRx =
         (item.id && prescriptionByVisitId.get(item.id)) ||
         (uhidNorm && prescriptionByUhid.get(uhidNorm)) ||
         (phoneNorm && (prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) || prescriptionByPhone.get(phoneNorm)));
-      if (linkedRx && item.status !== "In Consultation") return false;
+      if (linkedRx && item.status !== "In Consultation") {
+        const rxDate = linkedRx.prescription_date || (linkedRx.created_at ? String(linkedRx.created_at).split("T")[0] : "");
+        if (rxDate === queueItemDate) return false;
+      }
       return true;
     }).length;
   }, [queue, selectedQueueDate, selectedDoctorFilter, prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone]);
@@ -1891,15 +1906,22 @@ export default function OPDManagementPage() {
                         return itemFirst.length >= 3 && itemFirst === rxFirst;
                       };
 
+                      const queueItemDate = getItemLocalDate(item.registeredAt) || todayStr;
+
                       let linkedRx = item.id ? prescriptionByVisitId.get(item.id) : undefined;
                       if (linkedRx && !isNameCompatible(linkedRx.patient_name)) {
                         linkedRx = undefined;
                       }
 
+                      // Only consider linked if prescribed on the SAME VISIT DATE!
+                      // Prior prescriptions from past visits are not today's consultation.
                       if (!linkedRx && uhidNorm) {
                         const candidate = prescriptionByUhid.get(uhidNorm);
                         if (candidate && isNameCompatible(candidate.patient_name)) {
-                          linkedRx = candidate;
+                          const candidateDate = candidate.prescription_date || (candidate.created_at ? String(candidate.created_at).split("T")[0] : "");
+                          if (candidateDate === queueItemDate) {
+                            linkedRx = candidate;
+                          }
                         }
                       }
 
@@ -1908,7 +1930,10 @@ export default function OPDManagementPage() {
                           prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) ||
                           prescriptionByPhone.get(phoneNorm);
                         if (candidate && isNameCompatible(candidate.patient_name)) {
-                          linkedRx = candidate;
+                          const candidateDate = candidate.prescription_date || (candidate.created_at ? String(candidate.created_at).split("T")[0] : "");
+                          if (candidateDate === queueItemDate) {
+                            linkedRx = candidate;
+                          }
                         }
                       }
 
