@@ -514,30 +514,14 @@ export default function PrescriptionPastVisitsDashboard({
                     </h4>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (onEditPastVisit && activeVisit) {
-                          onEditPastVisit(activeVisit);
-                        }
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
-                      title="Edit this previous prescription"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Edit Prescription</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => onCreateNewVisit(activeVisit)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
-                    >
-                      <span>Use As Base For Today</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onCreateNewVisit(activeVisit)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
+                  >
+                    <span>Use As Base For Today</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {/* Complaints & Diagnosis Badges */}
