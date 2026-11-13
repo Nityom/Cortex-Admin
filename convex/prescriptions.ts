@@ -460,15 +460,35 @@ export const listByPatient = query({
     args: { reference_number: v.string() },
     handler: async (ctx, args) => {
         const prescriptions = await ctx.db.query("prescriptions").order("desc").collect();
-        return prescriptions.filter((p) => p.reference_number === args.reference_number);
+        const targetRef = args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX');
+        return prescriptions.filter((p) => {
+            const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
+            return pRef === targetRef;
+        });
     },
 });
 
 export const getLatestByPhone = query({
-    args: { phone_number: v.string() },
+    args: { phone_number: v.string(), name: v.optional(v.string()), reference_number: v.optional(v.string()) },
     handler: async (ctx, args) => {
         const prescriptions = await ctx.db.query("prescriptions").order("desc").collect();
-        return prescriptions.find((p) => p.phone_number === args.phone_number) || null;
+        const cleanPhone = args.phone_number.replace(/\D/g, '').slice(-10);
+        const cleanName = args.name ? args.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "") : "";
+        const targetRef = args.reference_number ? args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : "";
+
+        return prescriptions.find((p) => {
+            const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
+            if (targetRef && pRef) {
+                return pRef === targetRef;
+            }
+            const pPhone = (p.phone_number || "").replace(/\D/g, '').slice(-10);
+            if (pPhone !== cleanPhone) return false;
+            if (cleanName) {
+                const pName = (p.patient_name || "").trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+                return pName === cleanName || pName.includes(cleanName) || cleanName.includes(pName);
+            }
+            return true;
+        }) || null;
     },
 });
 

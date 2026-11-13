@@ -159,11 +159,24 @@ export const getPrescriptionsByPatient = async (patientId: string) => {
   return data.map((item: any) => ({ ...item, id: item._id })) as Prescription[];
 };
 
-export const getLatestPrescriptionByPhone = async (phoneNumber: string) => {
+export const getLatestPrescriptionByPhone = async (phoneNumber: string, name?: string, referenceNumber?: string) => {
   if (!phoneNumber) return null;
-  const data = await convex.query(api.prescriptions.getLatestByPhone, { phone_number: phoneNumber });
+  const data = await convex.query(api.prescriptions.getLatestByPhone, {
+    phone_number: phoneNumber,
+    name: name || undefined,
+    reference_number: referenceNumber || undefined,
+  });
   return data ? ({ ...data, id: data._id } as any as Prescription) : null;
 };
+
+function normalizePatientName(name?: string | null): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
 
 export const getAllPrescriptionsForPatient = async (
   referenceNumber?: string | null,
@@ -171,26 +184,65 @@ export const getAllPrescriptionsForPatient = async (
   patientName?: string | null
 ): Promise<Prescription[]> => {
   try {
+    const targetRef = referenceNumber ? referenceNumber.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+    const cleanPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
+    const targetNormName = normalizePatientName(patientName);
+
     let results: any[] = [];
-    if (referenceNumber) {
-      const byRef = await convex.query(api.prescriptions.listByPatient, { reference_number: referenceNumber });
+
+    // 1. If referenceNumber is provided, fetch direct matches from indexed/query
+    if (targetRef) {
+      const byRef = await convex.query(api.prescriptions.listByPatient, { reference_number: targetRef });
       if (Array.isArray(byRef) && byRef.length > 0) {
         results = [...byRef];
       }
     }
 
-    const cleanPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
-    // If empty or to ensure all historical visits are captured
-    if (cleanPhone || patientName || referenceNumber) {
+    // 2. Fetch all to ensure any unindexed or legacy records are caught without leaking other family members
+    if (cleanPhone || targetNormName || targetRef) {
       const all = await convex.query(api.prescriptions.list);
       if (Array.isArray(all)) {
         const matched = all.filter((p: any) => {
+          const pRef = p.reference_number ? p.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
           const pPhone = (p.phone_number || '').replace(/\D/g, '').slice(-10);
-          const matchPhone = cleanPhone && pPhone && cleanPhone === pPhone;
-          const matchRef = referenceNumber && p.reference_number && p.reference_number.trim().toUpperCase() === referenceNumber.trim().toUpperCase();
-          const matchName = patientName && p.patient_name && p.patient_name.toLowerCase().trim() === patientName.toLowerCase().trim();
-          return matchPhone || matchRef || matchName;
+          const pNormName = normalizePatientName(p.patient_name);
+
+          // If target has a reference number:
+          if (targetRef) {
+            if (pRef) {
+              // Both have reference numbers -> MUST match exactly
+              return pRef === targetRef;
+            }
+            // Prescription has NO reference number: match ONLY if phone AND name both match
+            if (cleanPhone && pPhone && cleanPhone === pPhone) {
+              if (targetNormName && pNormName) {
+                return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
+              }
+            }
+            return false;
+          }
+
+          // If target does NOT have a reference number, but we have both name & phone:
+          if (targetNormName && cleanPhone) {
+            const phoneMatches = pPhone && cleanPhone === pPhone;
+            const nameMatches = pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName));
+            // If prescription has a reference number, ensure it doesn't belong to another patient
+            return Boolean(phoneMatches && nameMatches);
+          }
+
+          // If only name is known:
+          if (targetNormName) {
+            return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
+          }
+
+          // If only phone is known (last resort):
+          if (cleanPhone) {
+            return cleanPhone === pPhone;
+          }
+
+          return false;
         });
+
         // Merge without duplicates by _id
         const existingIds = new Set(results.map((r: any) => String(r._id || r.id)));
         for (const item of matched) {

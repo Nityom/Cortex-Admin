@@ -24,6 +24,7 @@ import {
 import {
   getOrCreatePatient,
   getPatientByPhoneNumber,
+  getPatientByReference,
   updatePatient,
 } from '@/services/patients';
 import { doctorService } from '@/services/doctors';
@@ -1966,7 +1967,7 @@ export function usePrescriptionForm() {
             let patientEmail = (existing as any).email || '';
             if (!patientEmail && existing.phone_number) {
               try {
-                const pat = await getPatientByPhoneNumber(existing.phone_number);
+                const pat = await getPatientByPhoneNumber(existing.phone_number, existing.patient_name);
                 if (pat?.email) {
                   patientEmail = pat.email;
                 }
@@ -2091,9 +2092,27 @@ export function usePrescriptionForm() {
           const isGynaeDoc = (qDoctor || selectedDoctorName || '').toLowerCase().includes('shilpa') || (qDoctor || selectedDoctorName || '').toLowerCase().includes('shillpa');
 
           let patientRef = qReference;
-          if (qPhone && qPhone.length === 10) {
+          if (qReference) {
             try {
-              const existingPatient = await getPatientByPhoneNumber(qPhone);
+              const existingPatient = await getPatientByReference(qReference);
+              if (existingPatient) {
+                setIsNewPatient(false);
+                setConsultationCharge(200);
+                if (existingPatient.email) {
+                  setFormData((prev) => ({ ...prev, email: existingPatient.email }));
+                }
+                if (existingPatient.reference_number) {
+                  patientRef = existingPatient.reference_number;
+                  setPatientReferenceNumber(existingPatient.reference_number);
+                  setFormData((prev) => ({ ...prev, reference_number: existingPatient.reference_number }));
+                }
+              }
+            } catch (e) {
+              console.warn('Error fetching patient by reference in initPage:', e);
+            }
+          } else if (qPhone && qPhone.length === 10) {
+            try {
+              const existingPatient = await getPatientByPhoneNumber(qPhone, qName || undefined);
               if (existingPatient) {
                 setIsNewPatient(false);
                 setConsultationCharge(200);
@@ -2114,7 +2133,7 @@ export function usePrescriptionForm() {
           // Fetch all past prescriptions for this patient
           try {
             const pastRxList = await getAllPrescriptionsForPatient(
-              patientRef || undefined,
+              patientRef || qReference || undefined,
               qPhone || undefined,
               qName || undefined
             );

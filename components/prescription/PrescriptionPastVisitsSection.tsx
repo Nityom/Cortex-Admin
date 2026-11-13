@@ -47,16 +47,35 @@ export default function PrescriptionPastVisitsSection({
       try {
         const all = await convexClient.query(api.prescriptions.list);
         if (Array.isArray(all) && isMounted) {
+          const targetRef = patientReference ? patientReference.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+          const phoneClean = (patientPhone || '').replace(/\D/g, '').slice(-10);
+          const targetNormName = patientName ? patientName.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
+
           const filtered = all.filter((p: any) => {
             if (currentPrescriptionId && (String(p._id) === currentPrescriptionId || String(p.id) === currentPrescriptionId)) {
               return false;
             }
-            const phoneClean = (patientPhone || '').replace(/\D/g, '').slice(-10);
+            const pRef = p.reference_number ? p.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
             const pPhoneClean = (p.phone_number || '').replace(/\D/g, '').slice(-10);
-            const matchPhone = phoneClean && pPhoneClean && phoneClean === pPhoneClean;
-            const matchRef = patientReference && p.reference_number && p.reference_number.trim().toUpperCase() === patientReference.trim().toUpperCase();
-            const matchName = patientName && p.patient_name && p.patient_name.toLowerCase().trim() === patientName.toLowerCase().trim();
-            return matchPhone || matchRef || matchName;
+            const pNormName = p.patient_name ? p.patient_name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
+
+            if (targetRef) {
+              if (pRef) return pRef === targetRef;
+              if (phoneClean && pPhoneClean && phoneClean === pPhoneClean) {
+                return Boolean(targetNormName && pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName)));
+              }
+              return false;
+            }
+
+            if (targetNormName && phoneClean) {
+              const phoneMatches = pPhoneClean && phoneClean === pPhoneClean;
+              const nameMatches = pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName));
+              return Boolean(phoneMatches && nameMatches);
+            }
+
+            if (targetNormName) return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
+            if (phoneClean) return phoneClean === pPhoneClean;
+            return false;
           });
 
           filtered.sort((a: any, b: any) => {

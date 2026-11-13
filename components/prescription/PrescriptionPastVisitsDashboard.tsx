@@ -97,14 +97,42 @@ export default function PrescriptionPastVisitsDashboard({
   onOpenEmailModal,
   onPrintPastVisit,
 }: PrescriptionPastVisitsDashboardProps) {
-  // Sort past visits newest first
+  // Sort past visits newest first and strictly ensure visits belong to this specific patient
   const sortedVisits = useMemo(() => {
-    return [...pastVisits].sort((a, b) => {
+    const targetRef = patientReference ? patientReference.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+    const cleanPhone = (patientPhone || '').replace(/\D/g, '').slice(-10);
+    const targetNormName = patientName ? patientName.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
+
+    const filtered = pastVisits.filter((v: any) => {
+      const vRef = v.reference_number ? v.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+      const vPhone = (v.phone_number || '').replace(/\D/g, '').slice(-10);
+      const vNormName = v.patient_name ? v.patient_name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
+
+      if (targetRef) {
+        if (vRef) return vRef === targetRef;
+        if (cleanPhone && vPhone && cleanPhone === vPhone) {
+          return Boolean(targetNormName && vNormName && (targetNormName === vNormName || targetNormName.includes(vNormName) || vNormName.includes(targetNormName)));
+        }
+        return false;
+      }
+
+      if (targetNormName && cleanPhone) {
+        const phoneMatches = vPhone && cleanPhone === vPhone;
+        const nameMatches = vNormName && (targetNormName === vNormName || targetNormName.includes(vNormName) || vNormName.includes(targetNormName));
+        return Boolean(phoneMatches && nameMatches);
+      }
+
+      if (targetNormName) return targetNormName === vNormName || targetNormName.includes(vNormName) || vNormName.includes(targetNormName);
+      if (cleanPhone) return cleanPhone === vPhone;
+      return true;
+    });
+
+    return [...filtered].sort((a, b) => {
       const tA = new Date(a.prescription_date || a._creationTime || 0).getTime();
       const tB = new Date(b.prescription_date || b._creationTime || 0).getTime();
       return tB - tA;
     });
-  }, [pastVisits]);
+  }, [pastVisits, patientReference, patientName, patientPhone]);
 
   // Active selected visit
   const [internalSelectedId, setInternalSelectedId] = useState<string>(() => {

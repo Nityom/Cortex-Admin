@@ -130,8 +130,11 @@ export const getByPhoneAndName = query({
             .collect();
         if (candidates.length === 0) return null;
         if (!args.name || !args.name.trim()) return candidates[0];
-        const cleanName = args.name.trim().toLowerCase();
-        return candidates.find((p) => p.name.trim().toLowerCase() === cleanName) || null;
+        const cleanName = args.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+        return candidates.find((p) => {
+            const pName = p.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+            return pName === cleanName || pName.includes(cleanName) || cleanName.includes(pName);
+        }) || null;
     },
 });
 
@@ -144,8 +147,11 @@ export const getByPhoneNumber = query({
             .collect();
         if (candidates.length === 0) return null;
         if (!args.name || !args.name.trim()) return candidates[0];
-        const cleanName = args.name.trim().toLowerCase();
-        return candidates.find((p) => p.name.trim().toLowerCase() === cleanName) || candidates[0];
+        const cleanName = args.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+        return candidates.find((p) => {
+            const pName = p.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+            return pName === cleanName || pName.includes(cleanName) || cleanName.includes(pName);
+        }) || candidates[0];
     },
 });
 
@@ -159,10 +165,31 @@ export const getById = query({
 export const getByReference = query({
     args: { reference_number: v.string() },
     handler: async (ctx, args) => {
-        return await ctx.db
+        const exact = await ctx.db
             .query("patients")
             .withIndex("by_reference", (q) => q.eq("reference_number", args.reference_number))
             .first();
+        if (exact) return exact;
+
+        const normalized = args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX');
+        const alt1 = await ctx.db
+            .query("patients")
+            .withIndex("by_reference", (q) => q.eq("reference_number", normalized))
+            .first();
+        if (alt1) return alt1;
+
+        const chAlt = normalized.replace(/^CRX/i, 'CH');
+        const alt2 = await ctx.db
+            .query("patients")
+            .withIndex("by_reference", (q) => q.eq("reference_number", chAlt))
+            .first();
+        if (alt2) return alt2;
+
+        const all = await ctx.db.query("patients").collect();
+        return all.find((p) => {
+            const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
+            return pRef === normalized;
+        }) || null;
     },
 });
 

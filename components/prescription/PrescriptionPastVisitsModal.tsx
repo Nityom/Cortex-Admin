@@ -47,11 +47,32 @@ export default function PrescriptionPastVisitsModal({
         // Fetch recent prescriptions list
         const all = await convexClient.query(api.prescriptions.list);
         if (Array.isArray(all)) {
+          const targetRef = patientReference ? patientReference.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+          const cleanPhone = (patientPhone || '').replace(/\D/g, '').slice(-10);
+          const targetNormName = patientName ? patientName.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
+
           const filtered = all.filter((p: any) => {
-            const matchPhone = patientPhone && p.phone_number && String(p.phone_number).trim() === String(patientPhone).trim();
-            const matchRef = patientReference && p.reference_number && p.reference_number === patientReference;
-            const matchName = patientName && p.patient_name && p.patient_name.toLowerCase().trim() === patientName.toLowerCase().trim();
-            return matchPhone || matchRef || matchName;
+            const pRef = p.reference_number ? p.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
+            const pPhone = (p.phone_number || '').replace(/\D/g, '').slice(-10);
+            const pNormName = p.patient_name ? p.patient_name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
+
+            if (targetRef) {
+              if (pRef) return pRef === targetRef;
+              if (cleanPhone && pPhone && cleanPhone === pPhone) {
+                return Boolean(targetNormName && pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName)));
+              }
+              return false;
+            }
+
+            if (targetNormName && cleanPhone) {
+              const phoneMatches = pPhone && cleanPhone === pPhone;
+              const nameMatches = pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName));
+              return Boolean(phoneMatches && nameMatches);
+            }
+
+            if (targetNormName) return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
+            if (cleanPhone) return cleanPhone === pPhone;
+            return false;
           });
 
           // Sort by creation time / prescription date descending
