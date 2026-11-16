@@ -17,4 +17,5 @@ export { default as PrescriptionPastVisitsSection } from './PrescriptionPastVisi
 export { default as PrescriptionPastVisitsDashboard } from './PrescriptionPastVisitsDashboard';
 export { default as PrescriptionPrintModal } from './PrescriptionPrintModal';
 export { default as PrescriptionEmailModal } from './PrescriptionEmailModal';
+export { default as PrescriptionDraftModal } from './PrescriptionDraftModal';
 

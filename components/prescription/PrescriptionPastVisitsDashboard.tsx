@@ -25,6 +25,7 @@ import {
   Stethoscope,
   Sparkles,
   Edit3,
+  FileEdit,
 } from 'lucide-react';
 
 interface PrescriptionPastVisitsDashboardProps {
@@ -44,6 +45,8 @@ interface PrescriptionPastVisitsDashboardProps {
   availableDoctors?: { id?: string; _id?: string; name: string }[];
   onOpenEmailModal?: (visit?: any) => void;
   onPrintPastVisit?: (visit: any) => void;
+  onOpenDraftModal?: () => void;
+  hasDraft?: boolean;
 }
 
 function formatHealthPlixDate(dateVal?: string | number): string {
@@ -97,6 +100,8 @@ export default function PrescriptionPastVisitsDashboard({
   availableDoctors = [],
   onOpenEmailModal,
   onPrintPastVisit,
+  onOpenDraftModal,
+  hasDraft = false,
 }: PrescriptionPastVisitsDashboardProps) {
   // Sort past visits newest first and strictly ensure visits belong to this specific patient
   const sortedVisits = useMemo(() => {
@@ -290,6 +295,26 @@ export default function PrescriptionPastVisitsDashboard({
                 <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Call</span>
               </a>
+            )}
+
+            {/* Draft Action */}
+            {onOpenDraftModal && (
+              <button
+                type="button"
+                onClick={onOpenDraftModal}
+                className={`text-xs px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 transition cursor-pointer border shadow-2xs ${
+                  hasDraft
+                    ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+                title="View, save, or restore prescription drafts"
+              >
+                <FileEdit className="w-3.5 h-3.5 text-amber-600" />
+                <span>Draft</span>
+                {hasDraft && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                )}
+              </button>
             )}
           </div>
 

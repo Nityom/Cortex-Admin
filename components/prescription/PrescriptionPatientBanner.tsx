@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { PhoneCall, FolderOpen, BookmarkPlus, Mail } from 'lucide-react';
+import { PhoneCall, FolderOpen, BookmarkPlus, Mail, FileEdit, RotateCcw } from 'lucide-react';
 
 interface PrescriptionPatientBannerProps {
   formData: {
@@ -28,6 +28,12 @@ interface PrescriptionPatientBannerProps {
   onOpenLoadTemplate: () => void;
   onOpenSaveTemplate: () => void;
   onOpenEmailModal?: () => void;
+  onOpenDraftModal?: () => void;
+  hasDraft?: boolean;
+  showDraftBanner?: boolean;
+  currentDraft?: any;
+  onRestoreDraft?: (draft: any) => void;
+  onDismissDraftBanner?: () => void;
 }
 
 export default function PrescriptionPatientBanner({
@@ -45,6 +51,12 @@ export default function PrescriptionPatientBanner({
   onOpenLoadTemplate,
   onOpenSaveTemplate,
   onOpenEmailModal,
+  onOpenDraftModal,
+  hasDraft = false,
+  showDraftBanner = false,
+  currentDraft,
+  onRestoreDraft,
+  onDismissDraftBanner,
 }: PrescriptionPatientBannerProps) {
   const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') ||
     (selectedDoctorName || '').toLowerCase().includes('shillpa') ||
@@ -159,6 +171,24 @@ export default function PrescriptionPatientBanner({
                 <PhoneCall className="w-3 h-3" /> Call
               </a>
             )}
+            {onOpenDraftModal && (
+              <button
+                type="button"
+                onClick={onOpenDraftModal}
+                className={`text-xs px-2.5 py-0.5 rounded font-semibold flex items-center gap-1.5 transition cursor-pointer border shadow-2xs ${
+                  hasDraft
+                    ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+                title="View, save, or restore prescription drafts"
+              >
+                <FileEdit className="w-3 h-3 text-amber-600" />
+                <span>Draft</span>
+                {hasDraft && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                )}
+              </button>
+            )}
             {onOpenEmailModal && (
               <button
                 type="button"
@@ -196,6 +226,45 @@ export default function PrescriptionPatientBanner({
             )}
           </div>
         </div>
+
+        {/* Unsaved Draft Banner */}
+        {showDraftBanner && currentDraft && (
+          <div className="mt-3 bg-amber-50/90 border border-amber-300 rounded-xl px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-950 shadow-2xs animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              <div>
+                <span className="font-bold">
+                  Unsaved draft available for {currentDraft.patientName || 'this patient'}:
+                </span>{' '}
+                <span className="text-amber-800">
+                  {currentDraft.medicines?.length || 0} medicine(s)
+                  {currentDraft.diagnosesList?.length ? ` • ${currentDraft.diagnosesList.length} diagnosis` : ''}
+                  {currentDraft.complaintsList?.length ? ` • ${currentDraft.complaintsList.length} complaint(s)` : ''}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => onRestoreDraft?.(currentDraft)}
+                className="px-3 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-lg transition shadow-2xs cursor-pointer flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restore Draft</span>
+              </button>
+              {onDismissDraftBanner && (
+                <button
+                  type="button"
+                  onClick={onDismissDraftBanner}
+                  className="text-amber-700 hover:text-amber-900 font-bold p-1 cursor-pointer"
+                  title="Dismiss alert"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Editable Patient Details Bar */}
         <div className="pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 text-sm">

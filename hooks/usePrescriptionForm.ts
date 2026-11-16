@@ -28,6 +28,18 @@ import {
   updatePatient,
 } from '@/services/patients';
 import { doctorService } from '@/services/doctors';
+import {
+  PrescriptionDraftData,
+  PrescriptionDraftSummary,
+  getPatientKey,
+  hasMeaningfulDraftContent,
+  savePrescriptionDraft,
+  getPrescriptionDraft,
+  getActivePrescriptionDraft,
+  getAllPrescriptionDraftsIndex,
+  deletePrescriptionDraft,
+  clearAllPrescriptionDrafts,
+} from '@/services/prescriptionDraftService';
 import { Doctor } from '@/types/doctor';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
@@ -635,6 +647,363 @@ export function usePrescriptionForm() {
     setTemplateToastMessage(msg);
     setTimeout(() => setTemplateToastMessage(null), 3000);
   };
+
+  // Prescription Drafts State
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+  const [currentDraft, setCurrentDraft] = useState<PrescriptionDraftData | null>(null);
+  const [allDrafts, setAllDrafts] = useState<PrescriptionDraftSummary[]>([]);
+  const [draftAutoSavedTime, setDraftAutoSavedTime] = useState<number | null>(null);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const isInitialDraftMount = useRef(true);
+
+  // Sync draft on patient change or storage updates
+  useEffect(() => {
+    const pKey = getPatientKey(formData);
+    const existing = getPrescriptionDraft(pKey) || getActivePrescriptionDraft();
+    setAllDrafts(getAllPrescriptionDraftsIndex());
+    if (existing) {
+      setCurrentDraft(existing);
+      const formHasData = (medicines && medicines.length > 0) || (diagnosesList && diagnosesList.length > 0) || (complaintsList && complaintsList.length > 0);
+      if (!formHasData && hasMeaningfulDraftContent(existing)) {
+        setShowDraftBanner(true);
+      }
+    } else {
+      setCurrentDraft(null);
+      setShowDraftBanner(false);
+    }
+  }, [formData.phoneNumber, formData.reference_number, formData.patientName]);
+
+  // Listen for draft events from other components/tabs
+  useEffect(() => {
+    const handleDraftChange = () => {
+      setAllDrafts(getAllPrescriptionDraftsIndex());
+      const pKey = getPatientKey(formData);
+      const existing = getPrescriptionDraft(pKey);
+      if (existing) setCurrentDraft(existing);
+    };
+    window.addEventListener('cortex_rx_draft_changed', handleDraftChange);
+    return () => window.removeEventListener('cortex_rx_draft_changed', handleDraftChange);
+  }, [formData]);
+
+  // Manual save draft handler
+  const saveCurrentAsDraft = useCallback(() => {
+    const patientKey = getPatientKey(formData);
+    const now = Date.now();
+    const draft: PrescriptionDraftData = {
+      id: `draft_${now}`,
+      savedAt: new Date().toISOString(),
+      timestamp: now,
+      patientKey,
+      patientName: formData.patientName || '',
+      phoneNumber: formData.phoneNumber || '',
+      age: formData.age || '',
+      sex: formData.sex || 'Male',
+      date: formData.date || todayDate,
+      email: (formData as any).email,
+      reference_number: formData.reference_number || patientReferenceNumber,
+      token: formData.token,
+      selectedDoctorName,
+      isNewPatient,
+      consultationCharge,
+      complaintsList,
+      diagnosesList,
+      findingsText,
+      medicines,
+      advice: formData.advice || '',
+      procedureAdvice,
+      drNotes,
+      quickNotes,
+      dietExercise,
+      investigationText,
+      testsRequested,
+      followupDate: formData.followupDate,
+      followupCount,
+      followupUnit,
+      pastMedication,
+      systemicExam,
+      generalExam,
+      referralDocName,
+      referralSpeciality,
+      referralPhone,
+      referralEmail,
+      drawingDataUrl,
+      treatmentItems,
+      bpSystolic,
+      bpDiastolic,
+      pulseVal,
+      heightVal,
+      weightVal,
+      tempVal,
+      bmiVal,
+      spo2Val,
+      waistHipVal,
+      lmpDate,
+      eddDate,
+      gestationalWeeks,
+      gestationalDays,
+    };
+
+    savePrescriptionDraft(draft);
+    setCurrentDraft(draft);
+    setAllDrafts(getAllPrescriptionDraftsIndex());
+    setDraftAutoSavedTime(now);
+    showTemplateToast('Prescription saved to draft!');
+  }, [
+    formData,
+    patientReferenceNumber,
+    selectedDoctorName,
+    isNewPatient,
+    consultationCharge,
+    complaintsList,
+    diagnosesList,
+    findingsText,
+    medicines,
+    procedureAdvice,
+    drNotes,
+    quickNotes,
+    dietExercise,
+    investigationText,
+    testsRequested,
+    followupCount,
+    followupUnit,
+    pastMedication,
+    systemicExam,
+    generalExam,
+    referralDocName,
+    referralSpeciality,
+    referralPhone,
+    referralEmail,
+    drawingDataUrl,
+    treatmentItems,
+    bpSystolic,
+    bpDiastolic,
+    pulseVal,
+    heightVal,
+    weightVal,
+    tempVal,
+    bmiVal,
+    spo2Val,
+    waistHipVal,
+    lmpDate,
+    eddDate,
+    gestationalWeeks,
+    gestationalDays,
+    todayDate,
+  ]);
+
+  // Restore draft handler
+  const restoreDraft = useCallback((draft: PrescriptionDraftData) => {
+    if (!draft) return;
+    setFormData((prev) => ({
+      ...prev,
+      patientName: draft.patientName || prev.patientName,
+      phoneNumber: draft.phoneNumber || prev.phoneNumber,
+      age: draft.age || prev.age,
+      sex: draft.sex || prev.sex,
+      email: draft.email || prev.email,
+      reference_number: draft.reference_number || prev.reference_number,
+      token: draft.token || prev.token,
+      date: draft.date || prev.date,
+      followupDate: draft.followupDate || prev.followupDate,
+      advice: draft.advice !== undefined ? draft.advice : prev.advice,
+      de: (draft.diagnosesList && draft.diagnosesList[0]?.diagnosis) || prev.de,
+      cc: (draft.complaintsList && draft.complaintsList[0]?.complaint) || prev.cc,
+    }));
+
+    if (draft.selectedDoctorName) setSelectedDoctorName(draft.selectedDoctorName);
+    if (draft.isNewPatient !== undefined) setIsNewPatient(draft.isNewPatient);
+    if (draft.consultationCharge !== undefined) setConsultationCharge(draft.consultationCharge);
+
+    if (Array.isArray(draft.complaintsList)) setComplaintsList(draft.complaintsList);
+    if (Array.isArray(draft.diagnosesList)) setDiagnosesList(draft.diagnosesList);
+    if (draft.findingsText !== undefined) setFindingsText(draft.findingsText);
+    if (Array.isArray(draft.medicines)) setMedicines(draft.medicines);
+    if (draft.procedureAdvice !== undefined) setProcedureAdvice(draft.procedureAdvice);
+    if (draft.drNotes !== undefined) setDrNotes(draft.drNotes);
+    if (draft.quickNotes !== undefined) setQuickNotes(draft.quickNotes);
+    if (draft.dietExercise !== undefined) setDietExercise(draft.dietExercise);
+    if (draft.investigationText !== undefined) setInvestigationText(draft.investigationText);
+    if (Array.isArray(draft.testsRequested)) setTestsRequested(draft.testsRequested);
+    if (draft.followupCount !== undefined) setFollowupCount(draft.followupCount);
+    if (draft.followupUnit !== undefined) setFollowupUnit(draft.followupUnit);
+    if (draft.pastMedication !== undefined) setPastMedication(draft.pastMedication);
+    if (draft.systemicExam !== undefined) setSystemicExam(draft.systemicExam);
+    if (draft.generalExam !== undefined) setGeneralExam(draft.generalExam);
+    if (draft.referralDocName !== undefined) setReferralDocName(draft.referralDocName);
+    if (draft.referralSpeciality !== undefined) setReferralSpeciality(draft.referralSpeciality);
+    if (draft.referralPhone !== undefined) setReferralPhone(draft.referralPhone);
+    if (draft.referralEmail !== undefined) setReferralEmail(draft.referralEmail);
+    if (draft.drawingDataUrl !== undefined) setDrawingDataUrl(draft.drawingDataUrl);
+    if (Array.isArray(draft.treatmentItems)) setTreatmentItems(draft.treatmentItems);
+
+    // Vitals
+    if (draft.bpSystolic !== undefined) setBpSystolic(draft.bpSystolic);
+    if (draft.bpDiastolic !== undefined) setBpDiastolic(draft.bpDiastolic);
+    if (draft.pulseVal !== undefined) setPulseVal(draft.pulseVal);
+    if (draft.heightVal !== undefined) setHeightVal(draft.heightVal);
+    if (draft.weightVal !== undefined) setWeightVal(draft.weightVal);
+    if (draft.tempVal !== undefined) setTempVal(draft.tempVal);
+    if (draft.bmiVal !== undefined) setBmiVal(draft.bmiVal);
+    if (draft.spo2Val !== undefined) setSpo2Val(draft.spo2Val);
+    if (draft.waistHipVal !== undefined) setWaistHipVal(draft.waistHipVal);
+    if (draft.lmpDate !== undefined) setLmpDate(draft.lmpDate);
+    if (draft.eddDate !== undefined) setEddDate(draft.eddDate);
+    if (draft.gestationalWeeks !== undefined) setGestationalWeeks(draft.gestationalWeeks);
+    if (draft.gestationalDays !== undefined) setGestationalDays(draft.gestationalDays);
+
+    setShowDraftBanner(false);
+    showTemplateToast('Prescription draft restored!');
+  }, []);
+
+  const handleDeleteDraft = useCallback((patientKey: string) => {
+    deletePrescriptionDraft(patientKey);
+    setCurrentDraft(null);
+    setShowDraftBanner(false);
+    setAllDrafts(getAllPrescriptionDraftsIndex());
+    showTemplateToast('Draft removed.');
+  }, []);
+
+  const handleClearAllDrafts = useCallback(() => {
+    clearAllPrescriptionDrafts();
+    setCurrentDraft(null);
+    setShowDraftBanner(false);
+    setAllDrafts([]);
+    showTemplateToast('All drafts cleared.');
+  }, []);
+
+  // Continuous auto-save to draft on clinical field edits (debounced 1000ms)
+  useEffect(() => {
+    if (isInitialDraftMount.current) {
+      isInitialDraftMount.current = false;
+      return;
+    }
+
+    const hasContent = hasMeaningfulDraftContent({
+      medicines,
+      complaintsList,
+      diagnosesList,
+      advice: formData.advice,
+      findingsText,
+      drNotes,
+      quickNotes,
+      procedureAdvice,
+      testsRequested,
+      bpSystolic,
+      bpDiastolic,
+      pulseVal,
+      weightVal,
+      spo2Val,
+      tempVal,
+    });
+
+    if (!hasContent) return;
+
+    const timer = setTimeout(() => {
+      const patientKey = getPatientKey(formData);
+      const now = Date.now();
+      const draft: PrescriptionDraftData = {
+        id: `draft_${now}`,
+        savedAt: new Date().toISOString(),
+        timestamp: now,
+        patientKey,
+        patientName: formData.patientName || '',
+        phoneNumber: formData.phoneNumber || '',
+        age: formData.age || '',
+        sex: formData.sex || 'Male',
+        date: formData.date || todayDate,
+        email: (formData as any).email,
+        reference_number: formData.reference_number || patientReferenceNumber,
+        token: formData.token,
+        selectedDoctorName,
+        isNewPatient,
+        consultationCharge,
+        complaintsList,
+        diagnosesList,
+        findingsText,
+        medicines,
+        advice: formData.advice || '',
+        procedureAdvice,
+        drNotes,
+        quickNotes,
+        dietExercise,
+        investigationText,
+        testsRequested,
+        followupDate: formData.followupDate,
+        followupCount,
+        followupUnit,
+        pastMedication,
+        systemicExam,
+        generalExam,
+        referralDocName,
+        referralSpeciality,
+        referralPhone,
+        referralEmail,
+        drawingDataUrl,
+        treatmentItems,
+        bpSystolic,
+        bpDiastolic,
+        pulseVal,
+        heightVal,
+        weightVal,
+        tempVal,
+        bmiVal,
+        spo2Val,
+        waistHipVal,
+        lmpDate,
+        eddDate,
+        gestationalWeeks,
+        gestationalDays,
+      };
+
+      savePrescriptionDraft(draft);
+      setCurrentDraft(draft);
+      setDraftAutoSavedTime(now);
+      setAllDrafts(getAllPrescriptionDraftsIndex());
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [
+    formData,
+    patientReferenceNumber,
+    selectedDoctorName,
+    isNewPatient,
+    consultationCharge,
+    complaintsList,
+    diagnosesList,
+    findingsText,
+    medicines,
+    procedureAdvice,
+    drNotes,
+    quickNotes,
+    dietExercise,
+    investigationText,
+    testsRequested,
+    followupCount,
+    followupUnit,
+    pastMedication,
+    systemicExam,
+    generalExam,
+    referralDocName,
+    referralSpeciality,
+    referralPhone,
+    referralEmail,
+    drawingDataUrl,
+    treatmentItems,
+    bpSystolic,
+    bpDiastolic,
+    pulseVal,
+    heightVal,
+    weightVal,
+    tempVal,
+    bmiVal,
+    spo2Val,
+    waistHipVal,
+    lmpDate,
+    eddDate,
+    gestationalWeeks,
+    gestationalDays,
+    todayDate,
+  ]);
 
   const refreshTemplates = useCallback(() => {
     setSavedTemplatesList(getAllTemplates());
@@ -1539,6 +1908,14 @@ export function usePrescriptionForm() {
         );
       } catch {}
 
+      // Clear draft for this patient on successful save
+      try {
+        deletePrescriptionDraft(getPatientKey(formData));
+        setCurrentDraft(null);
+        setShowDraftBanner(false);
+        setAllDrafts(getAllPrescriptionDraftsIndex());
+      } catch {}
+
       return savedPrescription;
     } catch (err: any) {
       console.error('Failed to save prescription:', err);
@@ -2365,6 +2742,19 @@ export function usePrescriptionForm() {
     // Toast
     templateToastMessage,
     showTemplateToast,
+
+    // Prescription Drafts
+    isDraftModalOpen,
+    setIsDraftModalOpen,
+    currentDraft,
+    allDrafts,
+    draftAutoSavedTime,
+    showDraftBanner,
+    setShowDraftBanner,
+    saveCurrentAsDraft,
+    restoreDraft,
+    handleDeleteDraft,
+    handleClearAllDrafts,
 
     // Previous Visit & Restore Handlers (Undo2 buttons)
     previousPrescription,

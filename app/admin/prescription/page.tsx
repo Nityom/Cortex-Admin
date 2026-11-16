@@ -13,6 +13,7 @@ import {
   PrescriptionPrintModal,
   PrescriptionEmailModal,
   PrescriptionPastVisitsDashboard,
+  PrescriptionDraftModal,
 } from '@/components/prescription';
 import { Mail, X } from 'lucide-react';
 
@@ -122,6 +123,8 @@ export default function PrescriptionPage() {
           availableDoctors={form.availableDoctors}
           onOpenEmailModal={form.handleOpenEmailModal}
           onPrintPastVisit={form.handlePrintPastVisit}
+          onOpenDraftModal={() => form.setIsDraftModalOpen(true)}
+          hasDraft={!!form.currentDraft}
         />
       ) : (
         <div className="max-w-7xl mx-auto space-y-5">
@@ -169,6 +172,12 @@ export default function PrescriptionPage() {
               form.setIsSaveTemplateModalOpen(true);
             }}
             onOpenEmailModal={form.handleOpenEmailModal}
+            onOpenDraftModal={() => form.setIsDraftModalOpen(true)}
+            hasDraft={!!form.currentDraft}
+            showDraftBanner={form.showDraftBanner}
+            currentDraft={form.currentDraft}
+            onRestoreDraft={form.restoreDraft}
+            onDismissDraftBanner={() => form.setShowDraftBanner(false)}
           />
 
           {/* 2. Reorderable Clinical Stack Container with Dedicated Drag Handle & Move Arrows */}
@@ -311,6 +320,19 @@ export default function PrescriptionPage() {
           </div>
         </div>
       )}
+
+      {/* 9. Prescription Drafts Modal */}
+      <PrescriptionDraftModal
+        isOpen={form.isDraftModalOpen}
+        onClose={() => form.setIsDraftModalOpen(false)}
+        currentDraft={form.currentDraft}
+        allDrafts={form.allDrafts}
+        onRestoreDraft={form.restoreDraft}
+        onSaveCurrentAsDraft={form.saveCurrentAsDraft}
+        onDeleteDraft={form.handleDeleteDraft}
+        onClearAllDrafts={form.handleClearAllDrafts}
+        currentPatientName={form.formData.patientName}
+      />
     </div>
   );
 }
