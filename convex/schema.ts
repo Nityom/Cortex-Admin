@@ -90,7 +90,8 @@ export default defineSchema({
   })
     .index("by_phone", ["phone_number"])
     .index("by_date", ["prescription_date"])
-    .index("by_patient_name", ["patient_name"]),
+    .index("by_patient_name", ["patient_name"])
+    .index("by_reference", ["reference_number"]),
 
   bills: defineTable({
     prescription_id: v.string(),

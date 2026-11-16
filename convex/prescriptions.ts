@@ -452,19 +452,26 @@ export const update = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("prescriptions").order("desc").take(150);
+        return await ctx.db.query("prescriptions").order("desc").take(50);
     },
 });
 
 export const listByPatient = query({
     args: { reference_number: v.string() },
     handler: async (ctx, args) => {
-        const prescriptions = await ctx.db.query("prescriptions").order("desc").take(100);
-        const targetRef = args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX');
-        return prescriptions.filter((p) => {
-            const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
-            return pRef === targetRef;
-        });
+        const rawRef = args.reference_number.trim();
+        if (!rawRef) return [];
+        const altRef = rawRef.startsWith('CH') ? rawRef.replace(/^CH/i, 'CRX') : rawRef.replace(/^CRX/i, 'CH');
+
+        const [docs1, docs2] = await Promise.all([
+            ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", rawRef)).collect(),
+            rawRef !== altRef
+                ? ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", altRef)).collect()
+                : Promise.resolve([])
+        ]);
+
+        const all = [...docs1, ...docs2];
+        return all.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
     },
 });
 
@@ -836,7 +843,7 @@ export const getDiagnosisSuggestions = query({
         const q = (args.query || "").trim().toLowerCase();
 
         // 1. Fetch from diagnoses catalog table (lightweight, zero prescription overhead)
-        const savedDiagnoses = await ctx.db.query("diagnoses").order("desc").take(250);
+        const savedDiagnoses = await ctx.db.query("diagnoses").order("desc").take(60);
 
         const map = new Map<string, { name: string; count: number; lastUsed: number }>();
 
@@ -1048,10 +1055,10 @@ export const getComplaintSuggestions = query({
         const q = (args.query || "").trim().toLowerCase();
 
         // 1. Fetch from complaints table
-        const savedComplaints = await ctx.db.query("complaints").collect();
+        const savedComplaints = await ctx.db.query("complaints").take(60);
 
-        // 2. Fetch past chief complaints from recent prescriptions
-        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(150);
+        // 2. Fetch past chief complaints from recent prescriptions (limited to prevent heavy I/O)
+        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(25);
 
         const map = new Map<string, { name: string; count: number; lastUsed: number }>();
 

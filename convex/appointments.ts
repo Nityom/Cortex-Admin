@@ -100,7 +100,7 @@ export const create = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return (await ctx.db.query("appointments").order("desc").take(200)).filter(
+    return (await ctx.db.query("appointments").order("desc").take(50)).filter(
       (appointment) =>
         typeof appointment.name === "string" &&
         typeof appointment.phone === "string" &&

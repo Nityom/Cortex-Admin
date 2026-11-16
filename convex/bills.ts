@@ -136,7 +136,7 @@ export const list = query({
         endDate: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const bills = await ctx.db.query("bills").order("desc").collect();
+        const bills = await ctx.db.query("bills").order("desc").take(50);
 
         // Populate patient names and bill_date
         const populatedBills = await Promise.all(

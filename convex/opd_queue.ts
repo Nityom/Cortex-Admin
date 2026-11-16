@@ -8,7 +8,7 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit || 150;
+    const limit = args.limit || 50;
     let items = await ctx.db.query("opd_queue").order("desc").take(limit);
 
     if (args.status && args.status !== "ALL") {
