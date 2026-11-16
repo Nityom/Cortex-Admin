@@ -193,21 +193,21 @@ export default function InvestigationsPage() {
         {/* Total Combined */}
         <div
           onClick={() => setTypeFilter('ALL')}
-          className={`p-5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`p-5 rounded-xl border cursor-pointer transition-colors shadow-2xs ${
             typeFilter === 'ALL'
-              ? 'bg-gradient-to-br from-gray-900 to-slate-800 text-white border-gray-900'
-              : 'bg-white border-gray-200'
+              ? 'bg-slate-900 text-white border-slate-900'
+              : 'bg-white border-slate-200'
           }`}
         >
           <div className="flex items-center justify-between">
-            <p className={`text-xs font-semibold uppercase tracking-wider ${typeFilter === 'ALL' ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-xs font-medium ${typeFilter === 'ALL' ? 'text-slate-300' : 'text-slate-500'}`}>
               Total Investigations
             </p>
-            <span className={`text-xs px-2 py-0.5 rounded font-bold ${typeFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded font-semibold ${typeFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
               OPG + IOPAR
             </span>
           </div>
-          <p className={`text-3xl font-black mt-3 ${typeFilter === 'ALL' ? 'text-white' : 'text-gray-900'}`}>
+          <p className={`text-2xl font-bold font-mono tabular-nums mt-3 ${typeFilter === 'ALL' ? 'text-white' : 'text-slate-900'}`}>
             {reportData.totalCount}
           </p>
           <p className={`text-xs mt-1 ${typeFilter === 'ALL' ? 'text-gray-300' : 'text-gray-400'}`}>

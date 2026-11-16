@@ -133,7 +133,7 @@ export default function AddPaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden rounded-2xl border-slate-200">
         {/* Header */}
-        <div className="px-5 py-4 bg-gradient-to-r from-emerald-700 to-emerald-800 text-white flex items-center justify-between">
+        <div className="px-5 py-4 bg-emerald-700 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/20 text-white flex items-center justify-center">
               <CreditCard className="w-5 h-5 text-emerald-200" />

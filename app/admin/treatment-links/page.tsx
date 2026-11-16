@@ -715,7 +715,7 @@ export default function TreatmentLinksPage() {
       )}
 
       {/* Live Test / Simulator Section */}
-      <Card className="rounded-3xl border-slate-200/90 shadow-sm overflow-hidden bg-gradient-to-br from-white to-slate-50">
+      <Card className="rounded-xl border-slate-200 shadow-2xs overflow-hidden bg-white">
         <CardHeader className="p-6 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">

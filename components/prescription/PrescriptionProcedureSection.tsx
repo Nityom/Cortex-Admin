@@ -75,7 +75,7 @@ export default function PrescriptionProcedureSection({
   };
 
   return (
-    <div className="bg-gradient-to-br from-emerald-50/70 to-emerald-50/40 border border-emerald-200 rounded-xl p-4 shadow-xs space-y-4">
+    <div className="bg-emerald-50/40 border border-emerald-200 rounded-xl p-4 shadow-2xs space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-emerald-200/80 gap-2">
         <div className="flex items-center gap-2">
           <label className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">

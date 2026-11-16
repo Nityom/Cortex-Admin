@@ -125,28 +125,28 @@ export function AppTopNav() {
               <img
                 src={hospitalConfig.branding.svasthLogoUrl}
                 alt="Svaasth HMS"
-                className="h-8 w-8 shrink-0 object-contain group-hover:scale-105 transition-transform"
+                className="h-7 w-7 shrink-0 object-contain"
               />
-              <span className="whitespace-nowrap text-[13px] font-extrabold tracking-[0.12em] text-[#34785b] group-hover:text-[#285d46] transition-colors">
-                SVAASTH HMS
+              <span className="whitespace-nowrap text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                Svaasth HMS
               </span>
             </button>
           </div>
 
           {/* Right: User Status & Actions */}
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
               <span
                 aria-label="User Avatar"
-                className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-600 text-[10px] font-black text-white"
+                className="grid h-6 w-6 place-items-center rounded-md bg-slate-800 text-[10px] font-semibold text-white"
               >
                 {profileInitials}
               </span>
               <div className="flex flex-col text-left">
-                <span className="text-xs font-bold text-slate-800 truncate max-w-[140px]">
+                <span className="text-xs font-semibold text-slate-800 truncate max-w-[140px]">
                   {userEmail || 'Administrator'}
                 </span>
-                <span className="text-[9px] font-extrabold text-emerald-700 uppercase tracking-wider">
+                <span className="text-[10px] font-medium text-slate-500">
                   {isAdmin ? 'System Admin' : 'Staff Member'}
                 </span>
               </div>
@@ -155,7 +155,7 @@ export function AppTopNav() {
             <button
               type="button"
               onClick={handleLogout}
-              className="px-3 py-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition text-xs font-bold flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-rose-200"
+              className="px-2.5 py-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition text-xs font-medium flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-rose-200"
               title="Sign out of Cortex HMS"
             >
               <LogOut className="w-4 h-4" />

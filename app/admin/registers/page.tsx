@@ -729,7 +729,7 @@ function RegistersContent() {
 
             {/* Individual staff ledger summary if selected */}
             {staffLedgerSummary && (
-              <div className="bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                 <div>
                   <span className="text-gray-500 font-semibold uppercase">Selected Staff</span>
                   <div className="text-base font-bold text-emerald-900">{staffLedgerSummary.staffName}</div>

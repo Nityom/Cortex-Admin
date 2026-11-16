@@ -531,9 +531,9 @@ export default function SalesReportPage() {
       {/* Executive OPD vs IPD Revenue Comparison Matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
         {/* Card 1: OPD Revenue */}
-        <div className={`rounded-xl p-5 border transition-all ${
+        <div className={`rounded-xl p-5 border transition-colors ${
           departmentFilter === 'OPD' || departmentFilter === 'ALL'
-            ? 'bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 border-emerald-200 shadow-sm'
+            ? 'bg-emerald-50/30 border-emerald-200 shadow-2xs'
             : 'bg-white border-slate-200 opacity-60'
         }`}>
           <div className="flex items-center justify-between mb-3">
@@ -588,9 +588,9 @@ export default function SalesReportPage() {
         </div>
 
         {/* Card 2: IPD Revenue */}
-        <div className={`rounded-xl p-5 border transition-all ${
+        <div className={`rounded-xl p-5 border transition-colors ${
           departmentFilter === 'IPD' || departmentFilter === 'ALL'
-            ? 'bg-gradient-to-br from-purple-50/80 via-white to-purple-50/30 border-purple-200 shadow-sm'
+            ? 'bg-slate-50 border-slate-300 shadow-2xs'
             : 'bg-white border-slate-200 opacity-60'
         }`}>
           <div className="flex items-center justify-between mb-3">
@@ -645,7 +645,7 @@ export default function SalesReportPage() {
         </div>
 
         {/* Card 3: Total Consolidated Hospital Revenue */}
-        <div className="rounded-xl p-5 border bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 border-emerald-200 shadow-sm">
+        <div className="rounded-xl p-5 border bg-white border-slate-200 shadow-2xs">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">

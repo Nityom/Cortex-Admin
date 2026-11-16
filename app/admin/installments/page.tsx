@@ -266,13 +266,13 @@ export default function InstallmentsPage() {
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto mb-3">
             <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-extrabold text-slate-900">
-            {searchQuery ? 'No matching pending bills found' : 'No outstanding balances!'}
+          <h3 className="text-base font-bold text-slate-900">
+            {searchQuery ? 'No matching pending bills found' : 'No outstanding balances'}
           </h3>
           <p className="text-xs text-slate-500 font-medium mt-1">
             {searchQuery
               ? `No records matched "${searchQuery}". Please verify search keyword.`
-              : 'All treatment bills and installments are fully settled. Great work! 🎉'}
+              : 'All treatment bills and installments are fully settled.'}
           </p>
         </div>
       ) : (

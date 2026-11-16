@@ -255,93 +255,92 @@ export default function IpdDischargeModal({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded bg-rose-200 text-rose-900">
-                          Payment Due From Patient
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                          Payment Due
                         </span>
                       </div>
-                      <h4 className="text-base sm:text-lg font-black text-rose-950 mt-1">
-                        AMOUNT NEEDED TO RECOVER FROM PATIENT
+                      <h4 className="text-base font-bold text-rose-950 mt-1">
+                        Amount to recover from patient
                       </h4>
                       <p className="text-xs sm:text-sm text-rose-700">
-                        Patient has remaining balance dues after adjusting all advances. Collect this balance before
-                        discharge.
+                        Remaining balance dues after adjusting advances. Collect this balance before discharge.
                       </p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right sm:border-l sm:border-rose-200 sm:pl-6">
-                    <span className="text-xs font-bold text-rose-600 uppercase tracking-wider block">
-                      Balance to Recover
+                    <span className="text-xs font-medium text-rose-600 block">
+                      Balance to recover
                     </span>
-                    <span className="text-3xl sm:text-4xl font-black font-mono text-rose-700">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-rose-700">
                       ₹{toRecover.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
               ) : toRefund > 0 ? (
-                <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow shrink-0">
-                      <CheckCircle2 className="w-7 h-7" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-200 text-emerald-900">
-                          Excess Advance Deposited
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Excess Deposit
                         </span>
                       </div>
-                      <h4 className="text-base sm:text-lg font-black text-emerald-950 mt-1">
-                        AMOUNT TO BE GIVEN / RETURNED TO PATIENT (REFUND)
+                      <h4 className="text-base font-bold text-emerald-950 mt-1">
+                        Amount to refund to patient
                       </h4>
                       <p className="text-xs sm:text-sm text-emerald-700">
-                        Patient deposited more than the total charges incurred. Refund this excess amount upon discharge.
+                        Patient deposited more than total charges. Refund this excess amount upon discharge.
                       </p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right sm:border-l sm:border-emerald-200 sm:pl-6">
-                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
-                      Refund to Patient
+                    <span className="text-xs font-medium text-emerald-600 block">
+                      Refund to patient
                     </span>
-                    <span className="text-3xl sm:text-4xl font-black font-mono text-emerald-700">
+                    <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-emerald-700">
                       ₹{toRefund.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
               ) : (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 flex items-center justify-between gap-4 shadow-sm">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex items-center justify-between gap-4 shadow-2xs">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow shrink-0">
-                      <CheckCircle2 className="w-7 h-7" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-base sm:text-lg font-black text-blue-950">
-                        ACCOUNT FULLY SETTLED (₹0.00 DUE)
+                      <h4 className="text-base font-bold text-slate-900">
+                        Account fully settled
                       </h4>
-                      <p className="text-xs sm:text-sm text-blue-700">
-                        All accumulated charges match patient advances exactly. No recovery or refund required.
+                      <p className="text-xs sm:text-sm text-slate-600">
+                        Total charges match patient advances exactly. No recovery or refund required.
                       </p>
                     </div>
                   </div>
-                  <span className="text-3xl sm:text-4xl font-black font-mono text-blue-800">₹0</span>
+                  <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-slate-900">₹0</span>
                 </div>
               )}
 
               {/* SECTION B: 4 NUMERICAL METRIC PILLS */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">
+                  <span className="text-xs font-medium text-slate-500 block">
                     1. Gross Total Charges
                   </span>
-                  <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 mt-1 block">
+                  <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1 block">
                     ₹{bill.grossTotal.toLocaleString("en-IN")}
                   </span>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">
+                    <span className="text-xs font-medium text-slate-500 block">
                       2. Hospital Discount
                     </span>
                     {ipdAutoSaved && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                         Saved
                       </span>
                     )}
@@ -359,18 +358,18 @@ export default function IpdDischargeModal({
                   </div>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <span className="text-xs font-bold text-slate-500 uppercase block tracking-wider">
+                  <span className="text-xs font-medium text-slate-500 block">
                     3. Net Final Bill
                   </span>
-                  <span className="text-xl sm:text-2xl font-black font-mono text-slate-900 mt-1 block">
+                  <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 mt-1 block">
                     ₹{netTotal.toLocaleString("en-IN")}
                   </span>
                 </div>
                 <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4">
-                  <span className="text-xs font-bold text-emerald-800 uppercase block tracking-wider">
+                  <span className="text-xs font-medium text-emerald-800 block">
                     4. Total Advances Paid
                   </span>
-                  <span className="text-xl sm:text-2xl font-black font-mono text-emerald-800 mt-1 block">
+                  <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-emerald-800 mt-1 block">
                     − ₹{bill.totalAdvances.toLocaleString("en-IN")}
                   </span>
                 </div>
@@ -394,8 +393,8 @@ export default function IpdDischargeModal({
                       <Check className="w-3.5 h-3.5 text-emerald-600" /> Auto-saved to DB
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Auto-save enabled
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Auto-save enabled
                     </span>
                   )}
                 </div>

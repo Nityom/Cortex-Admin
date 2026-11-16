@@ -63,8 +63,8 @@ export default function PrescriptionPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   Checking Past Records
                 </span>
               </div>
@@ -72,7 +72,7 @@ export default function PrescriptionPage() {
           </div>
 
           {/* Action Card Skeleton */}
-          <div className="bg-gradient-to-b from-white to-slate-50/80 rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 text-center space-y-3">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 sm:p-8 text-center space-y-3">
             <div className="inline-flex items-center justify-center w-52 h-12 rounded-xl bg-slate-200 animate-pulse mx-auto" />
             <div className="w-72 h-4 bg-slate-200/70 rounded-md animate-pulse mx-auto" />
           </div>
@@ -127,8 +127,8 @@ export default function PrescriptionPage() {
         <div className="max-w-7xl mx-auto space-y-5">
           {form.isEditMode && (
             <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-2.5 flex items-center justify-between text-amber-900 shadow-xs">
-              <div className="flex items-center gap-2 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                 <span>Editing Previous Prescription ({form.formData.date || 'Past Visit'})</span>
                 <span className="text-amber-700 font-normal hidden sm:inline">— Saving will update this existing record in the database.</span>
               </div>

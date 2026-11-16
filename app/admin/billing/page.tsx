@@ -821,8 +821,8 @@ export default function HospitalBillingPage() {
 
           {/* Active Doctor Selector */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-1.5 flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider pl-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-1 flex items-center gap-1.5">
+              <span className="text-xs font-medium text-slate-500 pl-2">
                 Active Doctor:
               </span>
               <button
@@ -976,17 +976,16 @@ export default function HospitalBillingPage() {
 
           {/* Linked Clinical Prescription Banner */}
           {(linkedPrescriptionId || linkedOpdVisitId) && (
-            <div className="bg-gradient-to-r from-emerald-50 via-emerald-50 to-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+            <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow">
-                  <FileText className="w-5 h-5" />
+                <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <FileText className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md">
+                    <span className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 border border-emerald-200 px-2 py-0.5 rounded-md">
                       Linked Clinical Record
                     </span>
-                   
                   </div>
                   <p className="text-sm font-semibold text-slate-800 mt-1 flex flex-wrap items-center gap-2">
                     <span>Patient: <strong>{opdPatient.name || "Patient"}</strong> {opdPatient.uhid ? `(UHID: ${opdPatient.uhid})` : ""}</span>
@@ -1150,13 +1149,13 @@ export default function HospitalBillingPage() {
                 <div className="overflow-x-auto pt-2">
                   <table className="w-full text-sm text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-bold uppercase text-xs tracking-wider">
-                        <th className="py-3 px-4">Service / Charge Description</th>
-                        <th className="py-3 px-4">Category</th>
-                        <th className="py-3 px-4 text-right">Unit Rate (₹)</th>
-                        <th className="py-3 px-4 text-center">Qty</th>
-                        <th className="py-3 px-4 text-right">Total (₹)</th>
-                        <th className="py-3 px-4 text-center">Action</th>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold text-xs">
+                        <th className="py-2.5 px-3">Service / Charge Description</th>
+                        <th className="py-2.5 px-3">Category</th>
+                        <th className="py-2.5 px-3 text-right">Unit Rate (₹)</th>
+                        <th className="py-2.5 px-3 text-center">Qty</th>
+                        <th className="py-2.5 px-3 text-right">Total (₹)</th>
+                        <th className="py-2.5 px-3 text-center">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1275,12 +1274,12 @@ export default function HospitalBillingPage() {
                     Step 3: Collect Payment
                   </h2>
                   <span
-                    className={`text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider ${
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
                       opdPaymentStatus === "PAID"
-                        ? "bg-emerald-100 text-emerald-800"
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                         : opdPaymentStatus === "PARTIAL"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-red-100 text-red-800"
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-red-50 text-red-800 border-red-200"
                     }`}
                   >
                     {opdPaymentStatus === "PAID" ? "Full Paid" : opdPaymentStatus === "PARTIAL" ? "Partially Paid" : "Pending"}
@@ -1358,7 +1357,7 @@ export default function HospitalBillingPage() {
 
                   <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Balance Due:</span>
+                      <span className="text-xs font-semibold text-slate-600 block">Balance due:</span>
                       <span className="text-xs text-slate-400">Amount remaining</span>
                     </div>
                     <strong className={`text-xl font-black font-mono ${opdBalanceDue > 0 ? "text-amber-700" : "text-emerald-700"}`}>

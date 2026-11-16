@@ -861,7 +861,7 @@ export default function HealthPlixMedicineTable({
     <div className="w-full bg-white rounded-xl border border-slate-300/80 shadow-xs min-h-0 flex flex-col justify-between">
       {/* Quick Common Duration Bar for Doctor */}
       {medicines.length > 0 && (
-        <div className="bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-slate-50 border-b border-emerald-200/80 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2.5 text-sm">
+        <div className="bg-slate-50/80 border-b border-slate-200 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2.5 text-sm">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-sm">
               <Clock className="w-4 h-4 text-emerald-600 shrink-0" />

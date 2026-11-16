@@ -45,38 +45,27 @@ interface MenuItemProps {
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({ icon: Icon, title, url, isActive, onClick, id, isExpanded }) => (
-  <li className="mb-2 px-2">
+  <li className="mb-1 px-2">
     <a
       href="#"
       title={!isExpanded ? title : undefined}
-      className={`flex items-center w-full py-3 px-3 rounded-lg transition-all duration-200 ${isActive
-        ? 'bg-emerald-50 text-emerald-800 shadow-sm ring-1 ring-emerald-100'
-        : 'text-gray-600 hover:text-emerald-800 hover:bg-emerald-50/70'
+      className={`flex items-center w-full h-9 px-2.5 rounded-lg text-sm transition-colors ${isActive
+        ? 'bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200/70'
+        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
         } ${!isExpanded ? 'justify-center' : ''}`}
       onClick={(e) => {
         e.preventDefault();
         onClick(id, url);
       }}
     >
-      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-emerald-700' : 'text-gray-500'}`} />
+      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-emerald-700' : 'text-slate-500'}`} />
       {isExpanded && (
         <>
-          <span className="ml-3 whitespace-nowrap font-medium text-sm">{title}</span>
-          {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+          <span className="ml-2.5 whitespace-nowrap">{title}</span>
+          {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-emerald-600 opacity-70" />}
         </>
       )}
     </a>
-    <style jsx>{`
-      li {
-        transition: transform 0.15s ease;
-      }
-      li:hover {
-        transform: scale(1.01);
-      }
-      li:active {
-        transform: scale(0.99);
-      }
-    `}</style>
   </li>
 );
 
@@ -232,8 +221,8 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
 
         {/* Nav items */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar py-3 px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="space-y-2">
-            {showExpanded && <h3 className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#9aa99f]">WORKSPACE</h3>}
+          <div className="space-y-1">
+            {showExpanded && <h3 className="px-3 pb-1.5 pt-2 text-xs font-semibold text-slate-400">Workspace</h3>}
             <ul>
               {items.map((item, index) => (
                 <div
@@ -260,22 +249,22 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
         <div className={`border-t border-gray-100 shrink-0 ${showExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
           {showExpanded ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-3 p-2 rounded-xl bg-emerald-50/60 border border-emerald-100/70">
-                <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
                   <span className="text-xs font-semibold text-white">{userEmail ? userEmail.substring(0, 2).toUpperCase() : ''}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 truncate">{userEmail}</p>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${isAdmin ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-emerald-700 border border-emerald-100'}`}>
+                  <p className="text-xs text-slate-800 truncate font-medium">{userEmail}</p>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded border ${isAdmin ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
                     {isAdmin ? 'Admin' : 'Staff'}
                   </span>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200 text-sm"
+                className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors text-xs font-medium cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
                 <span>Logout</span>
               </button>
               {/* Svaasth HMS Branding */}

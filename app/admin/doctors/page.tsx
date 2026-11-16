@@ -628,17 +628,17 @@ export default function DoctorManagementPage() {
                   <p className="text-xs text-emerald-600 mt-1">Treatment Commission Base</p>
                 </div>
 
-                <div className="bg-emerald-50/70 p-5 rounded-2xl border border-emerald-100 shadow-sm">
-                  <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Commission %</p>
-                  <p className="text-2xl font-bold text-emerald-800 mt-2">
+                <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-100 shadow-2xs">
+                  <p className="text-xs font-medium text-emerald-800">Commission %</p>
+                  <p className="text-xl font-bold font-mono tabular-nums text-emerald-800 mt-1">
                     {individualDoctorRevenue.commissionPercentage}%
                   </p>
                   <p className="text-xs text-emerald-600 mt-1">{individualDoctorRevenue.doctorName}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white p-5 rounded-2xl shadow-sm">
-                  <p className="text-xs font-semibold text-emerald-200 uppercase tracking-wider">Payable to Doctor</p>
-                  <p className="text-2xl font-black mt-2">
+                <div className="bg-emerald-700 text-white p-4 rounded-xl shadow-2xs">
+                  <p className="text-xs font-medium text-emerald-100">Payable to doctor</p>
+                  <p className="text-xl font-bold font-mono tabular-nums mt-1">
                     ₹{individualDoctorRevenue.amountPayable.toLocaleString()}
                   </p>
                   <div className="mt-2 flex items-center justify-between">

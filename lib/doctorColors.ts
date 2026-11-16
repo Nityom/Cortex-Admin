@@ -32,3 +32,4 @@ export function getDoctorBadgeStyle(doctorName?: string) {
       : "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold shadow-2xs",
   };
 }
+

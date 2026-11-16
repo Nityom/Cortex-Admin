@@ -121,7 +121,7 @@ export function IpdRunningBillModal({
                 {activeAdmission.ipdNumber} • {activeAdmission.uhid}
               </span>
             </div>
-            <h2 className="text-xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
+            <h2 className="text-xl font-bold text-slate-900 mt-1">{activeAdmission.name}</h2>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
               <span>
                 Stay: {formatDate(activeAdmission.admissionDate)} to Present ({bill.days} days) • Bed: {activeAdmission.bedNumber} (
@@ -208,7 +208,7 @@ export function IpdRunningBillModal({
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-2 border-b border-slate-100 gap-2">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                <h3 className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
                   1. Patient Charges
                 </h3>
@@ -786,7 +786,7 @@ export function IpdRunningBillModal({
 
           {/* Section B: Advances Paid Ledger */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <h3 className="text-xs font-semibold text-slate-700 mb-2">
               2. Advance Payments &amp; Deposits Ledger
             </h3>
 

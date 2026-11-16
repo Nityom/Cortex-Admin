@@ -557,7 +557,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             >
               {/* Visual Drop Target Indicator */}
               {isOver && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1 bg-emerald-600 text-white text-[11px] font-bold rounded-full shadow-md pointer-events-none flex items-center gap-1.5 animate-pulse">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 px-2.5 py-0.5 bg-slate-900 text-white text-xs font-semibold rounded-md shadow-sm pointer-events-none flex items-center gap-1.5">
                   <span>Drop here to place above {RX_SECTION_TITLES[sectionKey]}</span>
                 </div>
               )}

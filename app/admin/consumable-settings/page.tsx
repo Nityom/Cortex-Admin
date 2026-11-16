@@ -226,7 +226,7 @@ const ConsumableSettingsPage = () => {
         </Link>
       </div>
 
-      <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200/80 flex items-center justify-between gap-4">
+      <div className="mb-6 p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-sm">
             <Link2 size={20} />

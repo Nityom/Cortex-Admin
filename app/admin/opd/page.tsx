@@ -1632,7 +1632,7 @@ export default function OPDManagementPage() {
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{new Date().toLocaleDateString("en-US", { weekday: "long" })}, {formatDate(new Date())}</p>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{activeTab === "waitingQueue" ? "Waiting queue" : activeTab === "queue" ? "Today at a glance" : activeTab === "billingQueue" ? "Billing queue" : activeTab === "appointments" ? "Appointments" : activeTab === "register" ? "Register a patient" : "Patient directory"}</h1>
-            <p className="mt-1 text-base text-slate-500">{activeTab === "waitingQueue" ? "Patients currently in clinic awaiting consultation." : activeTab === "queue" ? `${hospitalConfig.legalName} · Your clinic is running smoothly. Here’s today’s OPD snapshot.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
+            <p className="mt-1 text-base text-slate-500">{activeTab === "waitingQueue" ? "Patients currently in clinic awaiting consultation." : activeTab === "queue" ? `${hospitalConfig.legalName} · Outpatient consultations and live queue.` : activeTab === "billingQueue" ? "Patients move here automatically after their consultation is completed." : activeTab === "appointments" ? "Review arrivals and check scheduled patients into the OPD queue." : activeTab === "register" ? "Create a patient record and add them to today’s consultation queue." : "Find a patient record and continue their care."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setActiveTab("register")} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#176e56] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#155944]">
@@ -1663,8 +1663,8 @@ export default function OPDManagementPage() {
             ))}
           </div>
           {(activeTab === "queue" || activeTab === "waitingQueue" || activeTab === "billingQueue") && (
-            <div className="mb-1.5 flex h-8 flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 text-xs whitespace-nowrap self-end">
-              <span className="px-1.5 font-semibold uppercase tracking-wider text-slate-400 text-[11px]">Doctor</span>
+            <div className="mb-1.5 flex h-8 flex-nowrap shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs whitespace-nowrap self-end">
+              <span className="font-medium text-slate-500 text-xs">Doctor:</span>
               {[
                 ["Dr. Vipeen Raut", "Dr. Vipeen Raut"],
                 ["Dr. Shillpa Raut", "Dr. Shilpa Raut"],
@@ -2086,37 +2086,37 @@ export default function OPDManagementPage() {
 
           {/* Stats Summary Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Scheduled</span>
-                <span className="text-xl font-black text-slate-900">{appointmentsForSelectedDate.length}</span>
+                <span className="text-xs font-medium text-slate-500 block">Total Scheduled</span>
+                <span className="text-xl font-bold font-mono tabular-nums text-slate-900">{appointmentsForSelectedDate.length}</span>
               </div>
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <Calendar className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                <Calendar className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Checked In to OPD</span>
-                <span className="text-xl font-black text-emerald-700">
+                <span className="text-xs font-medium text-slate-500 block">Checked In to OPD</span>
+                <span className="text-xl font-bold font-mono tabular-nums text-emerald-700">
                   {appointmentsForSelectedDate.filter((a) => isApptInQueue(a)).length}
                 </span>
               </div>
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
 
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block">Pending Arrival</span>
-                <span className="text-xl font-black text-amber-700">
+                <span className="text-xs font-medium text-slate-500 block">Pending Arrival</span>
+                <span className="text-xl font-bold font-mono tabular-nums text-amber-700">
                   {appointmentsForSelectedDate.filter((a) => !isApptInQueue(a)).length}
                 </span>
               </div>
-              <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                <Clock className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                <Clock className="w-4 h-4" />
               </div>
             </div>
           </div>
@@ -2144,9 +2144,9 @@ export default function OPDManagementPage() {
                   >
                     {/* Time Slot & Patient Details */}
                     <div className="flex items-start gap-3">
-                      <div className="text-center min-w-[70px] bg-slate-900 text-white rounded-xl p-2 shadow-sm">
-                        <span className="text-[9px] font-bold block uppercase tracking-wider text-slate-300">TIME</span>
-                        <span className="text-sm font-black tracking-tight">{appt.time}</span>
+                      <div className="text-center min-w-[64px] bg-slate-900 text-white rounded-lg p-2">
+                        <span className="text-[10px] font-medium block text-slate-400">Time</span>
+                        <span className="text-sm font-bold font-mono tracking-tight">{appt.time}</span>
                         {appt.duration_minutes && (
                           <span className="text-[10px] text-slate-400 block mt-0.5">{appt.duration_minutes}m</span>
                         )}
@@ -2288,7 +2288,7 @@ export default function OPDManagementPage() {
 
             {/* Section 1: Demographics */}
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              <h3 className="text-xs font-semibold text-slate-700 mb-3">
                 1. Patient Demographics
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -2406,7 +2406,7 @@ export default function OPDManagementPage() {
 
             {/* Section 2: Consultation & Doctor Assignment */}
             <div className="pt-2 border-t border-slate-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              <h3 className="text-xs font-semibold text-slate-700 mb-3">
                 2. Doctor & Consultation Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -2468,7 +2468,7 @@ export default function OPDManagementPage() {
             {/* Section 3: Clinical Vitals */}
             <div className="pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Activity className="w-4 h-4 text-emerald-600" />
                   3. Recorded Vitals (Optional)
                 </h3>

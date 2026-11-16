@@ -281,9 +281,9 @@ export default function IpdBedMatrixTab({
                 >
                   {/* Left: Patient Details */}
                   <div className="flex items-start gap-3.5">
-                    <div className="text-center min-w-[56px] bg-slate-100 border border-slate-200 text-slate-800 rounded-lg p-2 shadow-2xs">
-                      <span className="text-[9px] font-bold block uppercase tracking-wider text-slate-500">BED</span>
-                      <span className="text-base font-black text-slate-900">{adm.bedNumber}</span>
+                    <div className="text-center min-w-[56px] bg-slate-100 border border-slate-200 text-slate-800 rounded-lg p-2">
+                      <span className="text-[10px] font-medium block text-slate-500">Bed</span>
+                      <span className="text-base font-bold font-mono text-slate-900">{adm.bedNumber}</span>
                     </div>
 
                     <div>

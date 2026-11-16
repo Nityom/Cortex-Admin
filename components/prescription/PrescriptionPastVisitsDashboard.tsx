@@ -333,15 +333,15 @@ export default function PrescriptionPastVisitsDashboard({
       </div>
 
       {/* 2. PROMINENT ACTION CARD: CREATE NEW VISIT (HealthPlix Highlight) */}
-      <div className="bg-gradient-to-b from-white to-slate-50/80 rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 text-center space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-6 text-center space-y-3 shadow-2xs">
         {/* Large Green Action Button */}
         <div>
           <button
             type="button"
             onClick={() => onCreateNewVisit(activeVisit || sortedVisits[0])}
-            className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-base sm:text-lg font-black shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-all duration-150 cursor-pointer transform hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-base font-semibold shadow-xs transition-colors cursor-pointer"
           >
-            <PlusCircle className="w-5 h-5 stroke-[2.5]" />
+            <PlusCircle className="w-5 h-5" />
             <span>Create New Visit</span>
           </button>
         </div>
