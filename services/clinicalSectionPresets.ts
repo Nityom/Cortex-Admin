@@ -249,7 +249,7 @@ export function saveSectionCustomTemplate(
       normalizedData = data
         .map((t: any) => ({
           name: String(t.name || (typeof t === 'string' ? t : '')).trim(),
-          by_when: String(t.by_when || 'Next Visit').trim(),
+          by_when: String(t.by_when && t.by_when !== 'Next Visit' ? t.by_when : '').trim(),
         }))
         .filter((t: any) => t.name.length > 0);
     }

@@ -160,7 +160,7 @@ export default function TemplatesManagementPage() {
   const [sectionFormContent, setSectionFormContent] = useState<string>('');
   const [sectionFormMedicines, setSectionFormMedicines] = useState<MedicineEntry[]>([]);
   const [sectionFormTests, setSectionFormTests] = useState<Array<{ name: string; by_when: string }>>([
-    { name: '', by_when: 'Next Visit' },
+    { name: '', by_when: '' },
   ]);
 
   // Real-time bidirectional sync with Convex DB
@@ -377,7 +377,7 @@ export default function TemplatesManagementPage() {
 
   // Section Tests Requested Row Handlers (When section is 'tests_requested')
   const handleAddSectionTestRow = () => {
-    setSectionFormTests((prev) => [...prev, { name: '', by_when: 'Next Visit' }]);
+    setSectionFormTests((prev) => [...prev, { name: '', by_when: '' }]);
   };
 
   const handleSectionTestChange = (
@@ -395,7 +395,7 @@ export default function TemplatesManagementPage() {
   const handleRemoveSectionTestRow = (index: number) => {
     setSectionFormTests((prev) => {
       const filtered = prev.filter((_, i) => i !== index);
-      return filtered.length > 0 ? filtered : [{ name: '', by_when: 'Next Visit' }];
+      return filtered.length > 0 ? filtered : [{ name: '', by_when: '' }];
     });
   };
 
@@ -417,7 +417,7 @@ export default function TemplatesManagementPage() {
       { name: '', dosage: '1-0-1', duration: '5 Days', timing: 'After food' },
     ]);
     setSectionFormTests([
-      { name: '', by_when: 'Next Visit' },
+      { name: '', by_when: '' },
     ]);
     setIsSectionModalOpen(true);
   };
@@ -450,7 +450,7 @@ export default function TemplatesManagementPage() {
       if (Array.isArray(item.data)) {
         testsList = item.data.map((t: any) => ({
           name: typeof t === 'string' ? t : t.name || '',
-          by_when: typeof t === 'object' && t.by_when ? t.by_when : 'Next Visit',
+          by_when: typeof t === 'object' && t.by_when && t.by_when !== 'Next Visit' ? t.by_when : '',
         }));
       } else if (typeof item.data === 'string') {
         try {
@@ -458,17 +458,17 @@ export default function TemplatesManagementPage() {
           if (Array.isArray(parsed)) {
             testsList = parsed.map((t: any) => ({
               name: typeof t === 'string' ? t : t.name || '',
-              by_when: typeof t === 'object' && t.by_when ? t.by_when : 'Next Visit',
+              by_when: typeof t === 'object' && t.by_when && t.by_when !== 'Next Visit' ? t.by_when : '',
             }));
           }
         } catch {
           const lines = item.data.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
-          testsList = lines.map((l) => ({ name: l, by_when: 'Next Visit' }));
+          testsList = lines.map((l) => ({ name: l, by_when: '' }));
         }
       }
-      setSectionFormTests(testsList.length > 0 ? testsList : [{ name: '', by_when: 'Next Visit' }]);
+      setSectionFormTests(testsList.length > 0 ? testsList : [{ name: '', by_when: '' }]);
     } else {
-      setSectionFormTests([{ name: '', by_when: 'Next Visit' }]);
+      setSectionFormTests([{ name: '', by_when: '' }]);
     }
 
     const contentString =
@@ -505,7 +505,7 @@ export default function TemplatesManagementPage() {
       }
       parsedData = validTests.map((t) => ({
         name: t.name.trim(),
-        by_when: (t.by_when || 'Next Visit').trim(),
+        by_when: (t.by_when && t.by_when !== 'Next Visit' ? t.by_when : '').trim(),
       }));
     } else {
       if (!sectionFormContent.trim()) {

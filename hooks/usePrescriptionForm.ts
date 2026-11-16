@@ -1213,7 +1213,7 @@ export function usePrescriptionForm() {
           tmpl.tests_requested.map((t, i) => ({
             id: `tst_${Date.now()}_${i}`,
             name: t.name,
-            by_when: t.by_when || 'Next Visit',
+            by_when: t.by_when && t.by_when !== 'Next Visit' ? t.by_when : '',
           }))
         );
       }
@@ -1257,7 +1257,7 @@ export function usePrescriptionForm() {
       investigations: investigationText,
       tests_requested: testsRequested.map((t) => ({
         name: t.name,
-        by_when: t.by_when || 'Next Visit',
+        by_when: t.by_when && t.by_when !== 'Next Visit' ? t.by_when : '',
       })),
       general_examinations: generalExam,
       past_medications: pastMedication,
@@ -1419,7 +1419,7 @@ export function usePrescriptionForm() {
       const allAdvice = [formData.advice, procedureAdvice].filter(Boolean).join('\n');
       const allInvestigations = [
         investigationText || formData.investigation,
-        ...testsRequested.map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
+        ...testsRequested.map((t) => `${t.name}${t.by_when && t.by_when !== 'Next Visit' ? ` (By: ${t.by_when})` : ''}`),
       ].filter(Boolean).join(', ');
       const allFindings = [findingsText, generalExam, systemicExam].filter(Boolean).join('\n');
 
@@ -1610,7 +1610,7 @@ export function usePrescriptionForm() {
     const allAdvice = [formData.advice, procedureAdvice].filter(Boolean).join('\n');
     const allInvestigations = [
       investigationText || formData.investigation,
-      ...testsRequested.map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
+      ...testsRequested.map((t) => `${t.name}${t.by_when && t.by_when !== 'Next Visit' ? ` (By: ${t.by_when})` : ''}`),
     ].filter(Boolean).join(', ');
 
     return {
@@ -1679,7 +1679,7 @@ export function usePrescriptionForm() {
         ? targetVisit.complaints.map((c: any) => typeof c === 'string' ? c : c.complaint).filter(Boolean).join(', ')
         : (targetVisit.chief_complaints || targetVisit.cc || '');
       const testsStr = Array.isArray(targetVisit.tests_requested)
-        ? targetVisit.tests_requested.map((t: any) => typeof t === 'string' ? t : `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`).join(', ')
+        ? targetVisit.tests_requested.map((t: any) => typeof t === 'string' ? t : `${t.name}${t.by_when && t.by_when !== 'Next Visit' ? ` (By: ${t.by_when})` : ''}`).join(', ')
         : (targetVisit.investigation || '');
       const adviceStr = [targetVisit.advice, targetVisit.procedure_advice].filter(Boolean).join('\n');
 
@@ -1767,7 +1767,7 @@ export function usePrescriptionForm() {
     const allAdvice = [formData.advice, procedureAdvice].filter(Boolean).join('\n');
     const allInvestigations = [
       investigationText || formData.investigation,
-      ...testsRequested.map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
+      ...testsRequested.map((t) => `${t.name}${t.by_when && t.by_when !== 'Next Visit' ? ` (By: ${t.by_when})` : ''}`),
     ].filter(Boolean).join(', ');
     const allFindings = [findingsText, generalExam, systemicExam].filter(Boolean).join('\n');
     const allDoctorNotes = [drNotes, quickNotes].filter(Boolean).join('\n');

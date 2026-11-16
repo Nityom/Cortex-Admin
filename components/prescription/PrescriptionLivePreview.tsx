@@ -435,16 +435,13 @@ export default function PrescriptionLivePreview({
     if (enabledSections && enabledSections.clinical_notes === false) return null;
     const allInvestigations = [
       investigationText || formData.investigation,
-      ...(testsRequested || []).map((t) => `${t.name}${t.by_when ? ` (By: ${t.by_when})` : ''}`),
+      ...(testsRequested || []).map((t) => `${t.name}${t.by_when && t.by_when !== 'Next Visit' ? ` (By: ${t.by_when})` : ''}`),
     ].filter(Boolean).join(', ');
 
     const hasAnyNote = !!(formData.advice || procedureAdvice || drNotes || dietExercise || referralText || allInvestigations);
     if (!hasAnyNote) return null;
 
-    const investigationDisplay = allInvestigations?.replace(
-      /\(By:\s*Next Visit\)/gi,
-      `(By: Next Visit${formData.followupDate ? ` — ${formatPrescriptionDate(formData.followupDate)}` : ''})`
-    );
+    const investigationDisplay = allInvestigations?.replace(/\s*\(By:\s*Next Visit[^)]*\)/gi, '');
 
     return (
       <div key="clinical_notes" className="py-2 text-xs border-t border-slate-200 mt-3 space-y-2">

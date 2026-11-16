@@ -752,10 +752,7 @@ function PrintPrescriptionContent() {
       prescriptionData.investigation
     );
     if (!hasAny) return null;
-    const investigationDisplay = prescriptionData.investigation?.replace(
-      /\(By:\s*Next Visit\)/gi,
-      `(By: Next Visit${prescriptionData.followup_date ? ` — ${formatPrescriptionDate(prescriptionData.followup_date)}` : ''})`
-    );
+    const investigationDisplay = prescriptionData.investigation?.replace(/\s*\(By:\s*Next Visit[^)]*\)/gi, '');
     return (
       <div key="clinical_notes" className="advice-box" style={{ marginTop: '6px' }}>
         {prescriptionData.advice && (

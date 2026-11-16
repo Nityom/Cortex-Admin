@@ -48,9 +48,10 @@ export function parseTestsFromTemplate(val: any): Array<{ id: string; name: stri
         const byMatch = line.match(/\((?:by:?\s*)([^)]+)\)/i);
         if (byMatch) {
           const testName = line.replace(/\((?:by:?\s*)([^)]+)\)/i, '').trim();
-          return { name: testName, by_when: byMatch[1].trim() };
+          const byVal = byMatch[1].trim();
+          return { name: testName, by_when: byVal.toLowerCase() === 'next visit' ? '' : byVal };
         }
-        return { name: line, by_when: 'Next Visit' };
+        return { name: line, by_when: '' };
       });
     }
   } else if (typeof val === 'object') {
@@ -70,17 +71,18 @@ export function parseTestsFromTemplate(val: any): Array<{ id: string; name: stri
         result.push({
           id: `tt_${now}_${idx}`,
           name: cleanName,
-          by_when: 'Next Visit',
+          by_when: '',
         });
       }
     } else if (typeof item === 'object') {
       const testName = String(item.name || item.test_name || item.test || item.title || '').trim();
-      const byWhen = String(item.by_when || item.byWhen || item.timing || 'Next Visit').trim();
+      const rawBy = String(item.by_when || item.byWhen || item.timing || '').trim();
+      const byWhen = rawBy.toLowerCase() === 'next visit' ? '' : rawBy;
       if (testName) {
         result.push({
           id: `tt_${now}_${idx}`,
           name: testName,
-          by_when: byWhen || 'Next Visit',
+          by_when: byWhen,
         });
       }
     }
@@ -157,9 +159,8 @@ export default function PrescriptionClinicalNotesSection({
   const isGynae = (selectedDoctorName || "").toLowerCase().includes("shilpa") || (selectedDoctorName || "").toLowerCase().includes("shillpa") || (selectedDoctorName || "").toLowerCase().includes("gyn");
   const docCategory = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics";
   const [newTestName, setNewTestName] = useState('');
-  const [newTestByWhen, setNewTestByWhen] = useState('Next Visit');
   const [showTestSuggestions, setShowTestSuggestions] = useState(false);
-  const [highlightedSuggestionIdx, setHighlightedSuggestionIdx] = useState(0);
+  const [highlightedSuggestionIdx, setHighlightedSuggestionIdx] = useState(-1);
   const [savedCustomTests, setSavedCustomTests] = useState<string[]>([]);
 
   // Advice auto-suggest state
@@ -168,7 +169,6 @@ export default function PrescriptionClinicalNotesSection({
   const [templateUpdateTrigger, setTemplateUpdateTrigger] = useState(0);
 
   const testInputRef = useRef<HTMLInputElement>(null);
-  const byWhenInputRef = useRef<HTMLInputElement>(null);
   const suggestionsBoxRef = useRef<HTMLDivElement>(null);
   const adviceInputRef = useRef<HTMLInputElement>(null);
   const adviceSuggestionsBoxRef = useRef<HTMLDivElement>(null);
@@ -403,16 +403,19 @@ export default function PrescriptionClinicalNotesSection({
       }
     } else {
       const testName = typeof suggested === 'string' ? suggested : suggested.name;
-      handleAddTest(testName, newTestByWhen || 'Next Visit');
+      handleAddTest(testName);
     }
     setNewTestName('');
     setShowTestSuggestions(false);
+    setHighlightedSuggestionIdx(-1);
+    setTimeout(() => {
+      testInputRef.current?.focus();
+    }, 10);
   };
 
   // Add test and AUTO-SAVE into templates & Convex DB (supports multiple comma-separated tests)
-  const handleAddTest = (overrideName?: string, overrideByWhen?: string) => {
+  const handleAddTest = (overrideName?: string) => {
     const rawName = (overrideName !== undefined ? overrideName : newTestName).trim();
-    const byWhen = (overrideByWhen !== undefined ? overrideByWhen : (newTestByWhen || 'Next Visit')).trim();
     if (!rawName) return;
 
     // Support comma-separated tests: e.g. "CBC, X-Ray Knee, Blood Sugar"
@@ -427,7 +430,7 @@ export default function PrescriptionClinicalNotesSection({
     const newItems: TestRequestedItem[] = testNames.map((name, idx) => ({
       id: `${now}_${idx}`,
       name,
-      by_when: byWhen,
+      by_when: '',
     }));
 
     setTestsRequested((prev) => [...prev, ...newItems]);
@@ -435,7 +438,7 @@ export default function PrescriptionClinicalNotesSection({
     // Auto-save test so it is remembered in local templates and Convex DB forever
     try {
       testNames.forEach((name) => {
-        saveSectionCustomTemplate('tests_requested', name, [{ name, by_when: byWhen }], docCategory);
+        saveSectionCustomTemplate('tests_requested', name, [{ name, by_when: '' }], docCategory);
       });
       setSavedCustomTests((prev) => {
         const set = new Set(prev);
@@ -448,6 +451,10 @@ export default function PrescriptionClinicalNotesSection({
 
     setNewTestName('');
     setShowTestSuggestions(false);
+    setHighlightedSuggestionIdx(-1);
+    setTimeout(() => {
+      testInputRef.current?.focus();
+    }, 10);
   };
 
   // Simplified clinical notes: Advice + Tests Requested
@@ -615,9 +622,9 @@ export default function PrescriptionClinicalNotesSection({
                 sectionTitle="Tests Requested"
                 currentValue={
                   testsRequested.length > 0
-                    ? testsRequested.map((t) => ({ name: t.name, by_when: t.by_when || 'Next Visit' }))
+                    ? testsRequested.map((t) => ({ name: t.name, by_when: '' }))
                     : newTestName.trim()
-                    ? [{ name: newTestName.trim(), by_when: newTestByWhen || 'Next Visit' }]
+                    ? [{ name: newTestName.trim(), by_when: '' }]
                     : []
                 }
                 category={docCategory}
@@ -656,9 +663,11 @@ export default function PrescriptionClinicalNotesSection({
                   {idx + 1}
                 </span>
                 <span className="font-bold text-slate-800">{t.name}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white text-emerald-700 border border-emerald-200 font-medium">
-                  By: {t.by_when || 'Next Visit'}
-                </span>
+                {t.by_when && t.by_when !== 'Next Visit' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white text-emerald-700 border border-emerald-200 font-medium">
+                    {t.by_when}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => setTestsRequested((prev) => prev.filter((x) => x.id !== t.id))}
@@ -670,82 +679,52 @@ export default function PrescriptionClinicalNotesSection({
               </span>
             ))}
 
-            {/* Inline Input with By When & Auto-Suggest */}
-            <div className="relative flex-1 min-w-[240px] flex items-center gap-1.5">
+            {/* Inline Input with Auto-Suggest */}
+            <div className="relative flex-1 min-w-[200px] flex items-center gap-1.5">
               <input
                 ref={testInputRef}
                 type="text"
                 value={newTestName}
                 onFocus={() => {
                   setShowTestSuggestions(true);
-                  setHighlightedSuggestionIdx(0);
+                  setHighlightedSuggestionIdx(-1);
                 }}
                 onChange={(e) => {
                   setNewTestName(e.target.value);
                   setShowTestSuggestions(true);
-                  setHighlightedSuggestionIdx(0);
+                  setHighlightedSuggestionIdx(-1);
                 }}
                 onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (showTestSuggestions && highlightedSuggestionIdx >= 0 && testSuggestions[highlightedSuggestionIdx]) {
+                      handleSelectSuggestion(testSuggestions[highlightedSuggestionIdx]);
+                    } else {
+                      handleAddTest();
+                    }
+                    return;
+                  }
                   if (showTestSuggestions && testSuggestions.length > 0) {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
-                      setHighlightedSuggestionIdx((prev) => (prev + 1) % testSuggestions.length);
+                      setHighlightedSuggestionIdx((prev) => (prev < testSuggestions.length - 1 ? prev + 1 : 0));
                       return;
                     }
                     if (e.key === 'ArrowUp') {
                       e.preventDefault();
-                      setHighlightedSuggestionIdx((prev) => (prev - 1 + testSuggestions.length) % testSuggestions.length);
-                      return;
-                    }
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (testSuggestions[highlightedSuggestionIdx]) {
-                        handleSelectSuggestion(testSuggestions[highlightedSuggestionIdx]);
-                      } else {
-                        handleAddTest();
-                      }
+                      setHighlightedSuggestionIdx((prev) => (prev > 0 ? prev - 1 : testSuggestions.length - 1));
                       return;
                     }
                     if (e.key === 'Escape') {
                       setShowTestSuggestions(false);
+                      setHighlightedSuggestionIdx(-1);
                       return;
                     }
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddTest();
                   }
                 }}
-                placeholder={testsRequested.length === 0 ? "Add test name (or comma-separated e.g. CBC, X-Ray)..." : "Add next test..."}
+                placeholder={testsRequested.length === 0 ? "Add test name (press Enter to add)..." : "Add next test..."}
                 className="flex-1 min-w-[130px] bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
               />
-
-              {/* By When Input / Dropdown */}
-              <div className="flex items-center gap-1 shrink-0 bg-slate-50 border border-slate-200/90 rounded-lg px-2 py-0.5 focus-within:border-emerald-500 focus-within:bg-white transition">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">By:</span>
-                <input
-                  ref={byWhenInputRef}
-                  type="text"
-                  list="test-by-when-presets"
-                  value={newTestByWhen}
-                  onChange={(e) => setNewTestByWhen(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddTest();
-                    }
-                  }}
-                  placeholder="Next Visit"
-                  className="w-20 sm:w-24 text-xs font-semibold text-slate-700 bg-transparent outline-none border-none py-0.5"
-                />
-                <datalist id="test-by-when-presets">
-                  <option value="Next Visit" />
-                  <option value="Immediate / Today" />
-                  <option value="Tomorrow" />
-                  <option value="In 3 Days" />
-                  <option value="Before Monday" />
-                  <option value="Before Next Consult" />
-                </datalist>
-              </div>
 
               {/* Add Button */}
               <button
@@ -1031,9 +1010,9 @@ export default function PrescriptionClinicalNotesSection({
               sectionTitle="Tests Requested"
               currentValue={
                 testsRequested.length > 0
-                  ? testsRequested.map((t) => ({ name: t.name, by_when: t.by_when || 'Next Visit' }))
+                  ? testsRequested.map((t) => ({ name: t.name, by_when: '' }))
                   : newTestName.trim()
-                  ? [{ name: newTestName.trim(), by_when: newTestByWhen || 'Next Visit' }]
+                  ? [{ name: newTestName.trim(), by_when: '' }]
                   : []
               }
               category={docCategory}
@@ -1092,7 +1071,7 @@ export default function PrescriptionClinicalNotesSection({
           {/* Inline Add Test */}
           <div className="grid grid-cols-12 items-center py-1.5 px-3 bg-slate-50/30 gap-2">
             <div className="col-span-1 text-slate-400 font-mono">{testsRequested.length + 1}</div>
-            <div className="col-span-6">
+            <div className="col-span-10">
               <input
                 type="text"
                 value={newTestName}
@@ -1104,15 +1083,6 @@ export default function PrescriptionClinicalNotesSection({
                   }
                 }}
                 placeholder="Add Tests (e.g. CBC, Blood Sugar, X-Ray Knee)..."
-                className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white outline-none"
-              />
-            </div>
-            <div className="col-span-4">
-              <input
-                type="text"
-                value={newTestByWhen}
-                onChange={(e) => setNewTestByWhen(e.target.value)}
-                placeholder="e.g. Next Visit or Before Monday"
                 className="w-full p-1.5 border border-slate-200 rounded text-slate-800 bg-white outline-none"
               />
             </div>
