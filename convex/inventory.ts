@@ -27,7 +27,7 @@ export const create = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("inventory").order("desc").collect();
+        return await ctx.db.query("inventory").order("desc").take(150);
     },
 });
 

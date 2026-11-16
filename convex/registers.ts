@@ -63,7 +63,7 @@ export const listReviews = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let reviews = await ctx.db.query("review_register").order("desc").collect();
+    let reviews = await ctx.db.query("review_register").order("desc").take(100);
 
     if (args.startDate) {
       reviews = reviews.filter((r) => r.review_date >= args.startDate!);
@@ -153,7 +153,7 @@ export const listRecalls = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let recalls = await ctx.db.query("patient_recalls").order("desc").collect();
+    let recalls = await ctx.db.query("patient_recalls").order("desc").take(100);
 
     if (args.startDate) {
       recalls = recalls.filter((r) => r.due_date >= args.startDate!);
@@ -243,7 +243,7 @@ export const listFollowups = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let followups = await ctx.db.query("patient_followups").order("desc").collect();
+    let followups = await ctx.db.query("patient_followups").order("desc").take(100);
 
     if (args.startDate) {
       followups = followups.filter((f) => f.followup_date >= args.startDate!);
@@ -376,7 +376,7 @@ export const listCrownCutting = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let cases = await ctx.db.query("crown_cutting_register").order("desc").collect();
+    let cases = await ctx.db.query("crown_cutting_register").order("desc").take(100);
 
     const isFixedDateFilter = args.dateFilterType === "fixed_date";
 
@@ -516,7 +516,7 @@ export const listCrownReceived = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let received = await ctx.db.query("crown_received_register").order("desc").collect();
+    let received = await ctx.db.query("crown_received_register").order("desc").take(100);
 
     if (args.startDate) {
       received = received.filter((r) => r.received_date >= args.startDate!);
@@ -632,7 +632,7 @@ export const listStaffPayments = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let payments = await ctx.db.query("staff_payments").order("desc").collect();
+    let payments = await ctx.db.query("staff_payments").order("desc").take(100);
 
     if (args.staffName && args.staffName !== "ALL") {
       payments = payments.filter((p) => p.staff_name.toLowerCase() === args.staffName!.toLowerCase());

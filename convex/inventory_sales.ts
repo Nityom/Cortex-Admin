@@ -63,13 +63,13 @@ export const listAll = query({
         const directSales = await ctx.db
             .query("inventory_sales")
             .order("desc")
-            .collect();
+            .take(100);
 
         const usages = await ctx.db
             .query("material_transactions")
             .order("desc")
             .filter((q) => q.eq(q.field("transaction_type"), "USAGE"))
-            .collect();
+            .take(100);
 
         const mappedUsages = usages.map((u) => ({
             _id: u._id,

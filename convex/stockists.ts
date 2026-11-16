@@ -108,7 +108,7 @@ export const listBills = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let bills = await ctx.db.query("stockist_bills").order("desc").collect();
+    let bills = await ctx.db.query("stockist_bills").order("desc").take(100);
 
     if (args.stockist_name && args.stockist_name !== "ALL") {
       bills = bills.filter((b) => b.stockist_name.toLowerCase() === args.stockist_name!.toLowerCase());
@@ -412,7 +412,7 @@ export const listPayments = query({
         .withIndex("by_stockist", (q) => q.eq("stockist_name", args.stockist_name!))
         .collect();
     } else {
-      payments = await ctx.db.query("stockist_payments").order("desc").collect();
+      payments = await ctx.db.query("stockist_payments").order("desc").take(100);
     }
 
     if (args.startDate) {

@@ -100,7 +100,7 @@ export const list = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let logs = await ctx.db.query("material_transactions").order("desc").collect();
+    let logs = await ctx.db.query("material_transactions").order("desc").take(100);
 
     if (args.subdivision && args.subdivision !== "ALL") {
       logs = logs.filter((l) => l.subdivision === args.subdivision);

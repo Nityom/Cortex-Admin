@@ -6,7 +6,7 @@ export const list = query({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let admissions = await ctx.db.query("ipd_admissions").collect();
+    let admissions = await ctx.db.query("ipd_admissions").order("desc").take(75);
 
     if (args.status && args.status !== "ALL") {
       admissions = admissions.filter((a) => a.status === args.status);

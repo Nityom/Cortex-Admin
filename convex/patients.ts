@@ -196,7 +196,7 @@ export const getByReference = query({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("patients").order("desc").collect();
+        return await ctx.db.query("patients").order("desc").take(100);
     },
 });
 
@@ -204,12 +204,11 @@ export const search = query({
     args: { searchTerm: v.string() },
     handler: async (ctx, args) => {
         const term = args.searchTerm.toLowerCase();
-        const allPatients = await ctx.db.query("patients").collect();
-        // In-memory search is okay for small db, but normally we'd use full text search
+        const allPatients = await ctx.db.query("patients").order("desc").take(150);
         return allPatients.filter((p) =>
             p.name.toLowerCase().includes(term) ||
             p.phone_number.includes(term) ||
-            p.reference_number.toLowerCase().includes(term)
+            (p.reference_number || "").toLowerCase().includes(term)
         );
     },
 });
