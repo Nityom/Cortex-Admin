@@ -86,7 +86,7 @@ export default function TemplatesManagementPage() {
   const [availableMedicines, setAvailableMedicines] = useState<Medicine[]>([]);
 
   // Convex clinical templates query & mutation
-  const convexTemplates = useQuery(api.clinical_templates.list);
+  const convexTemplates = useQuery(api.clinical_templates.list, { limit: 150 });
   const bulkSyncMutation = useMutation(api.clinical_templates.bulkSync);
 
   // Toast / feedback notification

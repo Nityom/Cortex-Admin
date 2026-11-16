@@ -154,10 +154,8 @@ export default function PrescriptionComplaintsSection({
       }
     };
     window.addEventListener('cortex_section_templates_updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
     return () => {
       window.removeEventListener('cortex_section_templates_updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
     };
   }, []);
 

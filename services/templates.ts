@@ -2,6 +2,7 @@ import { MedicineEntry } from './prescription';
 import { ConvexHttpClient } from 'convex/browser';
 // @ts-ignore
 import { api } from '@/convex/_generated/api';
+import { invalidateConvexTemplatesCache, fetchRawConvexTemplates } from './clinicalSectionPresets';
 export * from './clinicalSectionPresets';
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -169,6 +170,7 @@ export function getTemplateById(id: string): PrescriptionTemplate | undefined {
  * Sync template with Convex DB
  */
 export async function syncTemplateToConvex(template: PrescriptionTemplate): Promise<void> {
+  invalidateConvexTemplatesCache();
   if (!convexClient) return;
   try {
     await convexClient.mutation(api.clinical_templates.upsert, {
@@ -198,6 +200,7 @@ export async function syncTemplateToConvex(template: PrescriptionTemplate): Prom
 }
 
 export async function deleteTemplateFromConvex(templateId: string): Promise<void> {
+  invalidateConvexTemplatesCache();
   if (!convexClient) return;
   try {
     await convexClient.mutation(api.clinical_templates.remove, {
@@ -211,7 +214,7 @@ export async function deleteTemplateFromConvex(templateId: string): Promise<void
 export async function fetchTemplatesFromConvex(): Promise<PrescriptionTemplate[]> {
   if (!convexClient) return [];
   try {
-    const list = await convexClient.query(api.clinical_templates.list, {});
+    const list = await fetchRawConvexTemplates();
     if (list && Array.isArray(list)) {
       return list
         .filter((item: any) => !isDummyPreset(item) && !item.is_preset && !item.section_key)

@@ -92,16 +92,16 @@ export default function SectionTemplatePicker({
   useEffect(() => {
     const handleTemplateUpdate = (e: any) => {
       if (!e.detail?.sectionKey || e.detail.sectionKey === sectionKey) {
-        loadSavedTemplates();
+        if (isOpen) {
+          loadSavedTemplates();
+        }
       }
     };
     window.addEventListener('cortex_section_templates_updated', handleTemplateUpdate);
-    window.addEventListener('storage', handleTemplateUpdate);
     return () => {
       window.removeEventListener('cortex_section_templates_updated', handleTemplateUpdate);
-      window.removeEventListener('storage', handleTemplateUpdate);
     };
-  }, [sectionKey, loadSavedTemplates]);
+  }, [sectionKey, isOpen, loadSavedTemplates]);
 
   // Click outside listener
   useEffect(() => {

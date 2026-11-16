@@ -275,6 +275,9 @@ export function saveSectionCustomTemplate(
     console.error(`Error saving section template for ${sectionKey}:`, err);
   }
 
+  // Invalidate in-memory cache so next fetch gets latest
+  invalidateConvexTemplatesCache();
+
   // Persist to Convex DB
   if (convexClient) {
     const stringified = typeof normalizedData === 'string' ? normalizedData : JSON.stringify(normalizedData);
@@ -322,6 +325,9 @@ export function deleteSectionCustomTemplate(sectionKey: string, id: string): boo
     return false;
   }
 
+  // Invalidate in-memory cache
+  invalidateConvexTemplatesCache();
+
   // Delete from Convex DB
   if (convexClient) {
     convexClient.mutation(api.clinical_templates.remove, {
@@ -332,10 +338,46 @@ export function deleteSectionCustomTemplate(sectionKey: string, id: string): boo
   return true;
 }
 
+// In-memory cache for Convex templates to eliminate redundant queries & prevent loops
+let convexTemplatesCache: any[] | null = null;
+let convexTemplatesCacheTime = 0;
+const CONVEX_TEMPLATES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let inFlightTemplatesQuery: Promise<any[]> | null = null;
+
+export function invalidateConvexTemplatesCache(): void {
+  convexTemplatesCache = null;
+  convexTemplatesCacheTime = 0;
+}
+
+export async function fetchRawConvexTemplates(forceRefresh = false): Promise<any[]> {
+  if (!convexClient) return [];
+  const now = Date.now();
+  if (!forceRefresh && convexTemplatesCache && (now - convexTemplatesCacheTime < CONVEX_TEMPLATES_CACHE_TTL)) {
+    return convexTemplatesCache;
+  }
+  if (inFlightTemplatesQuery) {
+    return inFlightTemplatesQuery;
+  }
+  inFlightTemplatesQuery = (async () => {
+    try {
+      const list = await convexClient.query(api.clinical_templates.list, { limit: 150 });
+      convexTemplatesCache = Array.isArray(list) ? list : [];
+      convexTemplatesCacheTime = Date.now();
+      return convexTemplatesCache;
+    } catch (err) {
+      console.warn('Could not fetch templates from Convex:', err);
+      return convexTemplatesCache || [];
+    } finally {
+      inFlightTemplatesQuery = null;
+    }
+  })();
+  return inFlightTemplatesQuery;
+}
+
 export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promise<ClinicalSectionPreset[]> {
   if (!convexClient) return getSectionCustomTemplates(sectionKey);
   try {
-    const list = await convexClient.query(api.clinical_templates.list, {});
+    const list = await fetchRawConvexTemplates();
     if (list && Array.isArray(list)) {
       const sectionItems = list
         .filter((item: any) => 
@@ -383,13 +425,6 @@ export async function fetchSectionTemplatesFromConvex(sectionKey: string): Promi
         const merged = Array.from(map.values());
         try {
           localStorage.setItem(`${SECTION_STORAGE_PREFIX}${sectionKey}`, JSON.stringify(merged));
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(
-              new CustomEvent('cortex_section_templates_updated', {
-                detail: { sectionKey, action: 'sync' },
-              })
-            );
-          }
         } catch {}
         return merged;
       }

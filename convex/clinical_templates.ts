@@ -2,9 +2,9 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("clinical_templates").order("desc").collect();
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    return await ctx.db.query("clinical_templates").order("desc").take(args.limit ?? 150);
   },
 });
 
