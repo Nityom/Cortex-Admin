@@ -42,6 +42,7 @@ import { getPrescriptionsByPatient } from "@/services/prescription";
 import { Patient } from "@/types/patient";
 import { hospitalConfig, calculateDoctorConsultationFee } from "@/config/hospital";
 import { formatDate } from "@/lib/utils";
+import { isShillpaDoctor } from "@/lib/doctorColors";
 
 interface ChargeItem {
   id: string;
@@ -827,24 +828,28 @@ export default function HospitalBillingPage() {
               <button
                 type="button"
                 onClick={() => switchDoctor("Dr. Vipeen Raut")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   activeDoctor === "Dr. Vipeen Raut"
-                    ? "bg-emerald-600 text-white shadow-sm"
+                    ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                Dr. Vipeen Raut (Ortho)
+                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Vipeen Raut" ? "bg-emerald-200" : "bg-emerald-500"}`} />
+                <span>Dr. Vipeen Raut</span>
+                <span className={`text-[10px] ${activeDoctor === "Dr. Vipeen Raut" ? "text-emerald-100" : "text-slate-400"}`}>(Ortho)</span>
               </button>
               <button
                 type="button"
                 onClick={() => switchDoctor("Dr. Shillpa Raut")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   activeDoctor === "Dr. Shillpa Raut"
-                    ? "bg-emerald-600 text-white shadow-sm"
+                    ? "bg-pink-600 text-white shadow-sm hover:bg-pink-700"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                Dr. Shillpa Raut (Gynae)
+                <span className={`w-1.5 h-1.5 rounded-full ${activeDoctor === "Dr. Shillpa Raut" ? "bg-pink-200" : "bg-pink-500"}`} />
+                <span>Dr. Shillpa Raut</span>
+                <span className={`text-[10px] ${activeDoctor === "Dr. Shillpa Raut" ? "text-pink-100" : "text-slate-400"}`}>(Gynae)</span>
               </button>
             </div>
 
@@ -983,8 +988,16 @@ export default function HospitalBillingPage() {
                     </span>
                    
                   </div>
-                  <p className="text-sm font-semibold text-slate-800 mt-1">
-                    Patient: <strong>{opdPatient.name || "Patient"}</strong> {opdPatient.uhid ? `(UHID: ${opdPatient.uhid})` : ""} • Doctor: {activeDoctor}
+                  <p className="text-sm font-semibold text-slate-800 mt-1 flex flex-wrap items-center gap-2">
+                    <span>Patient: <strong>{opdPatient.name || "Patient"}</strong> {opdPatient.uhid ? `(UHID: ${opdPatient.uhid})` : ""}</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1.5">
+                      Doctor:
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold border ${isShillpaDoctor(activeDoctor) ? "bg-pink-50 text-pink-700 border-pink-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isShillpaDoctor(activeDoctor) ? "bg-pink-500" : "bg-emerald-500"}`} />
+                        {activeDoctor}
+                      </span>
+                    </span>
                   </p>
                 </div>
               </div>
@@ -1097,7 +1110,13 @@ export default function HospitalBillingPage() {
 
                 <div className="flex flex-wrap items-center justify-between text-sm text-slate-600 pt-3 border-t border-slate-100">
                   <span>Visit: <strong className="text-slate-900 font-bold">{opdPatient.visitNumber}</strong></span>
-                  <span>Attending Doctor: <strong className="text-slate-900 font-bold">{activeDoctor}</strong></span>
+                  <span className="flex items-center gap-1.5">
+                    Attending Doctor:{" "}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold border ${isShillpaDoctor(activeDoctor) ? "bg-pink-50 text-pink-700 border-pink-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${isShillpaDoctor(activeDoctor) ? "bg-pink-500" : "bg-emerald-500"}`} />
+                      {activeDoctor}
+                    </span>
+                  </span>
                   <span>Date: <strong className="text-slate-900 font-bold">{formatDate(new Date())}</strong></span>
                 </div>
               </div>

@@ -5,9 +5,11 @@ export const list = query({
   args: {
     status: v.optional(v.string()),
     doctor: v.optional(v.string()),
+    limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let items = await ctx.db.query("opd_queue").collect();
+    const limit = args.limit || 150;
+    let items = await ctx.db.query("opd_queue").order("desc").take(limit);
 
     if (args.status && args.status !== "ALL") {
       items = items.filter((item) => item.status === args.status);

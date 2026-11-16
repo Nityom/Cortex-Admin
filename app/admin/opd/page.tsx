@@ -38,6 +38,7 @@ import PatientSearchInput from "@/components/PatientSearchInput";
 import { getPrescriptionsByPatient } from "@/services/prescription";
 import { getBillByPrescriptionId } from "@/services/bills";
 import { formatDate } from "@/lib/utils";
+import { isShillpaDoctor } from "@/lib/doctorColors";
 
 interface OPDQueueItem {
   id: string;
@@ -1669,6 +1670,7 @@ export default function OPDManagementPage() {
                 ["Dr. Shillpa Raut", "Dr. Shilpa Raut"],
               ].map(([value, label]) => {
                 const isSelected = selectedDoctorFilter.toLowerCase().includes(value.toLowerCase().replace(/dr\.?\s*/i, '').slice(0, 5));
+                const isGyn = isShillpaDoctor(value);
                 return (
                   <button
                     key={value}
@@ -1681,12 +1683,15 @@ export default function OPDManagementPage() {
                         handleDoctorChange(value);
                       } catch (_) {}
                     }}
-                    className={`h-6 rounded-md px-2.5 font-semibold transition cursor-pointer whitespace-nowrap shrink-0 flex items-center justify-center ${
+                    className={`h-6 rounded-md px-2.5 font-semibold transition cursor-pointer whitespace-nowrap shrink-0 flex items-center justify-center gap-1.5 ${
                       isSelected
-                        ? "bg-emerald-50 text-emerald-800 shadow-2xs font-bold"
-                        : "text-slate-500 hover:bg-slate-50"
+                        ? isGyn
+                          ? "bg-pink-50 text-pink-700 border border-pink-300 shadow-2xs font-bold"
+                          : "bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs font-bold"
+                        : "text-slate-500 hover:bg-slate-50 border border-transparent"
                     }`}
                   >
+                    <span className={`w-1.5 h-1.5 rounded-full ${isGyn ? "bg-pink-500" : "bg-emerald-500"}`} />
                     {label}
                   </button>
                 );
@@ -1971,7 +1976,25 @@ export default function OPDManagementPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-4"><span className="block whitespace-nowrap text-sm font-semibold text-[#577464]">{item.doctor}</span><span className="mt-1 block text-sm text-slate-500">{item.department || "General consultation"}</span></td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${
+                              isShillpaDoctor(item.doctor)
+                                ? "bg-pink-50 text-pink-700 border-pink-200"
+                                : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isShillpaDoctor(item.doctor) ? "bg-pink-500" : "bg-emerald-500"
+                              }`}
+                            />
+                            {item.doctor}
+                          </span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {item.department || "General consultation"}
+                          </span>
+                        </td>
                         <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
@@ -2147,8 +2170,22 @@ export default function OPDManagementPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
-                          <span>
-                            Doctor: <strong className="text-slate-800">{appt.doctor_name || DOCTORS[0].name}</strong>
+                          <span className="flex items-center gap-1.5">
+                            Doctor:{" "}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold border ${
+                                isShillpaDoctor(appt.doctor_name || DOCTORS[0].name)
+                                  ? "bg-pink-50 text-pink-700 border-pink-200"
+                                  : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isShillpaDoctor(appt.doctor_name || DOCTORS[0].name) ? "bg-pink-500" : "bg-emerald-500"
+                                }`}
+                              />
+                              {appt.doctor_name || DOCTORS[0].name}
+                            </span>
                           </span>
                           {appt.dental_problem && (
                             <span className="flex items-center gap-1 text-slate-700 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">

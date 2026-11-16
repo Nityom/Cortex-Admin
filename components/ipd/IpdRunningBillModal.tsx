@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { IPDAdmission, calculateRunningBill } from "./types";
 import { formatDate } from "@/lib/utils";
+import { isShillpaDoctor } from "@/lib/doctorColors";
 
 interface IpdRunningBillModalProps {
   admission: IPDAdmission;
@@ -121,10 +122,30 @@ export function IpdRunningBillModal({
               </span>
             </div>
             <h2 className="text-xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
-            <p className="text-xs text-slate-500">
-              Stay: {formatDate(activeAdmission.admissionDate)} to Present ({bill.days} days) • Bed: {activeAdmission.bedNumber} (
-              {activeAdmission.ward})
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
+              <span>
+                Stay: {formatDate(activeAdmission.admissionDate)} to Present ({bill.days} days) • Bed: {activeAdmission.bedNumber} (
+                {activeAdmission.ward})
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                Doctor:{" "}
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold border ${
+                    isShillpaDoctor(activeAdmission.consultantDoctor)
+                      ? "bg-pink-50 text-pink-700 border-pink-200"
+                      : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isShillpaDoctor(activeAdmission.consultantDoctor) ? "bg-pink-500" : "bg-emerald-500"
+                    }`}
+                  />
+                  {activeAdmission.consultantDoctor}
+                </span>
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -370,7 +391,20 @@ export function IpdRunningBillModal({
                   <tr className="hover:bg-slate-50/50">
                     <td className="p-3">
                       <span className="font-bold text-slate-900 block">Consultant Doctor Rounds</span>
-                      <span className="text-[10px] text-slate-500">{activeAdmission.consultantDoctor}</span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border mt-0.5 ${
+                          isShillpaDoctor(activeAdmission.consultantDoctor)
+                            ? "bg-pink-50 text-pink-700 border-pink-200"
+                            : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isShillpaDoctor(activeAdmission.consultantDoctor) ? "bg-pink-500" : "bg-emerald-500"
+                          }`}
+                        />
+                        {activeAdmission.consultantDoctor}
+                      </span>
                     </td>
                     <td className="p-3 text-slate-600">₹{activeAdmission.doctorRatePerVisit}/visit</td>
                     <td className="p-3">{bill.doctorVisitsCount} visits</td>

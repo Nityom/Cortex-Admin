@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { IPDAdmission, DOCTORS } from "./types";
 import { formatDate } from "@/lib/utils";
+import { isShillpaDoctor } from "@/lib/doctorColors";
 
 interface IpdClinicalStayModalProps {
   admission: IPDAdmission;
@@ -130,11 +131,29 @@ export function IpdClinicalStayModal({
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{activeAdmission.name}</h2>
-            <p className="text-xs text-slate-600 font-medium">
-              {activeAdmission.age}y • {activeAdmission.sex} • Doctor:{" "}
-              <strong className="text-slate-800">{activeAdmission.consultantDoctor}</strong> • Diagnosis:{" "}
-              <strong className="text-emerald-900">{activeAdmission.provisionalDiagnosis}</strong>
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 font-medium mt-1">
+              <span>{activeAdmission.age}y • {activeAdmission.sex}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                Doctor:{" "}
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold border ${
+                    isShillpaDoctor(activeAdmission.consultantDoctor)
+                      ? "bg-pink-50 text-pink-700 border-pink-200"
+                      : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isShillpaDoctor(activeAdmission.consultantDoctor) ? "bg-pink-500" : "bg-emerald-500"
+                    }`}
+                  />
+                  {activeAdmission.consultantDoctor}
+                </span>
+              </span>
+              <span>•</span>
+              <span>Diagnosis: <strong className="text-emerald-900">{activeAdmission.provisionalDiagnosis}</strong></span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

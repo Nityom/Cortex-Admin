@@ -344,12 +344,13 @@ export default function IpdDischargedArchiveTab({
                     {/* 5. Consultant Doctor */}
                     <td className="py-3.5 px-3.5 align-top whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md border ${
                           isGyno
                             ? "bg-pink-50 text-pink-700 border-pink-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-emerald-50 text-emerald-800 border-emerald-200"
                         }`}
                       >
+                        <span className={`w-1.5 h-1.5 rounded-full ${isGyno ? "bg-pink-500" : "bg-emerald-500"}`} />
                         {adm.consultantDoctor}
                       </span>
                       <div className="text-[10px] text-slate-400 mt-0.5">{adm.department}</div>

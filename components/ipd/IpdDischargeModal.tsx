@@ -13,6 +13,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { IPDAdmission, HospitalChargeItem, calculateRunningBill } from "./types";
+import { isShillpaDoctor } from "@/lib/doctorColors";
 
 interface IpdDischargeModalProps {
   isOpen: boolean;
@@ -125,12 +126,32 @@ export default function IpdDischargeModal({
                   ({admission.age} yrs, {admission.sex})
                 </span>
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-                Doctor: <strong className="text-slate-900">{admission.consultantDoctor}</strong> • Room & Bed:{" "}
-                <strong className="text-slate-900">
-                  {admission.ward} — {admission.bedNumber}
-                </strong>
-              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-600 mt-1">
+                <span className="flex items-center gap-1.5">
+                  Doctor:{" "}
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold border ${
+                      isShillpaDoctor(admission.consultantDoctor)
+                        ? "bg-pink-50 text-pink-700 border-pink-200"
+                        : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isShillpaDoctor(admission.consultantDoctor) ? "bg-pink-500" : "bg-emerald-500"
+                      }`}
+                    />
+                    {admission.consultantDoctor}
+                  </span>
+                </span>
+                <span>•</span>
+                <span>
+                  Room & Bed:{" "}
+                  <strong className="text-slate-900">
+                    {admission.ward} — {admission.bedNumber}
+                  </strong>
+                </span>
+              </div>
             </div>
 
             <button

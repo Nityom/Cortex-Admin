@@ -3,6 +3,7 @@
 import React from "react";
 import { Receipt, X, IndianRupee } from "lucide-react";
 import { IPDAdmission, calculateRunningBill } from "./types";
+import { isShillpaDoctor } from "@/lib/doctorColors";
 
 interface IpdRecordPaymentModalProps {
   admission: IPDAdmission;
@@ -67,8 +68,23 @@ export function IpdRecordPaymentModal({
             <div className="text-slate-500 font-mono text-[11px] mt-0.5">
               UHID: <strong className="text-slate-800">{pt.uhid}</strong> • IPD: <strong className="text-emerald-700">{pt.ipdNumber}</strong>
             </div>
-            <div className="text-slate-500 text-[11px]">
-              {pt.ward} (Bed {pt.bedNumber}) • {pt.consultantDoctor}
+            <div className="text-slate-500 text-[11px] flex items-center gap-1.5 mt-1">
+              <span>{pt.ward} (Bed {pt.bedNumber})</span>
+              <span>•</span>
+              <span
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                  isShillpaDoctor(pt.consultantDoctor)
+                    ? "bg-pink-50 text-pink-700 border-pink-200"
+                    : "bg-emerald-50 text-emerald-800 border-emerald-200"
+                }`}
+              >
+                <span
+                  className={`w-1 h-1 rounded-full ${
+                    isShillpaDoctor(pt.consultantDoctor) ? "bg-pink-500" : "bg-emerald-500"
+                  }`}
+                />
+                {pt.consultantDoctor}
+              </span>
             </div>
           </div>
           <div className="text-right">

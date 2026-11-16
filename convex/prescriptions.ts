@@ -452,14 +452,14 @@ export const update = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("prescriptions").order("desc").collect();
+        return await ctx.db.query("prescriptions").order("desc").take(150);
     },
 });
 
 export const listByPatient = query({
     args: { reference_number: v.string() },
     handler: async (ctx, args) => {
-        const prescriptions = await ctx.db.query("prescriptions").order("desc").collect();
+        const prescriptions = await ctx.db.query("prescriptions").order("desc").take(100);
         const targetRef = args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX');
         return prescriptions.filter((p) => {
             const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
@@ -471,7 +471,7 @@ export const listByPatient = query({
 export const getLatestByPhone = query({
     args: { phone_number: v.string(), name: v.optional(v.string()), reference_number: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        const prescriptions = await ctx.db.query("prescriptions").order("desc").collect();
+        const prescriptions = await ctx.db.query("prescriptions").order("desc").take(100);
         const cleanPhone = args.phone_number.replace(/\D/g, '').slice(-10);
         const cleanName = args.name ? args.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "") : "";
         const targetRef = args.reference_number ? args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : "";
@@ -835,11 +835,8 @@ export const getDiagnosisSuggestions = query({
         const maxLimit = args.limit || 30;
         const q = (args.query || "").trim().toLowerCase();
 
-        // 1. Fetch from diagnoses table
-        const savedDiagnoses = await ctx.db.query("diagnoses").collect();
-
-        // 2. Fetch past diagnoses from recent prescriptions as rich history
-        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(150);
+        // 1. Fetch from diagnoses catalog table (lightweight, zero prescription overhead)
+        const savedDiagnoses = await ctx.db.query("diagnoses").order("desc").take(250);
 
         const map = new Map<string, { name: string; count: number; lastUsed: number }>();
 
@@ -852,25 +849,6 @@ export const getDiagnosisSuggestions = query({
                 count: item.count || 1,
                 lastUsed: item.last_used_at || item.created_at || 0,
             });
-        }
-
-        // Populate from prescriptions (split by newline and comma)
-        for (const rx of recentPrescriptions) {
-            if (!rx.diagnosis) continue;
-            const parts = rx.diagnosis.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
-            for (const part of parts) {
-                const key = part.toLowerCase();
-                const existing = map.get(key);
-                if (existing) {
-                    existing.count += 1;
-                } else {
-                    map.set(key, {
-                        name: part,
-                        count: 1,
-                        lastUsed: 0,
-                    });
-                }
-            }
         }
 
         // Add standard common presets as fallback if not present
