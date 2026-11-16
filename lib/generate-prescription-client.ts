@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+import { getFollowupDayInfo } from '@/lib/prescriptionUtils';
 
 export interface ToothData {
   id: number;
@@ -317,7 +318,11 @@ export async function generatePrescriptionPdfBlob(data: PrescriptionData): Promi
   }
 
   if (data.advice) drawSection('ADVICE / INSTRUCTIONS', data.advice);
-  if (data.followupDate) drawSection('NEXT APPOINTMENT', formatDate(data.followupDate));
+  if (data.followupDate) {
+    const fInfo = getFollowupDayInfo(data.followupDate);
+    const nextVisitText = fInfo ? `${fInfo.dayNameEn}, ${fInfo.formattedDate}` : formatDate(data.followupDate);
+    drawSection('NEXT APPOINTMENT', nextVisitText);
+  }
 
   // 30 days validity notice & generic medical store notice
   const isGyno =

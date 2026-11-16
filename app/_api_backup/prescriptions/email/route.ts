@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Configuration, SendApi, AccountApi } from 'hostinger-mail-api-sdk';
 import nodemailer from 'nodemailer';
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+import { getFollowupDayInfo } from '@/lib/prescriptionUtils';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -761,6 +762,7 @@ async function generatePrescriptionPdf(
   if (data.followupDate) {
     y -= 13;
     const fDate = formatDateGB(data.followupDate);
+    const fInfo = getFollowupDayInfo(data.followupDate);
     let diffDays = 0;
     try {
       const pD = new Date(data.prescriptionDate || new Date());
@@ -769,7 +771,8 @@ async function generatePrescriptionPdf(
     } catch { }
 
     const diffStr = diffDays > 0 ? ` (${diffDays} days later)` : '';
-    const nextVisitStr = `Next Visit (Follow-Up): ${fDate}${diffStr}`;
+    const dayPrefix = fInfo ? `${fInfo.dayNameEn}, ` : '';
+    const nextVisitStr = `Next Visit (Follow-Up): ${dayPrefix}${fDate}${diffStr}`;
     page.drawText(nextVisitStr, {
       x: MARGIN_X,
       y,

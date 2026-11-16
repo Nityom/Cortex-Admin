@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { formatFollowup } from '@/lib/prescriptionUtils';
 import {
   Calendar,
   Clock,
@@ -786,9 +787,9 @@ export default function PrescriptionPastVisitsDashboard({
                     <Calendar className="w-4 h-4 text-emerald-600" />
                     <span>
                       Next Visit:{' '}
-                      <b className="text-slate-900">
+                      <b className="text-slate-900 font-bold">
                         {activeVisit.followup_date
-                          ? formatHealthPlixDate(activeVisit.followup_date)
+                          ? formatFollowup(activeVisit.followup_date, activeVisit.prescription_date)
                           : 'Not Scheduled'}
                       </b>
                     </span>

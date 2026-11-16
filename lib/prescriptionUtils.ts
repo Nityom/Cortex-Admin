@@ -130,28 +130,72 @@ export function formatPrescriptionDate(dateStr?: string): string {
   return `${day}-${month}-${year}`;
 }
 
+export function getFollowupDayInfo(dateStr?: string) {
+  if (!dateStr) return null;
+  let d: Date;
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    const parts = dateStr.slice(0, 10).split('-');
+    d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+  } else {
+    d = new Date(dateStr);
+  }
+  if (isNaN(d.getTime())) return null;
+
+  const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const daysMr = ['रविवार', 'सोमवार', 'मंगळवार', 'बुधवार', 'गुरुवार', 'शुक्रवार', 'शनिवार'];
+  const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const dayIndex = d.getDay();
+  const dayNameEn = daysEn[dayIndex];
+  const dayNameMr = daysMr[dayIndex];
+  const dayNum = String(d.getDate()).padStart(2, '0');
+  const monthName = monthsEn[d.getMonth()];
+  const year = d.getFullYear();
+  const formattedDate = `${dayNum}-${monthName}-${year}`;
+
+  return {
+    dayNameEn,
+    dayNameMr,
+    formattedDate,
+    fullDisplay: `${dayNameEn} (${dayNameMr}), ${formattedDate}`,
+    shortDisplay: `${dayNameEn}, ${formattedDate}`,
+  };
+}
+
 export function formatFollowup(followupDate?: string, prescriptionDate?: string): string {
   if (!followupDate) return '';
-  const fDate = new Date(followupDate);
-  if (isNaN(fDate.getTime())) return followupDate;
+  const info = getFollowupDayInfo(followupDate);
+  if (!info) return followupDate;
 
-  const daysOfWeek = ['रविवार', 'सोमवार', 'मंगळवार', 'बुधवार', 'गुरुवार', 'शुक्रवार', 'शनिवार'];
-  const dayName = daysOfWeek[fDate.getDay()];
-  const formattedDate = `${String(fDate.getDate()).padStart(2, '0')}-${String(fDate.getMonth() + 1).padStart(2, '0')}-${fDate.getFullYear()}`;
-
-  let diffPrefix = '';
+  let diffText = '';
   if (prescriptionDate) {
-    const pDate = new Date(prescriptionDate);
-    if (!isNaN(pDate.getTime())) {
+    let pDate: Date;
+    if (/^\d{4}-\d{2}-\d{2}/.test(prescriptionDate)) {
+      const parts = prescriptionDate.slice(0, 10).split('-');
+      pDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+    } else {
+      pDate = new Date(prescriptionDate);
+    }
+    let fDate: Date;
+    if (/^\d{4}-\d{2}-\d{2}/.test(followupDate)) {
+      const parts = followupDate.slice(0, 10).split('-');
+      fDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+    } else {
+      fDate = new Date(followupDate);
+    }
+
+    if (!isNaN(pDate.getTime()) && !isNaN(fDate.getTime())) {
       const diffMs = fDate.getTime() - pDate.getTime();
       const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
       if (diffDays > 0) {
-        diffPrefix = `${diffDays} दिवसानंतर `;
+        diffText = ` (${diffDays} दिवसानंतर / After ${diffDays} days)`;
+      } else if (diffDays === 0) {
+        diffText = ` (आज / Today)`;
       }
     }
   }
 
-  return `${diffPrefix}(${formattedDate} - ${dayName})`;
+  return `${info.dayNameEn}, ${info.formattedDate} (${info.dayNameMr})${diffText}`;
 }
 
 export function parseDosage(dosage: string): number {
