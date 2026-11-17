@@ -9,10 +9,16 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit || 50;
-    let items = await ctx.db.query("opd_queue").order("desc").take(limit);
+    let items;
 
     if (args.status && args.status !== "ALL") {
-      items = items.filter((item) => item.status === args.status);
+      items = await ctx.db
+        .query("opd_queue")
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .order("desc")
+        .take(limit);
+    } else {
+      items = await ctx.db.query("opd_queue").order("desc").take(limit);
     }
 
     if (args.doctor && args.doctor !== "ALL") {
@@ -88,7 +94,14 @@ export const upsert = mutation({
 
     let recordId: any;
     if (existing) {
-      await ctx.db.patch(existing._id, payload);
+      // Check if any field actually changed before writing to prevent spurious DB write I/O & subscription invalidations
+      const hasChanges = Object.entries(payload).some(([key, val]) => {
+        if (key === "updated_at") return false;
+        return (existing as any)[key] !== val;
+      });
+      if (hasChanges) {
+        await ctx.db.patch(existing._id, payload);
+      }
       recordId = existing._id;
     } else {
       recordId = await ctx.db.insert("opd_queue", {
@@ -107,7 +120,7 @@ export const upsert = mutation({
 
       const allPlaceholders = await ctx.db
         .query("opd_queue")
-        .filter((q) => q.eq(q.field("status"), "Waiting"))
+        .withIndex("by_status", (q) => q.eq("status", "Waiting"))
         .collect();
 
       for (const item of allPlaceholders) {

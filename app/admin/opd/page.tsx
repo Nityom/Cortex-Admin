@@ -229,6 +229,11 @@ const getElapsedWaitTime = (
   timeStr?: string,
   status?: string
 ): string | null => {
+  // Only show wait duration for patients currently waiting in the queue
+  if (status !== "Waiting" && status !== "Ready") {
+    return null;
+  }
+
   let entryDate: Date | null = null;
 
   if (registeredAtStr) {
@@ -264,17 +269,14 @@ const getElapsedWaitTime = (
 
   const diffMins = Math.floor(diffMs / (1000 * 60));
   if (diffMins < 1) {
-    return status === "Waiting" || status === "Ready" ? "Just registered" : "Just now";
+    return "Just registered";
   }
 
   const hours = Math.floor(diffMins / 60);
   const mins = diffMins % 60;
   const timeDesc = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 
-  if (status === "Waiting" || status === "Ready") {
-    return `Waiting ${timeDesc}`;
-  }
-  return `${timeDesc} ago`;
+  return `Waiting ${timeDesc}`;
 };
 
 const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {

@@ -38,31 +38,30 @@ export const create = mutation({
             return existingPatient._id;
         }
 
-        // Check all existing patients to determine the absolute highest reference number
-        const allPatients = await ctx.db.query("patients").collect();
-        let maxExisting = 2; // System already has CRX0001 (Test) and CRX0002 (Testing)
-        for (const p of allPatients) {
-            if (p.reference_number) {
-                const match = p.reference_number.match(/\d+/);
-                if (match) {
-                    const num = parseInt(match[0], 10);
-                    if (num > maxExisting) maxExisting = num;
-                }
-            }
-        }
-
+        // Use reference_counter to assign the next reference number efficiently without scanning the entire patients table
         let counter = await ctx.db
             .query("reference_counter")
             .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
             .first();
         
-        let nextNumber = maxExisting + 1;
-        if (counter) {
-            if (counter.current_number >= nextNumber) {
-                nextNumber = counter.current_number + 1;
-            }
+        let nextNumber: number;
+        if (counter && typeof counter.current_number === "number") {
+            nextNumber = counter.current_number + 1;
             await ctx.db.patch(counter._id, { current_number: nextNumber });
         } else {
+            // Counter not yet initialized: inspect only the most recent patients to find the highest number
+            const recentPatients = await ctx.db.query("patients").order("desc").take(50);
+            let maxExisting = 2; // Default starting reference
+            for (const p of recentPatients) {
+                if (p.reference_number) {
+                    const match = p.reference_number.match(/\d+/);
+                    if (match) {
+                        const num = parseInt(match[0], 10);
+                        if (num > maxExisting) maxExisting = num;
+                    }
+                }
+            }
+            nextNumber = maxExisting + 1;
             await ctx.db.insert("reference_counter", { counter_id: 1, current_number: nextNumber });
         }
         const reference_number = `CRX${String(nextNumber).padStart(4, "0")}`;  
