@@ -590,7 +590,7 @@ function PrintPrescriptionContent() {
       .filter(Boolean);
 
     return (
-      <div key="findings" className="clinical-strip-section">
+      <div key="findings" className="clinical-strip-section findings-strip-section" style={{ borderBottom: 'none', paddingBottom: '2px' }}>
         <div className="clinical-strip-row" style={{ alignItems: 'flex-start' }}>
           <span className="clinical-strip-lbl" style={{ minWidth: '135px' }}>Clinical Examination:</span>
           <div className="clinical-findings-col" style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
@@ -1124,11 +1124,16 @@ function PrintPrescriptionContent() {
 
         /* ── Clinical Strip (Complaints, History, Findings) ── */
         .clinical-strip-section {
-          padding: 4px 0 4px 0;
+          padding: 3px 0 3px 0;
           font-size: 10pt;
           line-height: 1.4;
           border-top: 1px dashed #cbd5e1;
           border-bottom: 1px solid #d1d5db;
+        }
+
+        .findings-strip-section {
+          border-bottom: none !important;
+          padding-bottom: 1px !important;
         }
 
         .clinical-strip-row {
@@ -1190,17 +1195,17 @@ function PrintPrescriptionContent() {
 
         /* ── Rx Section ── */
         .rx-wrapper {
-          margin-top: 6px;
+          margin-top: 2px;
         }
 
         .rx-symbol {
           font-family: Georgia, "Times New Roman", serif;
-          font-size: 20pt;
+          font-size: 13pt;
           font-weight: normal;
           font-style: italic;
           color: #1f2937;
           line-height: 1;
-          margin-bottom: 3px;
+          margin-bottom: 1px;
         }
 
         .med-table {

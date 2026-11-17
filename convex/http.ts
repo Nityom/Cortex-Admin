@@ -533,6 +533,11 @@ http.route({
       border-bottom: 1px solid #d1d5db;
     }
 
+    .findings-strip-section {
+      border-bottom: none !important;
+      padding-bottom: 1px !important;
+    }
+
     .clinical-strip-row {
       display: flex;
       align-items: baseline;
@@ -575,17 +580,17 @@ http.route({
 
     /* Rx Section */
     .rx-wrapper {
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .rx-symbol {
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 18pt;
+      font-size: 13pt;
       font-weight: normal;
       font-style: italic;
       color: #1f2937;
       line-height: 1;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
 
     .med-table {
@@ -1055,7 +1060,7 @@ http.route({
 
           <!-- Clinical Examination (if present) -->
           ${findingsLines.length > 0 ? `
-          <div class="clinical-strip-section">
+          <div class="clinical-strip-section findings-strip-section" style="border-bottom: none; padding-bottom: 1px;">
             <div class="clinical-strip-row" style="align-items: flex-start;">
               <span class="clinical-strip-lbl" style="min-width: 130px;">Clinical Examination:</span>
               <div style="display: flex; flex-direction: column; gap: 1px; flex: 1;">

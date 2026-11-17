@@ -10,6 +10,7 @@ import { getPatientByPhoneNumber, getOrCreatePatient } from '@/services/patients
 import { OPDQueueItem } from '@/services/opdQueue';
 import { hospitalConfig } from '@/config/hospital';
 import { formatDate } from '@/lib/utils';
+import { isShillpaDoctor } from '@/lib/doctorColors';
 
 // Helpers
 const getTodayString = () => {
@@ -73,6 +74,7 @@ export default function AppointmentsPage() {
     name: '',
     phone: '',
     age: '',
+    sex: 'Male' as 'Male' | 'Female' | 'Other',
     address: '',
     time: '11:00',
     doctor_name: 'Dr. Vipeen Raut',
@@ -107,7 +109,7 @@ export default function AppointmentsPage() {
     const term = debouncedSearchQuery.trim().toLowerCase();
     if (!term || term.length < 2) return [];
 
-    const map = new Map<string, { name: string; phone: string; age?: string; address?: string; uhid?: string }>();
+    const map = new Map<string, { name: string; phone: string; age?: string; address?: string; uhid?: string; sex?: string }>();
 
     if (allPatients && Array.isArray(allPatients)) {
       allPatients.forEach((p: any) => {
@@ -118,7 +120,7 @@ export default function AppointmentsPage() {
         const uhid = (p.reference_number || p.uhid || '').trim();
         const key = (phone || name.toLowerCase()).trim();
         if (key && !map.has(key)) {
-          map.set(key, { name, phone, age, address, uhid });
+          map.set(key, { name, phone, age, address, uhid, sex: p.sex });
         }
       });
     }
@@ -363,10 +365,12 @@ export default function AppointmentsPage() {
   const handleOpenModal = (appt?: any) => {
     if (appt) {
       setEditingId(appt._id);
+      const isGyn = isShillpaDoctor(appt.doctor_name);
       setFormData({
         name: appt.name,
         phone: appt.phone,
         age: appt.age !== undefined && appt.age !== null ? String(appt.age) : '',
+        sex: isGyn ? 'Female' : ((appt as any).sex || 'Male'),
         address: (appt as any).address || '',
         time: normalizeAppointmentTime(appt.time),
         doctor_name: appt.doctor_name || 'Dr. Vipeen Raut',
@@ -378,10 +382,12 @@ export default function AppointmentsPage() {
       setEditingId(null);
       const defaultDoctor = selectedDoctorFilter !== 'ALL' ? selectedDoctorFilter : 'Dr. Vipeen Raut';
       const defaultTime = getNextAvailableTime(selectedDate, defaultDoctor);
+      const isGyn = isShillpaDoctor(defaultDoctor);
       setFormData({
         name: '',
         phone: '',
         age: '',
+        sex: isGyn ? 'Female' : 'Male',
         address: '',
         time: defaultTime,
         doctor_name: defaultDoctor,
@@ -395,13 +401,15 @@ export default function AppointmentsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSelectPatient = (p: { name: string; phone: string; age?: string; address?: string }) => {
+  const handleSelectPatient = (p: { name: string; phone: string; age?: string; address?: string; sex?: string }) => {
+    const isDocGyn = isShillpaDoctor(formData.doctor_name);
     setFormData(prev => ({
       ...prev,
       name: p.name,
       phone: p.phone,
       age: p.age || prev.age,
       address: p.address || prev.address,
+      sex: isDocGyn ? 'Female' : ((p.sex as any) || prev.sex || 'Male'),
     }));
     setShowPatientDropdown(false);
     setPatientSearchQuery('');
@@ -474,8 +482,8 @@ export default function AppointmentsPage() {
           const dept = docName.toLowerCase().includes('shillpa')
             ? 'Obstetrics & Gynaecology'
             : 'Orthopaedics & Joint Replacement';
-          const isGynae = docName.toLowerCase().includes('shillpa') || dept.toLowerCase().includes('gynaec');
-          const sex = isGynae ? 'Female' : 'Male';
+          const isGynae = isShillpaDoctor(docName) || dept.toLowerCase().includes('gynaec');
+          const sex = isGynae ? 'Female' : (formData.sex || 'Male');
 
           // 1. Resolve Patient UHID & patientId
           let uhid = '';
@@ -493,7 +501,7 @@ export default function AppointmentsPage() {
                   name: patientName,
                   phone_number: cleanPhone,
                   age: Number(formData.age) || 0,
-                  sex: isGynae ? 'Female' : 'Male',
+                  sex,
                   address: formData.address.trim() || undefined,
                 });
                 if (newPt) {
@@ -965,7 +973,7 @@ export default function AppointmentsPage() {
             <form onSubmit={handleSave} className="space-y-4">
               <div className="relative">
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-                  <div className="sm:col-span-6">
+                  <div className="sm:col-span-5">
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                       Full Name <span className="text-red-500">*</span>
                     </label>
@@ -1005,7 +1013,28 @@ export default function AppointmentsPage() {
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-sm font-semibold transition"
                     />
                   </div>
-                  <div className="sm:col-span-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Gender
+                    </label>
+                    {isShillpaDoctor(formData.doctor_name) ? (
+                      <div className="w-full px-2.5 py-2 bg-pink-50 border border-pink-200 rounded-xl text-pink-900 font-semibold text-xs flex items-center justify-between h-[42px]">
+                        <span>Female</span>
+                        <span className="text-[9px] bg-pink-200/80 text-pink-800 font-bold px-1 py-0.5 rounded">Auto</span>
+                      </div>
+                    ) : (
+                      <select
+                        value={formData.sex}
+                        onChange={e => setFormData({ ...formData, sex: e.target.value as any })}
+                        className="w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white text-xs font-semibold transition h-[42px]"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    )}
+                  </div>
+                  <div className="sm:col-span-3">
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
@@ -1164,10 +1193,12 @@ export default function AppointmentsPage() {
                         type="button"
                         onClick={() => {
                           const nextTime = getNextAvailableTime(selectedDate, doc.name, formData.time);
+                          const isGyn = isShillpaDoctor(doc.name);
                           setFormData(prev => ({
                             ...prev,
                             doctor_name: doc.name,
                             time: nextTime,
+                            ...(isGyn ? { sex: 'Female' } : {}),
                           }));
                         }}
                         className={`p-3 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${

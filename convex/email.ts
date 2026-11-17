@@ -578,16 +578,16 @@ async function generatePrescriptionPdf(
   }
 
   // Medicines Table
-  y -= 18;
+  y -= 12;
   page.drawText("Rx", {
     x: MARGIN_X,
     y,
-    size: 18,
+    size: 13,
     font: boldObliqueFont,
     color: darkSlateColor,
   });
 
-  y -= 14;
+  y -= 12;
   const colMed = MARGIN_X;
   const colDos = MARGIN_X + 235;
   const colDosW = 75;

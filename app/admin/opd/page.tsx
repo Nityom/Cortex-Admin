@@ -1050,13 +1050,15 @@ export default function OPDManagementPage() {
     }
   };
 
-  // Doctor change handler (syncs department)
+  // Doctor change handler (syncs department & auto-sets female for Dr. Shilpa Raut)
   const handleDoctorChange = (doctorName: string) => {
     const docObj = DOCTORS.find((d) => d.name === doctorName);
+    const isGyn = isShillpaDoctor(doctorName);
     setFormData((prev) => ({
       ...prev,
       doctor: doctorName,
       department: docObj ? docObj.specialty : prev.department,
+      ...(isGyn ? { sex: "Female" } : {}),
     }));
     if (typeof window !== 'undefined') {
       try {
@@ -1069,6 +1071,8 @@ export default function OPDManagementPage() {
   const handleRegisterPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = formData.phone.replace(/\D/g, "");
+    const isDocGyn = isShillpaDoctor(formData.doctor);
+    const effectiveSex: "Male" | "Female" | "Other" = isDocGyn ? "Female" : formData.sex;
     if (!formData.name.trim()) {
       alert("Please enter patient name.");
       return;
@@ -1091,7 +1095,7 @@ export default function OPDManagementPage() {
         const res = await createPatient({
           name: formData.name.trim(),
           age: Number(formData.age) || 0,
-          sex: formData.sex,
+          sex: effectiveSex,
           phone_number: cleanPhone,
           address: formData.address.trim() || undefined,
           email: formData.email.trim() || undefined,
@@ -1211,7 +1215,7 @@ export default function OPDManagementPage() {
         name: formData.name.trim(),
         age: formData.age.trim(),
         ageUnit: formData.ageUnit,
-        sex: formData.sex,
+        sex: effectiveSex,
         phone: cleanPhone,
         address: formData.address.trim(),
         email: formData.email.trim() || undefined,
@@ -1353,17 +1357,18 @@ export default function OPDManagementPage() {
   const openCheckInModal = async (appt: any) => {
     setCheckInModalAppt(appt);
     let age = "";
-    let sex: "Male" | "Female" | "Other" = "Male";
+    const isDocGyn = isShillpaDoctor(appt.doctor_name || DOCTORS[0].name);
+    let sex: "Male" | "Female" | "Other" = isDocGyn ? "Female" : "Male";
     try {
       const pt = await getPatientByPhoneNumber(appt.phone?.trim() || "", appt.name?.trim());
       if (pt) {
         if (pt.age) age = String(pt.age);
-        if (pt.sex) sex = pt.sex as any;
+        if (pt.sex) sex = isDocGyn ? "Female" : (pt.sex as any);
       }
     } catch (_) { }
     setCheckInVitals({
       age,
-      sex,
+      sex: isDocGyn ? "Female" : sex,
       bp: "",
       pulse: "",
       spo2: "",
@@ -1456,7 +1461,7 @@ export default function OPDManagementPage() {
         name: appt.name?.trim() || "Appointment Patient",
         age: customVitals?.age?.trim() || (appt.age !== undefined && appt.age !== null ? String(appt.age) : "—"),
         ageUnit: "years",
-        sex: customVitals?.sex || "Male",
+        sex: customVitals?.sex || (isShillpaDoctor(docName) ? "Female" : "Male"),
         phone: appt.phone?.trim() || "",
         address: appt.address?.trim() || "",
         doctor: docName,
@@ -2510,11 +2515,20 @@ export default function OPDManagementPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Gender {isShillpaDoctor(formData.doctor) && (
+                        <span className="text-[10px] text-pink-600 font-bold ml-1">(Auto: Female)</span>
+                      )}
+                    </label>
                     <select
-                      value={formData.sex}
+                      value={isShillpaDoctor(formData.doctor) ? "Female" : formData.sex}
                       onChange={(e) => setFormData({ ...formData, sex: e.target.value as any })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none"
+                      disabled={isShillpaDoctor(formData.doctor)}
+                      className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none ${
+                        isShillpaDoctor(formData.doctor)
+                          ? "bg-pink-50 border-pink-200 text-pink-900 font-semibold cursor-not-allowed"
+                          : "border-slate-300"
+                      }`}
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -2844,11 +2858,20 @@ export default function OPDManagementPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">Sex</label>
+                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    Sex {isShillpaDoctor(checkInModalAppt?.doctor_name) && (
+                      <span className="text-[9px] text-pink-600 font-bold ml-1">(Auto: Female)</span>
+                    )}
+                  </label>
                   <select
-                    value={checkInVitals.sex}
+                    value={isShillpaDoctor(checkInModalAppt?.doctor_name) ? "Female" : checkInVitals.sex}
                     onChange={(e) => setCheckInVitals({ ...checkInVitals, sex: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    disabled={isShillpaDoctor(checkInModalAppt?.doctor_name)}
+                    className={`w-full px-3 py-2 border rounded-lg text-xs bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
+                      isShillpaDoctor(checkInModalAppt?.doctor_name)
+                        ? "bg-pink-50 border-pink-200 text-pink-900 font-semibold cursor-not-allowed"
+                        : "border-slate-300"
+                    }`}
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>

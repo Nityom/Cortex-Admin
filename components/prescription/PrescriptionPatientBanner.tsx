@@ -314,12 +314,17 @@ export default function PrescriptionPatientBanner({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Gender</label>
+            <label className="block text-xs font-semibold text-slate-600 uppercase">
+              Gender {isGynae && <span className="text-[10px] text-pink-600 font-bold ml-1">(Auto: Female)</span>}
+            </label>
             <select
               name="sex"
-              value={formData.sex}
+              value={isGynae ? "Female" : formData.sex}
               onChange={handleChange}
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
+              disabled={isGynae}
+              className={`w-full mt-1 p-2 border rounded-lg font-semibold text-sm focus:ring-1 focus:ring-emerald-500 ${
+                isGynae ? "bg-pink-50 border-pink-200 text-pink-900 cursor-not-allowed" : "border-slate-200 text-slate-800"
+              }`}
             >
               <option value="Male">Male</option>
               <option value="Female">Female</option>

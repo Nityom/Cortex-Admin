@@ -300,7 +300,7 @@ export default function PrescriptionLivePreview({
     if (enabledSections && enabledSections.findings === false) return null;
     if (!cleanFindingsText) return null;
     return (
-      <div key="findings" className="py-1.5 px-2 bg-slate-50/50 rounded border-b border-slate-200 text-xs flex items-baseline gap-2">
+      <div key="findings" className="py-1 px-2 bg-slate-50/50 rounded text-xs flex items-baseline gap-2">
         <span className="font-extrabold text-black uppercase text-[10px] tracking-wider shrink-0">
           Clinical Examination:
         </span>
@@ -342,8 +342,8 @@ export default function PrescriptionLivePreview({
   const renderMedicines = () => {
     if (enabledSections && enabledSections.medicines === false) return null;
     return (
-      <div key="medicines" className="mt-3">
-        <div className="font-serif italic font-bold text-2xl text-slate-900 leading-none mb-1">
+      <div key="medicines" className="mt-1.5">
+        <div className="font-serif italic font-bold text-base text-slate-900 leading-tight mb-0.5">
           ℞
         </div>
 

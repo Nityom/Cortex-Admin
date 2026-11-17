@@ -1021,6 +1021,9 @@ export function usePrescriptionForm() {
     setSelectedDoctorName(docName);
     const docProfile = getDoctorProfile(docName);
     const isDocGyn = docName.toLowerCase().includes('shilpa') || docName.toLowerCase().includes('shillpa');
+    if (isDocGyn) {
+      setFormData((prev: any) => ({ ...prev, sex: 'Female' }));
+    }
     setTemplateCategoryInput(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
     setTemplateCategoryFilter(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
     const fee = isNewPatient
