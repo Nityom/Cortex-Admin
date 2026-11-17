@@ -83,29 +83,7 @@ export default function PrescriptionDraftModal({
         {/* Content Body */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1 text-slate-800 scrollbar-thin">
           {/* Quick Action: Save Current Draft */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <Save className="w-4 h-4 text-emerald-600 shrink-0" />
-              <div>
-                <p className="text-xs font-bold text-slate-800">
-                  Save current prescription as draft
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {currentPatientName ? `Saving for ${currentPatientName}` : 'Saves current form state to your browser'}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                onSaveCurrentAsDraft();
-              }}
-              className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>Save As Draft</span>
-            </button>
-          </div>
+         
 
           {/* Section 1: Active Draft for this patient */}
           {currentDraft ? (

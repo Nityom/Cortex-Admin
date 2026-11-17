@@ -170,6 +170,113 @@ const shiftDate = (currentDateStr: string, deltaDays: number) => {
 
 const STORAGE_KEY = "cortex_opd_queue_v1";
 
+const formatEntryTime = (
+  timeStr?: string,
+  registeredAtStr?: string,
+  createdTime?: number | string
+): string => {
+  if (registeredAtStr) {
+    try {
+      const d = new Date(registeredAtStr);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (timeStr && timeStr.trim()) {
+    const trimmed = timeStr.trim();
+    if (/\b(am|pm)\b/i.test(trimmed)) {
+      return trimmed;
+    }
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = match[2];
+      const ampm = hours >= 12 ? "PM" : "AM";
+      hours = hours % 12 || 12;
+      return `${hours}:${minutes} ${ampm}`;
+    }
+    return trimmed;
+  }
+
+  if (createdTime) {
+    try {
+      const d = new Date(createdTime);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return "—";
+};
+
+const getElapsedWaitTime = (
+  registeredAtStr?: string,
+  timeStr?: string,
+  status?: string
+): string | null => {
+  let entryDate: Date | null = null;
+
+  if (registeredAtStr) {
+    try {
+      const d = new Date(registeredAtStr);
+      if (!Number.isNaN(d.getTime())) {
+        entryDate = d;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!entryDate && timeStr) {
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const ampm = match[3]?.toUpperCase();
+      if (ampm === "PM" && hours < 12) hours += 12;
+      if (ampm === "AM" && hours === 12) hours = 0;
+      const today = new Date();
+      today.setHours(hours, minutes, 0, 0);
+      entryDate = today;
+    }
+  }
+
+  if (!entryDate) return null;
+
+  const now = new Date();
+  const diffMs = now.getTime() - entryDate.getTime();
+  if (diffMs < 0 || diffMs > 24 * 60 * 60 * 1000) return null;
+
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  if (diffMins < 1) {
+    return status === "Waiting" || status === "Ready" ? "Just registered" : "Just now";
+  }
+
+  const hours = Math.floor(diffMins / 60);
+  const mins = diffMins % 60;
+  const timeDesc = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+  if (status === "Waiting" || status === "Ready") {
+    return `Waiting ${timeDesc}`;
+  }
+  return `${timeDesc} ago`;
+};
+
 const normalizePatientIdentity = (item: OPDQueueItem): OPDQueueItem => {
   const rawName = (item.name || "").toLowerCase().trim();
   const rawPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
@@ -391,6 +498,7 @@ export default function OPDManagementPage() {
   const syncLocalOpdQueueMutation = useMutation(api.opd_queue.syncLocalItems);
   const clearOpdQueueMutation = useMutation(api.opd_queue.clearAll);
   const syncingAppointmentIds = React.useRef(new Set<string>());
+  const dismissedAppointmentIds = React.useRef(new Set<string>());
 
   // Keep scheduled appointments visible in the OPD queue even when they were
   // created by an external channel such as the WhatsApp assistant.
@@ -428,6 +536,7 @@ export default function OPDManagementPage() {
       if (
         !appointment._id ||
         appointment.status === "CANCELLED" ||
+        dismissedAppointmentIds.current.has(String(appointment._id)) ||
         !appointmentDate ||
         appointmentDate < todayStr ||
         !appointment.time ||
@@ -1186,9 +1295,24 @@ export default function OPDManagementPage() {
     if (!confirm(`Are you sure you want to remove ${patientName} from today's OPD queue?`)) {
       return;
     }
+    const targetItem = queue.find((item) => item.id === id);
+    const apptId = targetItem?.appointmentId || (id.startsWith("appointment_") ? id.replace("appointment_", "") : undefined);
+
+    if (apptId) {
+      dismissedAppointmentIds.current.add(apptId);
+    }
+
     const updated = queue.filter((item) => item.id !== id);
     saveQueue(updated);
     try {
+      if (apptId) {
+        try {
+          await updateAppointmentMutation({
+            id: apptId as any,
+            status: "CANCELLED",
+          });
+        } catch (_) {}
+      }
       await removeOpdQueueMutation({ queue_id: id });
     } catch (err) {
       console.warn("Could not delete queue item from Convex:", err);
@@ -1805,6 +1929,9 @@ export default function OPDManagementPage() {
                   type="button"
                   onClick={async () => {
                     if (confirm("Reset OPD Queue? (Patient records in database are preserved)")) {
+                      todayAppointments.forEach((a) => {
+                        if (a._id) dismissedAppointmentIds.current.add(String(a._id));
+                      });
                       saveQueue([]);
                       try {
                         await clearOpdQueueMutation();
@@ -1890,8 +2017,8 @@ export default function OPDManagementPage() {
                 </button>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1040px] text-left">
-                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
+                <table className="w-full min-w-[1100px] text-left">
+                  <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold whitespace-nowrap">Entry Time</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
                   <tbody className="divide-y divide-[#edf2ee]">
                     {displayedQueue.map((item, index) => {
                       const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
@@ -1953,9 +2080,16 @@ export default function OPDManagementPage() {
                         (uhidNorm && patientLastVisitMap.get(uhidNorm)) ||
                         (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`));
 
+                      const entryTimeStr = formatEntryTime(
+                        item.time,
+                        item.registeredAt,
+                        (item as any).created_at || (item as any)._creationTime
+                      );
+                      const waitDuration = getElapsedWaitTime(item.registeredAt, item.time, item.status);
+
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(displayedQueue.length - index).padStart(2, "0")}</td>
-                        <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token} · {item.uhid}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
+                        <td className="px-4 py-4"><div className="flex min-w-[205px] items-center"><span className="min-w-0"><b className="block truncate text-base font-bold text-[#50675a]">{item.name}</b><span className="mt-1 block text-sm text-slate-500">#{item.token}{item.uhid ? ` · ${item.uhid}` : ""}{entryTimeStr && entryTimeStr !== "—" ? <> · <span className="font-semibold text-slate-600">{entryTimeStr}</span></> : null}</span>{item.priority !== "Normal" && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold uppercase ${item.priority === "Emergency" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{item.priority}</span>}</span></div></td>
                         <td className="px-4 py-4">
                           <span className="block text-sm text-[#65796e]">{item.age ? `${item.age} ${item.ageUnit}` : "Age N/A"} · {item.sex}</span>
                           {(item.vitals?.bp || item.vitals?.pulse) ? (
@@ -1963,6 +2097,17 @@ export default function OPDManagementPage() {
                               {[item.vitals.bp ? `BP ${item.vitals.bp}` : '', item.vitals.pulse ? `${item.vitals.pulse} bpm` : ''].filter(Boolean).join(' · ')}
                             </span>
                           ) : null}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                            <Clock className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                            <span>{entryTimeStr}</span>
+                          </div>
+                          {waitDuration && (
+                            <span className="mt-0.5 block text-[11px] font-medium text-amber-700">
+                              {waitDuration}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           {lastVisitInfo ? (

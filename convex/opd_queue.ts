@@ -157,12 +157,53 @@ export const remove = mutation({
     queue_id: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    let existing: any = await ctx.db
       .query("opd_queue")
       .withIndex("by_queue_id", (q) => q.eq("queue_id", args.queue_id))
       .first();
 
+    if (!existing) {
+      try {
+        existing = await ctx.db.get(args.queue_id as any);
+      } catch {}
+    }
+
     if (existing) {
+      const apptId =
+        existing.appointmentId ||
+        (existing.queue_id && existing.queue_id.startsWith("appointment_")
+          ? existing.queue_id.replace("appointment_", "")
+          : null);
+
+      if (apptId) {
+        try {
+          const appt = await ctx.db.get(apptId as any);
+          if (appt) {
+            await ctx.db.patch(appt._id, { status: "CANCELLED" });
+          }
+        } catch {}
+      }
+
+      const cleanPhone = (existing.phone || "").replace(/\D/g, "").slice(-10);
+      const cleanName = (existing.name || "").trim().toLowerCase();
+      const targetDate = (existing.registeredAt || "").split("T")[0];
+
+      const allItems = await ctx.db.query("opd_queue").collect();
+      for (const item of allItems) {
+        if (item._id === existing._id) continue;
+        const matchAppt = apptId && item.appointmentId && item.appointmentId === apptId;
+        const pApptId = item.queue_id && item.queue_id.startsWith("appointment_") ? item.queue_id.replace("appointment_", "") : "";
+        const matchPlaceholderAppt = apptId && pApptId === apptId;
+        const iPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+        const iName = (item.name || "").trim().toLowerCase();
+        const iDate = (item.registeredAt || "").split("T")[0];
+        const matchPerson = cleanPhone.length === 10 && iPhone === cleanPhone && iName === cleanName && iDate === targetDate;
+
+        if (matchAppt || matchPlaceholderAppt || matchPerson) {
+          await ctx.db.delete(item._id);
+        }
+      }
+
       await ctx.db.delete(existing._id);
       return true;
     }
@@ -175,6 +216,20 @@ export const clearAll = mutation({
   handler: async (ctx) => {
     const items = await ctx.db.query("opd_queue").collect();
     for (const item of items) {
+      const apptId =
+        item.appointmentId ||
+        (item.queue_id && item.queue_id.startsWith("appointment_")
+          ? item.queue_id.replace("appointment_", "")
+          : null);
+
+      if (apptId) {
+        try {
+          const appt = await ctx.db.get(apptId as any);
+          if (appt) {
+            await ctx.db.patch(appt._id, { status: "CANCELLED" });
+          }
+        } catch {}
+      }
       await ctx.db.delete(item._id);
     }
     return items.length;
