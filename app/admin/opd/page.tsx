@@ -502,6 +502,22 @@ export default function OPDManagementPage() {
   const syncingAppointmentIds = React.useRef(new Set<string>());
   const dismissedAppointmentIds = React.useRef(new Set<string>());
 
+  const queueUhids = useMemo(() => {
+    return Array.from(new Set(queue.map((q) => (q.uhid || "").trim().toUpperCase()).filter(Boolean)));
+  }, [queue]);
+
+  const queuePhones = useMemo(() => {
+    return Array.from(
+      new Set(queue.map((q) => (q.phone || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10))
+    );
+  }, [queue]);
+
+  const queueVisitTracking = useQuery(api.prescriptions.getQueueVisitTracking, {
+    uhids: queueUhids,
+    phones: queuePhones,
+    todayDate: todayStr,
+  });
+
   // Keep scheduled appointments visible in the OPD queue even when they were
   // created by an external channel such as the WhatsApp assistant.
   useEffect(() => {
@@ -620,8 +636,38 @@ export default function OPDManagementPage() {
     const byVisit = new Map<string, any>();
     const byUhid = new Map<string, any>();
     const byPhone = new Map<string, any>();
-    const lastVisit = new Map<string, { date: string; daysAgo: number }>();
+    const lastVisit = new Map<string, { date: string; daysAgo: number; doctor?: string; diagnosis?: string }>();
 
+    // 1. First, populate from dedicated targeted query results (indexed, guaranteed non-truncated)
+    if (queueVisitTracking) {
+      if (queueVisitTracking.todayRxByVisitId) {
+        for (const [vId, rx] of Object.entries(queueVisitTracking.todayRxByVisitId)) {
+          byVisit.set(vId, rx);
+        }
+      }
+      if (queueVisitTracking.todayRxByUhid) {
+        for (const [uhid, rx] of Object.entries(queueVisitTracking.todayRxByUhid)) {
+          byUhid.set(uhid, rx);
+        }
+      }
+      if (queueVisitTracking.todayRxByPhone) {
+        for (const [phKey, rx] of Object.entries(queueVisitTracking.todayRxByPhone)) {
+          byPhone.set(phKey, rx);
+        }
+      }
+      if (queueVisitTracking.lastVisitByUhid) {
+        for (const [uhid, info] of Object.entries(queueVisitTracking.lastVisitByUhid)) {
+          lastVisit.set(uhid, info);
+        }
+      }
+      if (queueVisitTracking.lastVisitByPhone) {
+        for (const [phKey, info] of Object.entries(queueVisitTracking.lastVisitByPhone)) {
+          lastVisit.set(phKey, info);
+        }
+      }
+    }
+
+    // 2. Also incorporate allPrescriptions
     if (allPrescriptions && Array.isArray(allPrescriptions)) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -663,6 +709,9 @@ export default function OPDManagementPage() {
             if (rawPhone && rxName && !lastVisit.has(`${rawPhone}_${rxName}`)) {
               lastVisit.set(`${rawPhone}_${rxName}`, { date: rxDateStr, daysAgo: diffDays });
             }
+            if (rawPhone && !lastVisit.has(rawPhone)) {
+              lastVisit.set(rawPhone, { date: rxDateStr, daysAgo: diffDays });
+            }
           }
         }
       }
@@ -697,7 +746,7 @@ export default function OPDManagementPage() {
       prescriptionByPhone: byPhone,
       patientLastVisitMap: lastVisit,
     };
-  }, [allPrescriptions, allAppointments]);
+  }, [queueVisitTracking, allPrescriptions, allAppointments]);
 
   const formatVisitDate = (isoStr?: string) => {
     if (!isoStr) return "";
@@ -1385,10 +1434,12 @@ export default function OPDManagementPage() {
       const today = getTodayString();
       let uhid = "";
       let patientId: string | undefined = undefined;
+      let existingPt: any = null;
 
       try {
         let pt = await getPatientByPhoneNumber(appt.phone?.trim() || "", appt.name?.trim());
         if (pt) {
+          existingPt = pt;
           patientId = pt.id;
           uhid = (pt.reference_number || "").replace(/^CH/i, "CRX");
           if (uhid === "CRX0002" && pt.name?.toLowerCase() !== "testing") {
@@ -1467,7 +1518,7 @@ export default function OPDManagementPage() {
         doctor: docName,
         department: dept,
         priority: "Normal",
-        visitType: "Appointment",
+        visitType: existingPt ? "Routine Follow-up" : "Appointment",
         status: "Waiting",
         vitals: {
           bp: customVitals?.bp?.trim() || undefined,
@@ -2085,7 +2136,8 @@ export default function OPDManagementPage() {
                       const hasPrescription = !!linkedRx;
                       const lastVisitInfo =
                         (uhidNorm && patientLastVisitMap.get(uhidNorm)) ||
-                        (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`));
+                        (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`)) ||
+                        (phoneNorm && patientLastVisitMap.get(phoneNorm));
 
                       const entryTimeStr = formatEntryTime(
                         item.time,

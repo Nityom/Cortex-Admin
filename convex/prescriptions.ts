@@ -452,7 +452,7 @@ export const update = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("prescriptions").order("desc").take(50);
+        return await ctx.db.query("prescriptions").order("desc").take(250);
     },
 });
 
@@ -475,15 +475,135 @@ export const listByPatient = query({
     },
 });
 
+export const getQueueVisitTracking = query({
+    args: {
+        uhids: v.array(v.string()),
+        phones: v.array(v.string()),
+        todayDate: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const today = args.todayDate || new Date().toISOString().split("T")[0];
+        const lastVisitByUhid: Record<string, { date: string; daysAgo: number; doctor?: string; diagnosis?: string }> = {};
+        const lastVisitByPhone: Record<string, { date: string; daysAgo: number; doctor?: string; diagnosis?: string }> = {};
+        const todayRxByVisitId: Record<string, any> = {};
+        const todayRxByUhid: Record<string, any> = {};
+        const todayRxByPhone: Record<string, any> = {};
+
+        const calcDaysAgo = (dateStr: string) => {
+            const d = new Date(dateStr);
+            d.setHours(0, 0, 0, 0);
+            const t = new Date(today);
+            t.setHours(0, 0, 0, 0);
+            return Math.round((t.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+        };
+
+        const uniqueUhids = Array.from(new Set(args.uhids.map((u) => (u || "").trim().toUpperCase()).filter(Boolean)));
+        for (const uhid of uniqueUhids) {
+            const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
+            const [docs1, docs2] = await Promise.all([
+                ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", uhid)).collect(),
+                altRef !== uhid
+                    ? ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", altRef)).collect()
+                    : Promise.resolve([]),
+            ]);
+            const allRx = [...docs1, ...docs2].sort(
+                (a, b) =>
+                    new Date(b.prescription_date || (b as any).created_at || b._creationTime || 0).getTime() -
+                    new Date(a.prescription_date || (a as any).created_at || a._creationTime || 0).getTime()
+            );
+
+            for (const rx of allRx) {
+                const rxDate = rx.prescription_date || new Date(rx._creationTime).toISOString().split("T")[0];
+                if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
+                    todayRxByVisitId[rx.opd_visit_id] = rx;
+                }
+                if (rxDate === today) {
+                    if (!todayRxByUhid[uhid]) todayRxByUhid[uhid] = rx;
+                } else if (rxDate && rxDate < today) {
+                    const diffDays = calcDaysAgo(rxDate);
+                    if (diffDays > 0 && !lastVisitByUhid[uhid]) {
+                        lastVisitByUhid[uhid] = {
+                            date: rxDate,
+                            daysAgo: diffDays,
+                            doctor: rx.doctor_name,
+                            diagnosis: rx.diagnosis,
+                        };
+                    }
+                }
+            }
+        }
+
+        const cleanPhones = Array.from(new Set(args.phones.map((p) => (p || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10)));
+        for (const phone of cleanPhones) {
+            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).collect();
+            const allRx = docs.sort(
+                (a, b) =>
+                    new Date(b.prescription_date || b._creationTime || 0).getTime() -
+                    new Date(a.prescription_date || a._creationTime || 0).getTime()
+            );
+
+            for (const rx of allRx) {
+                const rxDate = rx.prescription_date || new Date(rx._creationTime).toISOString().split("T")[0];
+                const rxName = (rx.patient_name || "").trim().toLowerCase();
+                const key = `${phone}_${rxName}`;
+
+                if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
+                    todayRxByVisitId[rx.opd_visit_id] = rx;
+                }
+                if (rxDate === today) {
+                    if (!todayRxByPhone[key]) todayRxByPhone[key] = rx;
+                    if (!todayRxByPhone[phone]) todayRxByPhone[phone] = rx;
+                } else if (rxDate && rxDate < today) {
+                    const diffDays = calcDaysAgo(rxDate);
+                    if (diffDays > 0) {
+                        if (!lastVisitByPhone[key]) {
+                            lastVisitByPhone[key] = {
+                                date: rxDate,
+                                daysAgo: diffDays,
+                                doctor: rx.doctor_name,
+                                diagnosis: rx.diagnosis,
+                            };
+                        }
+                        if (!lastVisitByPhone[phone]) {
+                            lastVisitByPhone[phone] = {
+                                date: rxDate,
+                                daysAgo: diffDays,
+                                doctor: rx.doctor_name,
+                                diagnosis: rx.diagnosis,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        return {
+            lastVisitByUhid,
+            lastVisitByPhone,
+            todayRxByVisitId,
+            todayRxByUhid,
+            todayRxByPhone,
+        };
+    },
+});
+
 export const getLatestByPhone = query({
     args: { phone_number: v.string(), name: v.optional(v.string()), reference_number: v.optional(v.string()) },
     handler: async (ctx, args) => {
-        const prescriptions = await ctx.db.query("prescriptions").order("desc").take(100);
         const cleanPhone = args.phone_number.replace(/\D/g, '').slice(-10);
         const cleanName = args.name ? args.name.trim().toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "") : "";
         const targetRef = args.reference_number ? args.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : "";
 
-        return prescriptions.find((p) => {
+        let candidates: any[] = [];
+        if (targetRef) {
+            candidates = await ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", targetRef)).collect();
+        }
+        if (candidates.length === 0 && cleanPhone) {
+            candidates = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", cleanPhone)).collect();
+        }
+        candidates.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+
+        return candidates.find((p) => {
             const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
             if (targetRef && pRef) {
                 return pRef === targetRef;

@@ -488,12 +488,14 @@ export default function AppointmentsPage() {
           // 1. Resolve Patient UHID & patientId
           let uhid = '';
           let patientId: string | undefined = undefined;
+          let isExistingPatient = false;
           const cleanPhone = (formData.phone || '').replace(/\D/g, '').slice(0, 10);
           const patientName = formData.name.trim();
           if (cleanPhone) {
             try {
               const pt = await getPatientByPhoneNumber(cleanPhone, patientName);
               if (pt && (!pt.name || pt.name.trim().toLowerCase() === patientName.toLowerCase())) {
+                isExistingPatient = true;
                 patientId = pt.id;
                 uhid = (pt.reference_number || '').replace(/^CH/i, 'CRX');
               } else {
@@ -553,7 +555,7 @@ export default function AppointmentsPage() {
             doctor: docName,
             department: dept,
             priority: 'Normal',
-            visitType: 'Appointment',
+            visitType: isExistingPatient ? 'Routine Follow-up' : 'Appointment',
             status: 'Waiting', // DIRECTLY IN WAITING!
             vitals: {},
             consultationFee: 0,
