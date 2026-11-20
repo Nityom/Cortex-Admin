@@ -735,10 +735,6 @@ export default function PrescriptionLivePreview({
                   </div>
                 )}
 
-                <div className="text-xs sm:text-sm font-extrabold text-black">
-                  {hospitalConfig.tagline}
-                </div>
-
                 <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
                   <span className="font-bold text-[#7B1828]">OPD Time : </span>
                   {hospitalConfig.schedule.opdTimings}

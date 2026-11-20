@@ -1646,8 +1646,6 @@ function PrintPrescriptionContent() {
                     </div>
                   )}
 
-                  <div className="footer-clinic-title">{hospitalConfig.tagline}</div>
-
                   <div className="footer-opd-line">
                     <span className="footer-opd-label">OPD Time : </span>
                     {hospitalConfig.schedule.opdTimings}

@@ -86,7 +86,7 @@ export const hospitalConfig: HospitalConfig = {
   id: "cortex-hospital",
   name: "Cortex Hospital",
   legalName: "Cortex Hospital",
-  tagline: "Hospital",
+  tagline: "",
   address: {
     line1: "Aarti Chowk",
     line2: "Nagpur Road",
