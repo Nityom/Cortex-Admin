@@ -95,7 +95,11 @@ export default function PrescriptionComplaintsSection({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-save logic
+  // 3 hours sync interval for Convex backend to avoid function quota consumption
+  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
+  // Auto-save logic: 400ms debounce saves immediately to localStorage only.
+  // Convex sync happens strictly at a 3-hour interval.
   const triggerAutoSave = useCallback(
     async (summaryStr: string) => {
       const items = summaryStr
@@ -105,22 +109,7 @@ export default function PrescriptionComplaintsSection({
 
       setSaveStatus('saving');
       try {
-        // 1. Save terms to Convex master catalog for autocomplete suggestions
-        if (items.length > 0) {
-          await saveMultipleComplaints(items, isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics');
-        }
-
-        // 2. Auto-save complaint to active Convex prescription document
-        if (
-          prescriptionId &&
-          prescriptionId !== 'undefined' &&
-          prescriptionId !== 'null' &&
-          !prescriptionId.startsWith('TMP-')
-        ) {
-          await autoSavePrescriptionComplaint(prescriptionId, summaryStr);
-        }
-
-        // 3. Save draft to localStorage
+        // 1. Save draft to localStorage immediately (0ms delay, safe, 0 Convex calls)
         try {
           localStorage.setItem('cortex_complaints_draft', summaryStr);
           localStorage.setItem(
@@ -138,13 +127,31 @@ export default function PrescriptionComplaintsSection({
           );
         } catch {}
 
+        // 2. Only sync to Convex after every 3 hours
+        const now = Date.now();
+        const lastSync = Number(localStorage.getItem('cortex_last_complaints_convex_sync') || '0');
+        if (now - lastSync >= THREE_HOURS_MS) {
+          localStorage.setItem('cortex_last_complaints_convex_sync', String(now));
+          if (items.length > 0) {
+            saveMultipleComplaints(items, isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics').catch(() => {});
+          }
+          if (
+            prescriptionId &&
+            prescriptionId !== 'undefined' &&
+            prescriptionId !== 'null' &&
+            !prescriptionId.startsWith('TMP-')
+          ) {
+            autoSavePrescriptionComplaint(prescriptionId, summaryStr).catch(() => {});
+          }
+        }
+
         setSaveStatus('saved');
         if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
         statusTimerRef.current = setTimeout(() => {
           setSaveStatus('idle');
         }, 2000);
       } catch (err) {
-        console.error('Complaints auto-save failed:', err);
+        console.error('Complaints local auto-save failed:', err);
         setSaveStatus('idle');
       }
     },
@@ -161,26 +168,41 @@ export default function PrescriptionComplaintsSection({
     [triggerAutoSave]
   );
 
-  // Load real suggestions from Convex DB (actual past complaints entered in the clinic)
+  // Load complaints suggestions: cached locally and synced from Convex once every 3 hours
   useEffect(() => {
     let isMounted = true;
-    const timer = setTimeout(() => {
-      getComplaintSuggestions(currentQuery.trim() || undefined, 30)
+    try {
+      const cached = localStorage.getItem('cortex_cached_complaint_suggestions');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDbSuggestions(parsed);
+        }
+      }
+    } catch {}
+
+    const now = Date.now();
+    const lastFetch = Number(localStorage.getItem('cortex_last_complaint_suggestions_fetch') || '0');
+    if (now - lastFetch >= THREE_HOURS_MS) {
+      getComplaintSuggestions(undefined, 50)
         .then((res) => {
-          if (isMounted && Array.isArray(res)) {
+          if (isMounted && Array.isArray(res) && res.length > 0) {
             setDbSuggestions((prev) => Array.from(new Set([...res, ...prev])));
+            try {
+              localStorage.setItem('cortex_cached_complaint_suggestions', JSON.stringify(res));
+              localStorage.setItem('cortex_last_complaint_suggestions_fetch', String(now));
+            } catch {}
           }
         })
-        .catch((err) => console.warn('Could not load complaint suggestions:', err));
-    }, 200);
+        .catch(() => {});
+    }
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     };
-  }, [currentQuery]);
+  }, []);
 
   // Reactive listener for template updates
   const [templateVersion, setTemplateVersion] = useState(0);

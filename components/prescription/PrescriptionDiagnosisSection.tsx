@@ -140,7 +140,11 @@ export default function PrescriptionDiagnosisSection({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-save logic directly from table
+  // 3 hours sync interval for Convex backend to avoid function quota consumption
+  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+
+  // Auto-save logic: 400ms debounce saves immediately to localStorage only.
+  // Convex sync happens strictly at a 3-hour interval.
   const triggerAutoSave = useCallback(
     async (currentList: DiagnosisRow[]) => {
       const names = currentList
@@ -151,26 +155,29 @@ export default function PrescriptionDiagnosisSection({
 
       setSaveStatus('saving');
       try {
-        // 1. Auto-save terms to Convex master catalog for autocomplete suggestions
-        if (names.length > 0) {
-          await saveMultipleDiagnoses(names);
-        }
-
-        // 2. Auto-save diagnosis to active Convex prescription document
-        if (
-          prescriptionId &&
-          prescriptionId !== 'undefined' &&
-          prescriptionId !== 'null' &&
-          !prescriptionId.startsWith('TMP-')
-        ) {
-          await autoSavePrescriptionDiagnosis(prescriptionId, summaryStr);
-        }
-
-        // 3. Save draft to localStorage
+        // 1. Save draft to localStorage immediately (0ms delay, safe, 0 Convex calls)
         try {
           localStorage.setItem('cortex_diagnosis_draft', summaryStr);
           localStorage.setItem('cortex_diagnoses_list_draft', JSON.stringify(currentList));
         } catch {}
+
+        // 2. Only sync to Convex after every 3 hours
+        const now = Date.now();
+        const lastSync = Number(localStorage.getItem('cortex_last_diagnosis_convex_sync') || '0');
+        if (now - lastSync >= THREE_HOURS_MS) {
+          localStorage.setItem('cortex_last_diagnosis_convex_sync', String(now));
+          if (names.length > 0) {
+            saveMultipleDiagnoses(names).catch(() => {});
+          }
+          if (
+            prescriptionId &&
+            prescriptionId !== 'undefined' &&
+            prescriptionId !== 'null' &&
+            !prescriptionId.startsWith('TMP-')
+          ) {
+            autoSavePrescriptionDiagnosis(prescriptionId, summaryStr).catch(() => {});
+          }
+        }
 
         setSaveStatus('saved');
         if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
@@ -178,7 +185,7 @@ export default function PrescriptionDiagnosisSection({
           setSaveStatus('idle');
         }, 2000);
       } catch (err) {
-        console.error('Diagnosis auto-save failed:', err);
+        console.error('Diagnosis local auto-save failed:', err);
         setSaveStatus('idle');
       }
     },
@@ -195,18 +202,39 @@ export default function PrescriptionDiagnosisSection({
     [triggerAutoSave]
   );
 
-  // Load suggestions from Convex (debounced query based on typing in either input mode)
+  // Load diagnosis suggestions: cached locally and synced from Convex once every 3 hours
   useEffect(() => {
-    const activeQuery = gynaeQuery.trim() || newDiagnosis.trim();
-    const timer = setTimeout(() => {
-      getDiagnosisSuggestions(activeQuery, 30)
+    let isMounted = true;
+    try {
+      const cached = localStorage.getItem('cortex_cached_diagnosis_suggestions');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDbSuggestions(parsed);
+        }
+      }
+    } catch {}
+
+    const now = Date.now();
+    const lastFetch = Number(localStorage.getItem('cortex_last_diagnosis_suggestions_fetch') || '0');
+    if (now - lastFetch >= THREE_HOURS_MS) {
+      getDiagnosisSuggestions(undefined, 50)
         .then((res) => {
-          if (res && Array.isArray(res)) setDbSuggestions(res);
+          if (isMounted && Array.isArray(res) && res.length > 0) {
+            setDbSuggestions(res);
+            try {
+              localStorage.setItem('cortex_cached_diagnosis_suggestions', JSON.stringify(res));
+              localStorage.setItem('cortex_last_diagnosis_suggestions_fetch', String(now));
+            } catch {}
+          }
         })
         .catch(() => {});
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [gynaeQuery, newDiagnosis]);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Detect upward vs downward dropdown positioning to avoid clipping
   useEffect(() => {
