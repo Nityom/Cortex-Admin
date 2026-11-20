@@ -842,13 +842,24 @@ async function generatePrescriptionPdf(
     color: rgb(0.8, 0.83, 0.88),
   });
 
+  // Clinic Schedule Line
+  const sched1 = 'HIP & KNEE JOINT CLINIC  •  Every Thursday 6 pm to 8 pm';
+  const s1W = boldFont.widthOfTextAtSize(sched1, 7.5);
+  page.drawText(sched1, {
+    x: (PAGE_W - s1W) / 2,
+    y: 67,
+    size: 7.5,
+    font: boldFont,
+    color: maroonColor,
+  });
+
   // Orthopaedics Clinic & OPD Times
   const clinicTitle = 'Orthopaedics Clinic';
-  const ctW = boldFont.widthOfTextAtSize(clinicTitle, 8.5);
+  const ctW = boldFont.widthOfTextAtSize(clinicTitle, 8);
   page.drawText(clinicTitle, {
     x: (PAGE_W - ctW) / 2,
-    y: 62,
-    size: 8.5,
+    y: 56,
+    size: 8,
     font: boldFont,
     color: blackColor,
   });

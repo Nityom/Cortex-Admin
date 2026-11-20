@@ -432,7 +432,7 @@ http.route({
     }
 
     .hospital-logo {
-      height: 78px;
+      height: 50px;
       width: auto;
       object-fit: contain;
     }
@@ -902,7 +902,7 @@ http.route({
         border-radius: 6px;
       }
       .hospital-logo {
-        height: 55px;
+        height: 38px;
       }
       .doctor-title-name {
         font-size: 13pt;

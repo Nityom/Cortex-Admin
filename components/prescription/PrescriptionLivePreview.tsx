@@ -609,7 +609,7 @@ export default function PrescriptionLivePreview({
             <img
               src={hospitalConfig.branding.logoUrl}
               alt={hospitalConfig.name}
-              className="h-20 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
           </div>
 
@@ -661,7 +661,7 @@ export default function PrescriptionLivePreview({
               {formData.age && formData.sex ? ', ' : ''}
               {formData.sex || ''})
             </span>
-            {formData.phoneNumber && !['9876543210', '1234567890'].includes(formData.phoneNumber.replace(/\D/g, '')) ? (
+            {formData.phoneNumber ? (
               <span className="font-normal text-slate-600"> - Ph: {formData.phoneNumber}</span>
             ) : (
               ''
@@ -724,16 +724,20 @@ export default function PrescriptionLivePreview({
 
               {/* Bottom Schedule Banner */}
               <div className="pt-2 border-t-2 border-slate-300 text-center">
-                {Boolean(hospitalConfig.schedule.clinicDetails?.trim()) && (
+                {hospitalConfig.schedule.clinicDetails && (
                   <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
                     <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
-                      {hospitalConfig.schedule.clinicDetails?.split('•')[0]?.trim()}
+                      {hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      {hospitalConfig.schedule.clinicDetails?.split('•')[1]?.trim() || ''}
+                      {hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}
                     </span>
                   </div>
                 )}
+
+                <div className="text-xs sm:text-sm font-extrabold text-black">
+                  {hospitalConfig.tagline}
+                </div>
 
                 <div className="text-[11px] font-semibold text-slate-700 mt-0.5">
                   <span className="font-bold text-[#7B1828]">OPD Time : </span>

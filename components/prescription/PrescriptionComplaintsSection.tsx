@@ -129,19 +129,23 @@ export default function PrescriptionComplaintsSection({
   // Load real suggestions from Convex DB (actual past complaints entered in the clinic)
   useEffect(() => {
     let isMounted = true;
-    getComplaintSuggestions()
-      .then((res) => {
-        if (isMounted && Array.isArray(res)) {
-          setDbSuggestions(res);
-        }
-      })
-      .catch((err) => console.warn('Could not load complaint suggestions:', err));
+    const timer = setTimeout(() => {
+      getComplaintSuggestions(currentQuery.trim() || undefined, 30)
+        .then((res) => {
+          if (isMounted && Array.isArray(res)) {
+            setDbSuggestions((prev) => Array.from(new Set([...res, ...prev])));
+          }
+        })
+        .catch((err) => console.warn('Could not load complaint suggestions:', err));
+    }, 200);
+
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     };
-  }, []);
+  }, [currentQuery]);
 
   // Reactive listener for template updates
   const [templateVersion, setTemplateVersion] = useState(0);

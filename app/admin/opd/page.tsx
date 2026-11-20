@@ -1751,15 +1751,61 @@ export default function OPDManagementPage() {
     });
   }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch, activeTab]);
 
+  // Auto-heal queue status in DB when prescription exists for today's visit
+  useEffect(() => {
+    if (!queue || queue.length === 0) return;
+    for (const item of queue) {
+      if (item.status === "Waiting" || item.status === "Ready") {
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
+        const itemCleanName = (item.name || "").trim().toLowerCase();
+        const queueItemDate = getItemLocalDate(item.registeredAt) || todayStr;
+        let linked = item.id ? prescriptionByVisitId.get(item.id) : undefined;
+        if (!linked && uhidNorm) {
+          const candidate = prescriptionByUhid.get(uhidNorm);
+          if (candidate) {
+            const cDate = candidate.prescription_date || (candidate.created_at ? String(candidate.created_at).split("T")[0] : "");
+            if (cDate === queueItemDate) linked = candidate;
+          }
+        }
+        if (!linked && phoneNorm) {
+          const candidate = prescriptionByPhone.get(`${phoneNorm}_${itemCleanName}`) || prescriptionByPhone.get(phoneNorm);
+          if (candidate) {
+            const cDate = candidate.prescription_date || (candidate.created_at ? String(candidate.created_at).split("T")[0] : "");
+            if (cDate === queueItemDate) linked = candidate;
+          }
+        }
+        if (linked) {
+          updateOpdQueueStatusMutation({ queue_id: item.id, status: "Completed" }).catch(() => {});
+        }
+      }
+    }
+  }, [queue, prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, todayStr, updateOpdQueueStatusMutation]);
+
   const displayedQueue = useMemo(() => {
     if (activeTab === "billingQueue") {
-      return filteredQueue.filter((item) => item.status === "Completed");
+      return filteredQueue.filter((item) => {
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const hasRx = Boolean(
+          (item.id && prescriptionByVisitId.get(item.id)) ||
+          (uhidNorm && prescriptionByUhid.get(uhidNorm))
+        );
+        return item.status === "Completed" || hasRx;
+      });
     }
     if (activeTab === "waitingQueue") {
-      return filteredQueue.filter((item) => item.status === "Waiting" || item.status === "Ready" || item.status === "In Consultation");
+      return filteredQueue.filter((item) => {
+        if (item.status === "Cancelled" || item.status === "Completed") return false;
+        const uhidNorm = (item.uhid || "").trim().toUpperCase();
+        const hasRx = Boolean(
+          (item.id && prescriptionByVisitId.get(item.id)) ||
+          (uhidNorm && prescriptionByUhid.get(uhidNorm))
+        );
+        return !hasRx;
+      });
     }
     return filteredQueue;
-  }, [activeTab, filteredQueue]);
+  }, [activeTab, filteredQueue, prescriptionByVisitId, prescriptionByUhid]);
 
   const waitingQueueCount = useMemo(() => {
     return deduplicateOpdQueue(queue).filter((item) => {
@@ -2079,16 +2125,6 @@ export default function OPDManagementPage() {
                   <thead><tr className="bg-[#f8faf8] text-xs font-semibold uppercase tracking-[0.1em] text-[#64776c]"><th className="px-5 py-3.5 font-semibold">No.</th><th className="px-4 py-3.5 font-semibold">Patient</th><th className="px-4 py-3.5 font-semibold">Details</th><th className="px-4 py-3.5 font-semibold whitespace-nowrap">Entry Time</th><th className="px-4 py-3.5 font-semibold">Last Visit</th><th className="px-4 py-3.5 font-semibold">Doctor</th><th className="px-4 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 text-right font-semibold">Actions</th></tr></thead>
                   <tbody className="divide-y divide-[#edf2ee]">
                     {displayedQueue.map((item, index) => {
-                      const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
-                      const statusStyle =
-                        item.status === "Waiting" || item.status === "Ready"
-                          ? "bg-amber-50 text-amber-800 border-amber-100"
-                          : item.status === "Completed"
-                          ? "bg-slate-100 text-slate-700 border-slate-200"
-                          : item.status === "Cancelled"
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
-                          : "bg-emerald-50 text-emerald-800 border-emerald-100";
-
                       const uhidNorm = (item.uhid || "").trim().toUpperCase();
                       const phoneNorm = (item.phone || "").replace(/\D/g, "").slice(-10);
                       const itemCleanName = (item.name || "").trim().toLowerCase();
@@ -2134,6 +2170,20 @@ export default function OPDManagementPage() {
                       }
 
                       const hasPrescription = !!linkedRx;
+                      const effectiveStatus = (hasPrescription && item.status !== "Cancelled")
+                        ? "Completed"
+                        : (item.status === "Ready" ? "Waiting" : item.status);
+
+                      const isPaid = item.paymentStatus === "PAID" || (item.paymentStatus !== "PENDING" && paidUhidSet.has((item.uhid || "").trim().toUpperCase()));
+                      const statusStyle =
+                        effectiveStatus === "Waiting"
+                          ? "bg-amber-50 text-amber-800 border-amber-100"
+                          : effectiveStatus === "Completed"
+                          ? "bg-slate-100 text-slate-700 border-slate-200"
+                          : effectiveStatus === "Cancelled"
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          : "bg-emerald-50 text-emerald-800 border-emerald-100";
+
                       const lastVisitInfo =
                         (uhidNorm && patientLastVisitMap.get(uhidNorm)) ||
                         (phoneNorm && patientLastVisitMap.get(`${phoneNorm}_${itemCleanName}`)) ||
@@ -2144,7 +2194,7 @@ export default function OPDManagementPage() {
                         item.registeredAt,
                         (item as any).created_at || (item as any)._creationTime
                       );
-                      const waitDuration = getElapsedWaitTime(item.registeredAt, item.time, item.status);
+                      const waitDuration = getElapsedWaitTime(item.registeredAt, item.time, effectiveStatus);
 
                       return <tr key={item.id} className="group transition-colors hover:bg-[#fbfdfb]">
                         <td className="px-5 py-4 text-sm tabular-nums text-[#829188]">{String(displayedQueue.length - index).padStart(2, "0")}</td>
@@ -2199,7 +2249,7 @@ export default function OPDManagementPage() {
                             {item.department || "General consultation"}
                           </span>
                         </td>
-                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={item.status === "Ready" ? "Waiting" : item.status} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
+                        <td className="px-4 py-4">{activeTab === "billingQueue" ? <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-semibold ${statusStyle}`}>● Completed</span> : <select aria-label={`Status for ${item.name}`} value={effectiveStatus} onChange={(e) => updateStatus(item.id, e.target.value as any)} className={`max-w-[165px] rounded-full border px-3 py-2 text-xs font-semibold outline-none ${statusStyle}`}><option value="Waiting">● Waiting</option><option value="In Consultation">● In consultation</option><option value="Completed">● Completed</option><option value="Cancelled">● Cancelled</option></select>}</td>
                         <td className="px-5 py-3.5"><div className="flex items-center justify-end gap-1.5">
                           <button type="button" onClick={() => togglePaymentStatus(item.id)} title={isPaid ? "Payment received; click to mark pending" : "Mark payment received"} aria-label={isPaid ? `Payment received for ${item.name}` : `Payment pending for ${item.name}`} className={`grid h-8 w-8 place-items-center rounded-lg border transition ${isPaid ? "border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-slate-200 bg-white text-slate-400 hover:bg-slate-50"}`}><CheckCircle2 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => startBilling(item)} title="Open billing" className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#dce9df] bg-white px-3 text-xs font-semibold text-[#4d8063] transition hover:bg-[#f1f8f2]"><Receipt className="h-4 w-4"/>Bill</button>

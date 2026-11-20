@@ -1136,7 +1136,7 @@ function DischargeSheetContent() {
         }
 
         .hospital-logo {
-          height: 75px;
+          height: 54px;
           width: auto;
           object-fit: contain;
         }

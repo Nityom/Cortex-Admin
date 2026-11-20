@@ -149,16 +149,50 @@ export const updateStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    let existing: any = await ctx.db
       .query("opd_queue")
       .withIndex("by_queue_id", (q) => q.eq("queue_id", args.queue_id))
       .first();
+
+    if (!existing) {
+      try {
+        existing = await ctx.db.get(args.queue_id as any);
+      } catch {}
+    }
+
+    if (!existing) {
+      existing = await ctx.db
+        .query("opd_queue")
+        .filter((q) => q.eq(q.field("appointmentId"), args.queue_id))
+        .first();
+    }
+
+    if (!existing && !args.queue_id.startsWith("appointment_")) {
+      existing = await ctx.db
+        .query("opd_queue")
+        .withIndex("by_queue_id", (q) => q.eq("queue_id", `appointment_${args.queue_id}`))
+        .first();
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         status: args.status,
         updated_at: Date.now(),
       });
+
+      // If marked Completed, also sync appointment if applicable
+      if (args.status === "Completed") {
+        const apptId = existing.appointmentId || (existing.queue_id?.startsWith("appointment_") ? existing.queue_id.replace("appointment_", "") : null);
+        if (apptId) {
+          try {
+            const appt: any = await ctx.db.get(apptId as any);
+            if (appt && appt.status !== "COMPLETED") {
+              await ctx.db.patch(appt._id, { status: "COMPLETED" });
+            }
+          } catch {}
+        }
+      }
+
       return true;
     }
     return false;
@@ -190,7 +224,7 @@ export const remove = mutation({
 
       if (apptId) {
         try {
-          const appt = await ctx.db.get(apptId as any);
+          const appt: any = await ctx.db.get(apptId as any);
           if (appt) {
             await ctx.db.patch(appt._id, { status: "CANCELLED" });
           }
@@ -237,7 +271,7 @@ export const clearAll = mutation({
 
       if (apptId) {
         try {
-          const appt = await ctx.db.get(apptId as any);
+          const appt: any = await ctx.db.get(apptId as any);
           if (appt) {
             await ctx.db.patch(appt._id, { status: "CANCELLED" });
           }

@@ -86,7 +86,7 @@ export const hospitalConfig: HospitalConfig = {
   id: "cortex-hospital",
   name: "Cortex Hospital",
   legalName: "Cortex Hospital",
-  tagline: "",
+  tagline: "Hospital",
   address: {
     line1: "Aarti Chowk",
     line2: "Nagpur Road",
@@ -105,7 +105,7 @@ export const hospitalConfig: HospitalConfig = {
   },
   schedule: {
     opdTimings: "Mon. to Fri. - 10 am to 1 pm & 6 pm to 8 pm | Sat. - 10 am to 1 pm | Sunday Closed",
-    clinicDetails: "",
+    clinicDetails: "HIP & KNEE JOINT CLINIC • Every Thursday 6 pm to 8 pm",
     sundayStatus: "Sunday OPD Closed",
   },
   branding: {

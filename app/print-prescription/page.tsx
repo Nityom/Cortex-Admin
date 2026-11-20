@@ -434,9 +434,7 @@ function PrintPrescriptionContent() {
     ? `${rawAge.replace(/\s*y(ears?)?/i, '')} Yrs`
     : '';
   const sexDisplay = prescriptionData.sex ? prescriptionData.sex : '';
-  const rawPhone = (prescriptionData.phone_number || '').trim();
-  const isDummyPhone = !rawPhone || rawPhone === '9876543210' || rawPhone === '1234567890' || /^0+$/.test(rawPhone.replace(/\D/g, ''));
-  const phoneDisplay = isDummyPhone ? '' : rawPhone;
+  const phoneDisplay = prescriptionData.phone_number || '';
 
   const activeDoctorProfile = getDoctorProfile(resolvedDoctorName || prescriptionData.doctor_name);
   const isGyno =
@@ -1028,8 +1026,7 @@ function PrintPrescriptionContent() {
         }
 
         .hospital-logo {
-          height: 80px;
-          max-height: 85px;
+          height: 56px;
           width: auto;
           object-fit: contain;
         }
@@ -1639,12 +1636,14 @@ function PrintPrescriptionContent() {
 
                 {/* Footer Schedule Banner */}
                 <div className="footer-banner-container">
-                  {Boolean(hospitalConfig.schedule.clinicDetails?.trim()) && (
+                  {hospitalConfig.schedule.clinicDetails && (
                     <div className="footer-top-pill-row">
-                      <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails?.split('•')[0]?.trim()}</span>
-                      <span className="clinic-time">{hospitalConfig.schedule.clinicDetails?.split('•')[1]?.trim() || ''}</span>
+                      <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}</span>
+                      <span className="clinic-time">{hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}</span>
                     </div>
                   )}
+
+                  <div className="footer-clinic-title">{hospitalConfig.tagline}</div>
 
                   <div className="footer-opd-line">
                     <span className="footer-opd-label">OPD Time : </span>

@@ -317,6 +317,9 @@ export const create = mutation({
             await recordComplaintsToCatalog(ctx, args.chief_complaint);
         }
 
+        // Auto-mark corresponding OPD queue item & appointment as Completed
+        await markOpdQueueCompletedForPrescription(ctx, args);
+
         return newPrescriptionId;
     },
 });
@@ -444,6 +447,9 @@ export const update = mutation({
         if (updates.chief_complaint) {
             await recordComplaintsToCatalog(ctx, updates.chief_complaint);
         }
+
+        // Auto-mark corresponding OPD queue item & appointment as Completed
+        await markOpdQueueCompletedForPrescription(ctx, rx || updates);
 
         return await ctx.db.get(id);
     },
@@ -775,6 +781,68 @@ export const cleanErronousCrownCuttingRecords = mutation({
 });
 
 /**
+ * Automatically marks the corresponding OPD queue item and appointment as Completed
+ * when a prescription is created or updated.
+ */
+async function markOpdQueueCompletedForPrescription(ctx: any, rxArgs: any) {
+    try {
+        const now = Date.now();
+        const rxDate = rxArgs.prescription_date || (rxArgs.created_at ? String(rxArgs.created_at).split("T")[0] : new Date().toISOString().split("T")[0]);
+        const cleanPhone = (rxArgs.phone_number || "").replace(/\D/g, "").slice(-10);
+        const uhidNorm = (rxArgs.reference_number || "").trim().toUpperCase();
+
+        // 1. If opd_visit_id is provided, match by queue_id or _id
+        if (rxArgs.opd_visit_id) {
+            let item = await ctx.db
+                .query("opd_queue")
+                .withIndex("by_queue_id", (q: any) => q.eq("queue_id", rxArgs.opd_visit_id))
+                .first();
+            if (!item) {
+                try {
+                    item = await ctx.db.get(rxArgs.opd_visit_id as any);
+                } catch {}
+            }
+            if (item && item.status !== "Completed") {
+                await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+            }
+        }
+
+        // 2. Query today's queue items and match by UHID or phone
+        const recentQueueItems = await ctx.db.query("opd_queue").order("desc").take(150);
+        for (const item of recentQueueItems) {
+            const itemDate = (item.registeredAt || "").split("T")[0];
+            if (itemDate && itemDate !== rxDate) continue;
+
+            const itemUhid = (item.uhid || "").trim().toUpperCase();
+            const itemPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+
+            const matchUhid = uhidNorm && itemUhid && itemUhid === uhidNorm;
+            const matchPhone = cleanPhone && cleanPhone.length === 10 && itemPhone === cleanPhone;
+
+            if (matchUhid || matchPhone) {
+                if (item.status !== "Completed" && item.status !== "Cancelled") {
+                    await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+                }
+            }
+        }
+
+        // 3. If there is an appointment for this phone & date, mark it COMPLETED
+        if (cleanPhone && cleanPhone.length === 10) {
+            const appts = await ctx.db.query("appointments").collect();
+            for (const appt of appts) {
+                const aDate = (appt.date || "").split("T")[0];
+                const aPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
+                if (aDate === rxDate && aPhone === cleanPhone && appt.status !== "COMPLETED" && appt.status !== "CANCELLED") {
+                    await ctx.db.patch(appt._id, { status: "COMPLETED", updated_at: now });
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error marking OPD queue completed for prescription:", err);
+    }
+}
+
+/**
  * Internal helper to record one or multiple diagnosis items to the `diagnoses` catalog
  */
 async function recordDiagnosesToCatalog(ctx: any, diagnosisText?: string) {
@@ -965,6 +1033,9 @@ export const getDiagnosisSuggestions = query({
         // 1. Fetch from diagnoses catalog table (lightweight, zero prescription overhead)
         const savedDiagnoses = await ctx.db.query("diagnoses").order("desc").take(60);
 
+        // 2. Fetch past diagnoses from recent prescriptions so active clinic diagnoses auto-suggest immediately
+        const recentPrescriptions = await ctx.db.query("prescriptions").order("desc").take(30);
+
         const map = new Map<string, { name: string; count: number; lastUsed: number }>();
 
         // Populate from saved diagnoses table
@@ -976,6 +1047,25 @@ export const getDiagnosisSuggestions = query({
                 count: item.count || 1,
                 lastUsed: item.last_used_at || item.created_at || 0,
             });
+        }
+
+        // Populate from recent prescriptions
+        for (const rx of recentPrescriptions) {
+            if (!rx.diagnosis) continue;
+            const parts = rx.diagnosis.split(/[\n,;]+/).map((s) => s.trim()).filter((s) => s.length >= 2);
+            for (const part of parts) {
+                const key = part.toLowerCase();
+                const existing = map.get(key);
+                if (existing) {
+                    existing.count += 1;
+                } else {
+                    map.set(key, {
+                        name: part,
+                        count: 1,
+                        lastUsed: rx._creationTime || 0,
+                    });
+                }
+            }
         }
 
         // Add standard common presets as fallback if not present
@@ -1061,13 +1151,23 @@ export const getDiagnosisSuggestions = query({
  */
 export const autoSavePrescriptionDiagnosis = mutation({
     args: {
-        id: v.id("prescriptions"),
+        id: v.string(),
         diagnosis: v.string(),
     },
     handler: async (ctx, args) => {
-        await ctx.db.patch(args.id, {
-            diagnosis: args.diagnosis,
-        });
+        try {
+            let existing: any = null;
+            try {
+                existing = await ctx.db.get(args.id as any);
+            } catch {}
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    diagnosis: args.diagnosis,
+                });
+            }
+        } catch (err) {
+            console.error("autoSavePrescriptionDiagnosis doc patch error:", err);
+        }
 
         await recordDiagnosesToCatalog(ctx, args.diagnosis);
         return { success: true };
@@ -1256,13 +1356,23 @@ export const getComplaintSuggestions = query({
  */
 export const autoSavePrescriptionComplaint = mutation({
     args: {
-        id: v.id("prescriptions"),
+        id: v.string(),
         chief_complaint: v.string(),
     },
     handler: async (ctx, args) => {
-        await ctx.db.patch(args.id, {
-            chief_complaint: args.chief_complaint,
-        });
+        try {
+            let existing: any = null;
+            try {
+                existing = await ctx.db.get(args.id as any);
+            } catch {}
+            if (existing) {
+                await ctx.db.patch(existing._id, {
+                    chief_complaint: args.chief_complaint,
+                });
+            }
+        } catch (err) {
+            console.error("autoSavePrescriptionComplaint doc patch error:", err);
+        }
 
         await recordComplaintsToCatalog(ctx, args.chief_complaint);
         return { success: true };

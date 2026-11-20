@@ -143,7 +143,10 @@ export default function PrescriptionDiagnosisSection({
   // Auto-save logic directly from table
   const triggerAutoSave = useCallback(
     async (currentList: DiagnosisRow[]) => {
-      const names = currentList.map((d) => d.diagnosis.trim()).filter((n) => n.length >= 2);
+      const names = currentList
+        .flatMap((d) => d.diagnosis.split(/[\n,;]+/))
+        .map((s) => s.trim())
+        .filter((n) => n.length >= 2);
       const summaryStr = names.join(', ');
 
       setSaveStatus('saving');
@@ -192,14 +195,18 @@ export default function PrescriptionDiagnosisSection({
     [triggerAutoSave]
   );
 
-  // Load suggestions from Convex
+  // Load suggestions from Convex (debounced query based on typing in either input mode)
   useEffect(() => {
-    getDiagnosisSuggestions(newDiagnosis, 30)
-      .then((res) => {
-        if (res && res.length > 0) setDbSuggestions(res);
-      })
-      .catch(() => {});
-  }, [newDiagnosis]);
+    const activeQuery = gynaeQuery.trim() || newDiagnosis.trim();
+    const timer = setTimeout(() => {
+      getDiagnosisSuggestions(activeQuery, 30)
+        .then((res) => {
+          if (res && Array.isArray(res)) setDbSuggestions(res);
+        })
+        .catch(() => {});
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [gynaeQuery, newDiagnosis]);
 
   // Detect upward vs downward dropdown positioning to avoid clipping
   useEffect(() => {
