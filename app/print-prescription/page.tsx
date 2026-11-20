@@ -179,6 +179,24 @@ function PrintPrescriptionContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [printTimeFormatted, setPrintTimeFormatted] = useState<string>('');
+  const [printTimestampFull, setPrintTimestampFull] = useState<string>('');
+
+  useEffect(() => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    setPrintTimeFormatted(timeStr);
+
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    setPrintTimestampFull(`${day}-${month}-${year}, ${timeStr}`);
+  }, []);
+
   useEffect(() => {
     if (prescriptionData?.enabled_sections?.header_footer !== undefined && headerFooterParam === null) {
       setIncludeHeaderFooter(prescriptionData.enabled_sections.header_footer !== false);
@@ -1517,7 +1535,7 @@ function PrintPrescriptionContent() {
             {/* Top Meta Line */}
             {includeHeaderFooter && (
               <div className="top-meta-row">
-                <span>{formatTimestamp(prescriptionData.prescription_date)}</span>
+                <span>{printTimestampFull || formatTimestamp(prescriptionData.prescription_date)}</span>
                 <span>Svaasth HMS</span>
               </div>
             )}
@@ -1585,6 +1603,7 @@ function PrintPrescriptionContent() {
               </div>
               <div className="patient-date-right">
                 Date: {formatPrescriptionDate(prescriptionData.prescription_date)}
+                {printTimeFormatted ? ` | Time: ${printTimeFormatted}` : ''}
               </div>
             </div>
 
