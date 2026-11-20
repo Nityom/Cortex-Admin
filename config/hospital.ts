@@ -105,7 +105,7 @@ export const hospitalConfig: HospitalConfig = {
   },
   schedule: {
     opdTimings: "Mon. to Fri. - 10 am to 1 pm & 6 pm to 8 pm | Sat. - 10 am to 1 pm | Sunday Closed",
-    clinicDetails: "HIP & KNEE JOINT CLINIC • Every Thursday 6 pm to 8 pm",
+    clinicDetails: "",
     sundayStatus: "Sunday OPD Closed",
   },
   branding: {

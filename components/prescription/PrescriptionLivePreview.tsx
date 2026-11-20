@@ -724,13 +724,13 @@ export default function PrescriptionLivePreview({
 
               {/* Bottom Schedule Banner */}
               <div className="pt-2 border-t-2 border-slate-300 text-center">
-                {hospitalConfig.schedule.clinicDetails && (
+                {Boolean(hospitalConfig.schedule.clinicDetails?.trim()) && (
                   <div className="flex items-center justify-center gap-2 mb-1.5 flex-wrap">
                     <span className="bg-[#7B1828] text-white text-[11px] font-bold px-3 py-0.5 rounded-full">
-                      {hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}
+                      {hospitalConfig.schedule.clinicDetails?.split('•')[0]?.trim()}
                     </span>
                     <span className="text-xs font-bold text-slate-900">
-                      {hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}
+                      {hospitalConfig.schedule.clinicDetails?.split('•')[1]?.trim() || ''}
                     </span>
                   </div>
                 )}

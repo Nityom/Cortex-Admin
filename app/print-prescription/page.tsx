@@ -1636,10 +1636,10 @@ function PrintPrescriptionContent() {
 
                 {/* Footer Schedule Banner */}
                 <div className="footer-banner-container">
-                  {hospitalConfig.schedule.clinicDetails && (
+                  {Boolean(hospitalConfig.schedule.clinicDetails?.trim()) && (
                     <div className="footer-top-pill-row">
-                      <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails.split('•')[0]?.trim()}</span>
-                      <span className="clinic-time">{hospitalConfig.schedule.clinicDetails.split('•')[1]?.trim() || ''}</span>
+                      <span className="clinic-pill">{hospitalConfig.schedule.clinicDetails?.split('•')[0]?.trim()}</span>
+                      <span className="clinic-time">{hospitalConfig.schedule.clinicDetails?.split('•')[1]?.trim() || ''}</span>
                     </div>
                   )}
 
