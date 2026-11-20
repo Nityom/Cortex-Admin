@@ -434,7 +434,9 @@ function PrintPrescriptionContent() {
     ? `${rawAge.replace(/\s*y(ears?)?/i, '')} Yrs`
     : '';
   const sexDisplay = prescriptionData.sex ? prescriptionData.sex : '';
-  const phoneDisplay = prescriptionData.phone_number || '';
+  const rawPhone = (prescriptionData.phone_number || '').trim();
+  const isDummyPhone = !rawPhone || rawPhone === '9876543210' || rawPhone === '1234567890' || /^0+$/.test(rawPhone.replace(/\D/g, ''));
+  const phoneDisplay = isDummyPhone ? '' : rawPhone;
 
   const activeDoctorProfile = getDoctorProfile(resolvedDoctorName || prescriptionData.doctor_name);
   const isGyno =

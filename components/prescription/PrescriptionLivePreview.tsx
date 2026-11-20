@@ -661,7 +661,7 @@ export default function PrescriptionLivePreview({
               {formData.age && formData.sex ? ', ' : ''}
               {formData.sex || ''})
             </span>
-            {formData.phoneNumber ? (
+            {formData.phoneNumber && !['9876543210', '1234567890'].includes(formData.phoneNumber.replace(/\D/g, '')) ? (
               <span className="font-normal text-slate-600"> - Ph: {formData.phoneNumber}</span>
             ) : (
               ''
