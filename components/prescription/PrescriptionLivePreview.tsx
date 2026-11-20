@@ -609,7 +609,7 @@ export default function PrescriptionLivePreview({
             <img
               src={hospitalConfig.branding.logoUrl}
               alt={hospitalConfig.name}
-              className="h-16 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
 

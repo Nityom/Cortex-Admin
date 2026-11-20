@@ -1028,7 +1028,8 @@ function PrintPrescriptionContent() {
         }
 
         .hospital-logo {
-          height: 56px;
+          height: 80px;
+          max-height: 85px;
           width: auto;
           object-fit: contain;
         }
