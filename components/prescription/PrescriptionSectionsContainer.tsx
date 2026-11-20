@@ -52,7 +52,7 @@ export const DEFAULT_RX_SECTION_ORDER: PrescriptionSectionKey[] = [
 export const RX_SECTION_TITLES: Record<PrescriptionSectionKey, string> = {
   vitals: 'Vitals Sequentially Arranged',
   complaints: 'Chief Complaints',
-  diagnosis: 'Diagnosis / Conditions',
+  diagnosis: 'Diagnosis',
   history: 'Medical & Surgical History',
   findings: 'Clinical Findings & Examination',
   drawing_board: 'Clinical Sketch / Drawing Board',

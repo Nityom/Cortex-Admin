@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Edit2, Undo2, Trash2, Check, Sparkles, Stethoscope } from 'lucide-react';
+import { Edit2, Undo2, Trash2, Check, Loader2, Sparkles, Stethoscope } from 'lucide-react';
 import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 import AutoResizeTextarea from './AutoResizeTextarea';
 import {
@@ -22,11 +22,46 @@ export interface ComplaintRow {
 }
 
 export interface LinkedComplaint {
-  type: 'template' | 'db';
+  type: 'template' | 'db' | 'catalog';
   name: string;
   label?: string;
   templateObj?: PrescriptionTemplate;
 }
+
+// Built-in clinical complaints catalog to guarantee instant auto-suggestions
+export const CLINICAL_COMPLAINTS_CATALOG: { name: string; category: string }[] = [
+  // Obstetrics & Gynaecology
+  { name: 'Lower abdominal pain', category: 'Obstetrics & Gynaecology' },
+  { name: 'White discharge (Leukorrhea)', category: 'Obstetrics & Gynaecology' },
+  { name: 'Irregular menstrual cycle', category: 'Obstetrics & Gynaecology' },
+  { name: 'Dysmenorrhea (Painful periods)', category: 'Obstetrics & Gynaecology' },
+  { name: 'Amenorrhea (Missed periods)', category: 'Obstetrics & Gynaecology' },
+  { name: 'Heavy menstrual bleeding (Menorrhagia)', category: 'Obstetrics & Gynaecology' },
+  { name: 'Burning micturition', category: 'Obstetrics & Gynaecology' },
+  { name: 'Nausea and vomiting in pregnancy', category: 'Obstetrics & Gynaecology' },
+  { name: 'Decreased fetal movements', category: 'Obstetrics & Gynaecology' },
+  { name: 'Backache in pregnancy', category: 'Obstetrics & Gynaecology' },
+  { name: 'Per vaginal spotting / bleeding', category: 'Obstetrics & Gynaecology' },
+  { name: 'Pelvic heaviness', category: 'Obstetrics & Gynaecology' },
+  // Orthopaedics & Spine
+  { name: 'Low back pain', category: 'Orthopaedics' },
+  { name: 'Knee joint pain (Bilateral / Unilateral)', category: 'Orthopaedics' },
+  { name: 'Neck pain (Cervical spondylosis)', category: 'Orthopaedics' },
+  { name: 'Shoulder pain / stiffness (Frozen shoulder)', category: 'Orthopaedics' },
+  { name: 'Sciatica / Radiating leg pain', category: 'Orthopaedics' },
+  { name: 'Ankle pain / sprain / swelling', category: 'Orthopaedics' },
+  { name: 'Joint stiffness in morning', category: 'Orthopaedics' },
+  { name: 'Muscle spasm / cramps', category: 'Orthopaedics' },
+  { name: 'Heel pain (Plantar fasciitis)', category: 'Orthopaedics' },
+  { name: 'Post-traumatic injury / contusion', category: 'Orthopaedics' },
+  // General Medicine
+  { name: 'Fever with chills', category: 'General' },
+  { name: 'Generalized weakness & fatigue', category: 'General' },
+  { name: 'Headache', category: 'General' },
+  { name: 'Cough and cold', category: 'General' },
+  { name: 'Acidity / Dyspepsia / Epigastric pain', category: 'General' },
+  { name: 'Loss of appetite', category: 'General' },
+];
 
 interface PrescriptionComplaintsSectionProps {
   complaintsList: ComplaintRow[];
@@ -239,7 +274,25 @@ export default function PrescriptionComplaintsSection({
       }
     } catch {}
 
-    // 3. Real Saved Complaints from Convex DB
+    // 3. Built-in Clinical Presets (Ortho, Gynae, General)
+    const targetCategory = isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics';
+    for (const preset of CLINICAL_COMPLAINTS_CATALOG) {
+      if (preset.category === targetCategory || preset.category === 'General') {
+        const key = preset.name.toLowerCase();
+        if (!seen.has(key)) {
+          if (!q || key.includes(q)) {
+            seen.add(key);
+            list.push({
+              type: 'catalog',
+              name: preset.name,
+              label: preset.name,
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Real Saved Complaints from Convex DB
     for (const name of dbSuggestions) {
       const key = name.trim().toLowerCase();
       if (!seen.has(key)) {
@@ -269,7 +322,7 @@ export default function PrescriptionComplaintsSection({
 
     if (!q) return list.slice(0, 10);
     return list.slice(0, 15);
-  }, [currentQuery, dbSuggestions, templateVersion]);
+  }, [currentQuery, dbSuggestions, templateVersion, isGynae]);
 
   const handleSelectSuggestion = (item: LinkedComplaint) => {
     if (item.type === 'template' && item.templateObj && onApplyMasterTemplate) {
@@ -279,15 +332,26 @@ export default function PrescriptionComplaintsSection({
     const complaintText = (item.templateObj ? item.name : item.name).trim();
     const currentVal = (ccSummary !== undefined ? ccSummary : complaintsList.map((c) => c.complaint).join(', ')).trim();
 
-    // Cleanly replace partial search query so search characters never prepend or merge with template
-    let updatedText = '';
-    const parts = currentVal.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      parts[parts.length - 1] = complaintText;
-      updatedText = parts.join(', ');
+    // Cleanly replace partial search query and deduplicate terms
+    const rawParts = currentVal.split(',').map((p) => p.trim());
+    let newParts: string[] = [];
+    if (rawParts.length > 0 && rawParts[rawParts.length - 1] !== '') {
+      newParts = [...rawParts.slice(0, -1), complaintText];
     } else {
-      updatedText = complaintText;
+      newParts = [...rawParts.filter(Boolean), complaintText];
     }
+
+    // Deduplicate: prevent repeating the same keyword
+    const seen = new Set<string>();
+    const uniqueParts: string[] = [];
+    for (const p of newParts) {
+      const lower = p.toLowerCase();
+      if (lower && !seen.has(lower)) {
+        seen.add(lower);
+        uniqueParts.push(p);
+      }
+    }
+    const updatedText = uniqueParts.join(', ');
 
     if (onUpdateCcSummary) onUpdateCcSummary(updatedText);
     const newRows = updatedText
@@ -454,6 +518,40 @@ export default function PrescriptionComplaintsSection({
               }}
               placeholder="Add chief complaint..."
               className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
+              onBlur={() => {
+                const parts = activeValue.split(',').map((p) => p.trim());
+                const seen = new Set<string>();
+                const uniqueParts: string[] = [];
+                for (const p of parts) {
+                  const lower = p.toLowerCase();
+                  if (lower && !seen.has(lower)) {
+                    seen.add(lower);
+                    uniqueParts.push(p);
+                  }
+                }
+                const deduped = uniqueParts.join(', ');
+                if (deduped !== activeValue) {
+                  if (onUpdateCcSummary) onUpdateCcSummary(deduped);
+                  if (deduped.trim()) {
+                    const newRows = deduped
+                      .split(/[\n,;]+/)
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                      .map((txt, idx) => ({
+                        id: `c_${Date.now()}_${idx}`,
+                        complaint: txt,
+                        frequency: '',
+                        severity: '',
+                        duration: '',
+                        date: date || new Date().toISOString().slice(0, 10),
+                      }));
+                    setComplaintsList(newRows);
+                  } else {
+                    setComplaintsList([]);
+                  }
+                  scheduleAutoSave(deduped);
+                }
+              }}
             />
 
             {/* Live Autocomplete suggestions dropdown */}
@@ -503,6 +601,20 @@ export default function PrescriptionComplaintsSection({
               </div>
             )}
           </div>
+
+          {/* Auto-save status indicator */}
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md shrink-0 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+              <span>Saving...</span>
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md shrink-0">
+              <Check className="w-3 h-3 text-emerald-600" />
+              <span>Auto-saved</span>
+            </span>
+          )}
 
           {/* Right Clear Button */}
           <div className="flex items-center gap-1.5 shrink-0 ml-1">

@@ -506,14 +506,25 @@ export default function PrescriptionDiagnosisSection({
 
     const diagText = (item.templateObj?.diagnosis || item.name || '').trim();
     const current = (diagnosisSummary || '').trim();
-    let updatedText = '';
-    const parts = current.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      parts[parts.length - 1] = diagText;
-      updatedText = parts.join(', ');
+    const rawParts = current.split(',').map((p) => p.trim());
+    let newParts: string[] = [];
+    if (rawParts.length > 0 && rawParts[rawParts.length - 1] !== '') {
+      newParts = [...rawParts.slice(0, -1), diagText];
     } else {
-      updatedText = diagText;
+      newParts = [...rawParts.filter(Boolean), diagText];
     }
+
+    // Deduplicate: prevent repeating the same keyword
+    const seen = new Set<string>();
+    const uniqueParts: string[] = [];
+    for (const p of newParts) {
+      const lower = p.toLowerCase();
+      if (lower && !seen.has(lower)) {
+        seen.add(lower);
+        uniqueParts.push(p);
+      }
+    }
+    const updatedText = uniqueParts.join(', ');
 
     onUpdateDiagnosisSummary(updatedText);
     const singleRow: DiagnosisRow = {
@@ -607,10 +618,10 @@ export default function PrescriptionDiagnosisSection({
   return (
     <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        {/* Left Pill Badge: Diagnosis / Condition */}
+        {/* Left Pill Badge: Diagnosis */}
         <div className="px-3.5 py-2 rounded-xl border border-slate-100 bg-slate-50/90 flex items-center gap-2 shrink-0 select-none shadow-2xs w-full sm:w-52">
           <Folder className="w-4 h-4 text-slate-700 shrink-0" />
-          <span className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">Diagnosis / Condition</span>
+          <span className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">Diagnosis</span>
         </div>
 
         {/* Right Pill/Box: Actions + Input + Clear */}
@@ -716,8 +727,38 @@ export default function PrescriptionDiagnosisSection({
                   }
                 }
               }}
-              placeholder="Add diagnosis / condition..."
+              placeholder="Add diagnosis..."
               className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
+              onBlur={() => {
+                const parts = activeVal.split(',').map((p) => p.trim());
+                const seen = new Set<string>();
+                const uniqueParts: string[] = [];
+                for (const p of parts) {
+                  const lower = p.toLowerCase();
+                  if (lower && !seen.has(lower)) {
+                    seen.add(lower);
+                    uniqueParts.push(p);
+                  }
+                }
+                const deduped = uniqueParts.join(', ');
+                if (deduped !== activeVal) {
+                  onUpdateDiagnosisSummary(deduped);
+                  if (deduped.trim()) {
+                    const singleRow: DiagnosisRow = {
+                      id: 'diag_1',
+                      diagnosis: deduped,
+                      snomed_code: '',
+                      duration: '',
+                      date: date || new Date().toISOString().slice(0, 10),
+                    };
+                    setDiagnosesList([singleRow]);
+                    scheduleAutoSave([singleRow]);
+                  } else {
+                    setDiagnosesList([]);
+                    scheduleAutoSave([]);
+                  }
+                }
+              }}
             />
 
             {/* Live Autocomplete suggestions dropdown */}
@@ -767,6 +808,20 @@ export default function PrescriptionDiagnosisSection({
               </div>
             )}
           </div>
+
+          {/* Auto-save status indicator */}
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md shrink-0 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+              <span>Saving...</span>
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md shrink-0">
+              <Check className="w-3 h-3 text-emerald-600" />
+              <span>Auto-saved</span>
+            </span>
+          )}
 
           {/* Right Clear Button */}
           <div className="flex items-center gap-1.5 shrink-0 ml-1">

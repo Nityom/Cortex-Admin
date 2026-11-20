@@ -31,7 +31,7 @@ const PRINT_SECTIONS_CHECKLIST: ChecklistItem[] = [
   { key: 'header_footer', label: 'Hospital Header & Footer', desc: 'Hospital logo, doctor credentials, and bottom clinic footer banner (Uncheck for pre-printed letterhead paper)' },
   { key: 'vitals', label: 'Vitals Sequentially Arranged', desc: 'BP, Pulse, SpO₂, Temp, Height, Weight, BMI, LMP, EDD, Gestational Age' },
   { key: 'complaints', label: 'Chief Complaints', desc: 'Reported symptoms & onset history' },
-  { key: 'diagnosis', label: 'Diagnosis / Conditions', desc: 'Snomed / ICD mapped clinical diagnoses' },
+  { key: 'diagnosis', label: 'Diagnosis', desc: 'Snomed / ICD mapped clinical diagnoses' },
   { key: 'history', label: 'Medical & Surgical History', desc: 'Chronic diseases, allergies & past surgery' },
   { key: 'findings', label: 'Clinical Findings & Examination', desc: 'Physical and systemic exam findings' },
   { key: 'drawing_board', label: 'Clinical Sketch / Drawing Board', desc: 'Anatomical sketch or diagram annotation' },
