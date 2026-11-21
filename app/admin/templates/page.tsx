@@ -164,6 +164,7 @@ export default function TemplatesManagementPage() {
   ]);
 
   // Real-time bidirectional sync with Convex DB
+  const hasSyncedInitialTemplates = useRef(false);
   useEffect(() => {
     if (convexTemplates && Array.isArray(convexTemplates)) {
       if (convexTemplates.length > 0) {
@@ -195,7 +196,8 @@ export default function TemplatesManagementPage() {
           localStorage.setItem('cortex_prescription_templates_v2', JSON.stringify(merged));
           setPrescriptionTemplates(merged);
         } catch {}
-      } else {
+      } else if (!hasSyncedInitialTemplates.current) {
+        hasSyncedInitialTemplates.current = true;
         const defaultTemplates = getAllTemplates();
         if (defaultTemplates.length > 0) {
           bulkSyncMutation({
@@ -219,7 +221,7 @@ export default function TemplatesManagementPage() {
         }
       }
     }
-  }, [convexTemplates, bulkSyncMutation]);
+  }, [convexTemplates]);
 
   // Load all templates (prescription + custom section templates + clinical presets)
   const loadAllTemplates = useCallback(() => {
