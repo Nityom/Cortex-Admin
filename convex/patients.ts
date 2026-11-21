@@ -195,15 +195,18 @@ export const getByReference = query({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("patients").order("desc").take(100);
+        return await ctx.db.query("patients").order("desc").collect();
     },
 });
 
 export const search = query({
     args: { searchTerm: v.string() },
     handler: async (ctx, args) => {
-        const term = args.searchTerm.toLowerCase();
-        const allPatients = await ctx.db.query("patients").order("desc").take(150);
+        const term = args.searchTerm.trim().toLowerCase();
+        if (!term) {
+            return await ctx.db.query("patients").order("desc").take(100);
+        }
+        const allPatients = await ctx.db.query("patients").collect();
         return allPatients.filter((p) =>
             p.name.toLowerCase().includes(term) ||
             p.phone_number.includes(term) ||

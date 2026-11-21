@@ -458,7 +458,7 @@ export const update = mutation({
 export const list = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("prescriptions").order("desc").take(250);
+        return await ctx.db.query("prescriptions").order("desc").collect();
     },
 });
 

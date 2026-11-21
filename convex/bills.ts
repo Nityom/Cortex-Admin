@@ -134,9 +134,11 @@ export const list = query({
     args: {
         startDate: v.optional(v.string()),
         endDate: v.optional(v.string()),
+        limit: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        const bills = await ctx.db.query("bills").order("desc").take(50);
+        const billsQuery = ctx.db.query("bills").order("desc");
+        const bills = args.limit && args.limit > 0 ? await billsQuery.take(args.limit) : await billsQuery.collect();
 
         // Populate patient names and bill_date
         const populatedBills = await Promise.all(
