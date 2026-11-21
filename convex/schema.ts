@@ -61,7 +61,10 @@ export default defineSchema({
     whatsapp_number: v.optional(v.string()),
   })
     .index("by_phone", ["phone_number"])
-    .index("by_reference", ["reference_number"]),
+    .index("by_reference", ["reference_number"])
+    .searchIndex("search_name", {
+      searchField: "name",
+    }),
 
   prescriptions: defineTable({
     patient_name: v.string(),

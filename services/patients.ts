@@ -43,6 +43,11 @@ export const createPatient = async (patient: Omit<Patient, 'id' | 'created_at' |
         email: (patient as any).email,
         whatsapp_number: (patient as any).whatsapp_number,
     });
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.removeItem(PATIENTS_CACHE_KEY);
+        } catch {}
+    }
     return data;
 }
 
@@ -81,9 +86,29 @@ export const getOrCreatePatient = async (patient: Omit<Patient, 'id' | 'created_
     return formatPatient(newPatient!);
 }
 
-export const getPatients = async (): Promise<Patient[]> => {
+const PATIENTS_CACHE_KEY = 'cortex_patients_cache_v1';
+const PATIENTS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache
+
+export const getPatients = async (forceRefresh = false): Promise<Patient[]> => {
+    if (!forceRefresh && typeof window !== 'undefined') {
+        try {
+            const cached = localStorage.getItem(PATIENTS_CACHE_KEY);
+            if (cached) {
+                const { timestamp, data } = JSON.parse(cached);
+                if (Date.now() - timestamp < PATIENTS_CACHE_TTL && Array.isArray(data) && data.length > 0) {
+                    return data;
+                }
+            }
+        } catch {}
+    }
     const data = await convex.query(api.patients.list);
-    return data.map(formatPatient);
+    const formatted = data.map(formatPatient);
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem(PATIENTS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: formatted }));
+        } catch {}
+    }
+    return formatted;
 };
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {

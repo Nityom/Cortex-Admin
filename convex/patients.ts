@@ -202,16 +202,61 @@ export const list = query({
 export const search = query({
     args: { searchTerm: v.string() },
     handler: async (ctx, args) => {
-        const term = args.searchTerm.trim().toLowerCase();
-        if (!term) {
-            return await ctx.db.query("patients").order("desc").take(100);
+        const rawTerm = args.searchTerm.trim();
+        if (!rawTerm) {
+            return await ctx.db.query("patients").order("desc").take(50);
         }
+
+        const upper = rawTerm.toUpperCase();
+        // 1. Direct index lookup for reference numbers (e.g. CRX0115, CH0115) - Reads 1 row
+        if (upper.startsWith("CRX") || upper.startsWith("CH")) {
+            const byRef = await ctx.db
+                .query("patients")
+                .withIndex("by_reference", (q) => q.eq("reference_number", upper))
+                .first();
+            if (byRef) return [byRef];
+
+            const altRef = upper.startsWith("CH") ? upper.replace(/^CH/i, "CRX") : upper.replace(/^CRX/i, "CH");
+            const altMatch = await ctx.db
+                .query("patients")
+                .withIndex("by_reference", (q) => q.eq("reference_number", altRef))
+                .first();
+            if (altMatch) return [altMatch];
+        }
+
+        // 2. Direct index lookup for phone numbers (e.g. 10 digits) - Reads 1 row
+        const digits = rawTerm.replace(/\D/g, "");
+        if (digits.length >= 10) {
+            const byPhone = await ctx.db
+                .query("patients")
+                .withIndex("by_phone", (q) => q.eq("phone_number", digits))
+                .collect();
+            if (byPhone.length > 0) return byPhone;
+        }
+
+        // 3. Convex Search Index lookup (zero table scan)
+        try {
+            const indexed = await ctx.db
+                .query("patients")
+                .withSearchIndex("search_name", (q) => q.search("name", rawTerm))
+                .take(30);
+            if (indexed.length > 0) {
+                return indexed;
+            }
+        } catch {
+            // Search index building or fallback
+        }
+
+        // 4. Substring fallback across patients
+        const term = rawTerm.toLowerCase();
         const allPatients = await ctx.db.query("patients").collect();
-        return allPatients.filter((p) =>
-            p.name.toLowerCase().includes(term) ||
-            p.phone_number.includes(term) ||
-            (p.reference_number || "").toLowerCase().includes(term)
-        );
+        return allPatients
+            .filter((p) =>
+                p.name.toLowerCase().includes(term) ||
+                p.phone_number.includes(term) ||
+                (p.reference_number || "").toLowerCase().includes(term)
+            )
+            .slice(0, 50);
     },
 });
 
