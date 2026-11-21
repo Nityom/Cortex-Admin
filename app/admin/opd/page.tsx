@@ -489,8 +489,7 @@ export default function OPDManagementPage() {
 
   const allAppointments = useQuery(api.appointments.list);
   const convexPatients = useQuery(api.patients.list);
-  const allBills = useQuery(api.bills.list, {});
-  const allPrescriptions = useQuery(api.prescriptions.list);
+  const allBills = useQuery(api.bills.list, { startDate: todayStr });
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
   const liveOpdQueue = useQuery(api.opd_queue.list, {});
@@ -667,56 +666,6 @@ export default function OPDManagementPage() {
       }
     }
 
-    // 2. Also incorporate allPrescriptions
-    if (allPrescriptions && Array.isArray(allPrescriptions)) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Sort chronological descending
-      const sorted = [...allPrescriptions].sort((a: any, b: any) => {
-        const da = new Date(a.prescription_date || a.created_at || a._creationTime || 0).getTime();
-        const db = new Date(b.prescription_date || b.created_at || b._creationTime || 0).getTime();
-        return db - da;
-      });
-
-      for (const rx of sorted as any[]) {
-        if (rx.opd_visit_id && !byVisit.has(rx.opd_visit_id)) {
-          byVisit.set(rx.opd_visit_id, rx);
-        }
-        const uhid = (rx.reference_number || "").trim().toUpperCase();
-        if (uhid && !byUhid.has(uhid)) {
-          byUhid.set(uhid, rx);
-        }
-        const rawPhone = (rx.phone_number || rx.phone || "").replace(/\D/g, "").slice(-10);
-        const rxName = (rx.patient_name || "").trim().toLowerCase();
-        if (rawPhone && rxName && !byPhone.has(`${rawPhone}_${rxName}`)) {
-          byPhone.set(`${rawPhone}_${rxName}`, rx);
-        }
-        if (rawPhone && !byPhone.has(rawPhone)) {
-          byPhone.set(rawPhone, rx);
-        }
-
-        // For last visit, find the most recent visit before today
-        const rxDateStr = rx.prescription_date || (rx.created_at ? String(rx.created_at).split("T")[0] : "");
-        if (rxDateStr) {
-          const rxDate = new Date(rxDateStr);
-          rxDate.setHours(0, 0, 0, 0);
-          const diffDays = Math.round((today.getTime() - rxDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays > 0) {
-            if (uhid && !lastVisit.has(uhid)) {
-              lastVisit.set(uhid, { date: rxDateStr, daysAgo: diffDays });
-            }
-            if (rawPhone && rxName && !lastVisit.has(`${rawPhone}_${rxName}`)) {
-              lastVisit.set(`${rawPhone}_${rxName}`, { date: rxDateStr, daysAgo: diffDays });
-            }
-            if (rawPhone && !lastVisit.has(rawPhone)) {
-              lastVisit.set(rawPhone, { date: rxDateStr, daysAgo: diffDays });
-            }
-          }
-        }
-      }
-    }
-
     // Fallback: check past appointments for prior visit records
     if (allAppointments && Array.isArray(allAppointments)) {
       const today = new Date();
@@ -746,7 +695,7 @@ export default function OPDManagementPage() {
       prescriptionByPhone: byPhone,
       patientLastVisitMap: lastVisit,
     };
-  }, [queueVisitTracking, allPrescriptions, allAppointments]);
+  }, [queueVisitTracking, allAppointments]);
 
   const formatVisitDate = (isoStr?: string) => {
     if (!isoStr) return "";

@@ -507,9 +507,9 @@ export const getQueueVisitTracking = query({
         for (const uhid of uniqueUhids) {
             const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
             const [docs1, docs2] = await Promise.all([
-                ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", uhid)).collect(),
+                ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", uhid)).order("desc").take(3),
                 altRef !== uhid
-                    ? ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", altRef)).collect()
+                    ? ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", altRef)).order("desc").take(3)
                     : Promise.resolve([]),
             ]);
             const allRx = [...docs1, ...docs2].sort(
@@ -541,7 +541,7 @@ export const getQueueVisitTracking = query({
 
         const cleanPhones = Array.from(new Set(args.phones.map((p) => (p || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10)));
         for (const phone of cleanPhones) {
-            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).collect();
+            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).order("desc").take(3);
             const allRx = docs.sort(
                 (a, b) =>
                     new Date(b.prescription_date || b._creationTime || 0).getTime() -

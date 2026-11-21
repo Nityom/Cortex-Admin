@@ -239,7 +239,6 @@ const ViewPatients = () => {
 
       // First, get all patients from the database
       console.log('Fetching patients...');
-      migratePatientsToCRX().catch(() => { });
       const dbPatients = await getPatients();
       if (!dbPatients) {
         throw new Error('No patients data received');

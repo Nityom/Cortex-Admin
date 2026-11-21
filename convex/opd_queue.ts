@@ -114,27 +114,37 @@ export const upsert = mutation({
     // clean up any corresponding scheduled appointment placeholder (appointment_*)
     // so no patient is duplicated in the database or queue.
     if (args.id.startsWith("opd_")) {
-      const cleanPhone = (args.phone || "").replace(/\D/g, "").slice(-10);
-      const cleanName = (args.name || "").trim().toLowerCase();
-      const targetDate = (args.registeredAt || "").split("T")[0];
+      // 1. Direct O(1) indexed lookup if appointmentId is explicitly provided
+      if (args.appointmentId) {
+        const placeholder = await ctx.db
+          .query("opd_queue")
+          .withIndex("by_queue_id", (q) => q.eq("queue_id", `appointment_${args.appointmentId}`))
+          .first();
+        if (placeholder) {
+          await ctx.db.delete(placeholder._id);
+        }
+      } else {
+        const cleanPhone = (args.phone || "").replace(/\D/g, "").slice(-10);
+        const cleanName = (args.name || "").trim().toLowerCase();
+        const targetDate = (args.registeredAt || "").split("T")[0];
 
-      const allPlaceholders = await ctx.db
-        .query("opd_queue")
-        .withIndex("by_status", (q) => q.eq("status", "Waiting"))
-        .collect();
+        if (cleanPhone.length === 10) {
+          const recentPlaceholders = await ctx.db
+            .query("opd_queue")
+            .withIndex("by_status", (q) => q.eq("status", "Waiting"))
+            .order("desc")
+            .take(20);
 
-      for (const item of allPlaceholders) {
-        if (!item.queue_id || !item.queue_id.startsWith("appointment_")) continue;
-        const pApptId = item.appointmentId ? String(item.appointmentId) : "";
-        const pPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
-        const pName = (item.name || "").trim().toLowerCase();
-        const pDate = (item.registeredAt || "").split("T")[0];
+          for (const item of recentPlaceholders) {
+            if (!item.queue_id || !item.queue_id.startsWith("appointment_")) continue;
+            const pPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+            const pName = (item.name || "").trim().toLowerCase();
+            const pDate = (item.registeredAt || "").split("T")[0];
 
-        const matchAppt = args.appointmentId && pApptId && args.appointmentId === pApptId;
-        const matchPhoneAndName = cleanPhone.length === 10 && pPhone === cleanPhone && (cleanName === pName || pDate === targetDate);
-
-        if (matchAppt || matchPhoneAndName) {
-          await ctx.db.delete(item._id);
+            if (pPhone === cleanPhone && (cleanName === pName || pDate === targetDate)) {
+              await ctx.db.delete(item._id);
+            }
+          }
         }
       }
     }
