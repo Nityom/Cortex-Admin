@@ -451,7 +451,7 @@ export const update = mutation({
         // Auto-mark corresponding OPD queue item & appointment as Completed
         await markOpdQueueCompletedForPrescription(ctx, rx || updates);
 
-        return await ctx.db.get(id);
+        return { _id: id, id };
     },
 });
 
@@ -855,7 +855,9 @@ async function markOpdQueueCompletedForPrescription(ctx: any, rxArgs: any) {
         const cleanPhone = (rxArgs.phone_number || "").replace(/\D/g, "").slice(-10);
         const uhidNorm = (rxArgs.reference_number || "").trim().toUpperCase();
 
-        // 1. If opd_visit_id is provided, match by queue_id or _id
+        let matchedInQueue = false;
+
+        // 1. If opd_visit_id is provided, match by queue_id or _id directly
         if (rxArgs.opd_visit_id) {
             let item = await ctx.db
                 .query("opd_queue")
@@ -866,26 +868,36 @@ async function markOpdQueueCompletedForPrescription(ctx: any, rxArgs: any) {
                     item = await ctx.db.get(rxArgs.opd_visit_id as any);
                 } catch {}
             }
-            if (item && item.status !== "Completed") {
-                await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+            if (item) {
+                matchedInQueue = true;
+                if (item.status !== "Completed") {
+                    await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+                }
             }
         }
 
-        // 2. Query today's queue items and match by UHID or phone
-        const recentQueueItems = await ctx.db.query("opd_queue").order("desc").take(150);
-        for (const item of recentQueueItems) {
-            const itemDate = (item.registeredAt || "").split("T")[0];
-            if (itemDate && itemDate !== rxDate) continue;
+        // 2. Only if not already matched, query today's queue items via registeredAt index
+        if (!matchedInQueue && (uhidNorm || (cleanPhone && cleanPhone.length === 10))) {
+            const startIso = `${rxDate}T00:00:00.000Z`;
+            const endIso = `${rxDate}T23:59:59.999Z`;
+            const todayQueueItems = await ctx.db
+                .query("opd_queue")
+                .withIndex("by_registered_at", (q: any) =>
+                    q.gte("registeredAt", startIso).lte("registeredAt", endIso)
+                )
+                .collect();
 
-            const itemUhid = (item.uhid || "").trim().toUpperCase();
-            const itemPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
+            for (const item of todayQueueItems) {
+                const itemUhid = (item.uhid || "").trim().toUpperCase();
+                const itemPhone = (item.phone || "").replace(/\D/g, "").slice(-10);
 
-            const matchUhid = uhidNorm && itemUhid && itemUhid === uhidNorm;
-            const matchPhone = cleanPhone && cleanPhone.length === 10 && itemPhone === cleanPhone;
+                const matchUhid = uhidNorm && itemUhid && itemUhid === uhidNorm;
+                const matchPhone = cleanPhone && cleanPhone.length === 10 && itemPhone === cleanPhone;
 
-            if (matchUhid || matchPhone) {
-                if (item.status !== "Completed" && item.status !== "Cancelled") {
-                    await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+                if (matchUhid || matchPhone) {
+                    if (item.status !== "Completed" && item.status !== "Cancelled") {
+                        await ctx.db.patch(item._id, { status: "Completed", updated_at: now });
+                    }
                 }
             }
         }

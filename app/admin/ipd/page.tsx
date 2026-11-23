@@ -130,7 +130,7 @@ export default function IPDManagementPage() {
   const liveBedConfig = useQuery(api.ipd.getBedConfig, {});
   const liveOpdQueue = useQuery(api.opd_queue.list, {});
   const liveAppointments = useQuery(api.appointments.list);
-  const livePatients = useQuery(api.patients.list);
+  const livePatients = useQuery(api.patients.list, { limit: 100 });
   const saveIpdMutation = useMutation(api.ipd.save);
   const updateIpdStatusMutation = useMutation(api.ipd.updateStatus);
   const saveBedConfigMutation = useMutation(api.ipd.saveBedConfig);

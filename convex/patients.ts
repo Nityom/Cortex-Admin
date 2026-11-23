@@ -193,8 +193,11 @@ export const getByReference = query({
 });
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        if (args.limit && args.limit > 0) {
+            return await ctx.db.query("patients").order("desc").take(args.limit);
+        }
         return await ctx.db.query("patients").order("desc").collect();
     },
 });
@@ -249,7 +252,7 @@ export const search = query({
 
         // 4. Substring fallback across patients
         const term = rawTerm.toLowerCase();
-        const allPatients = await ctx.db.query("patients").collect();
+        const allPatients = await ctx.db.query("patients").order("desc").take(150);
         return allPatients
             .filter((p) =>
                 p.name.toLowerCase().includes(term) ||

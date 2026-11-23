@@ -168,7 +168,7 @@ export const updatePrescription = async (id: string, updates: Partial<Prescripti
   );
 
   const data = await convex.mutation(api.prescriptions.update, { id: id as any, ...cleanUpdates } as any);
-  return { ...data, id: data?._id } as any as Prescription;
+  return { ...cleanUpdates, ...data, id: data?._id || id } as any as Prescription;
 };
 
 export const deletePrescription = async (id: string) => {

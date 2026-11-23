@@ -30,7 +30,19 @@ export type Medicine = {
   doctor_name?: string;
 };
 
+const MEDICINES_CACHE_KEY = 'cortex_medicines_catalog_cache_v1';
+const MEDICINES_CACHE_TTL = 30 * 60 * 1000; // 30 minutes cache
+
+const clearMedicineCache = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(MEDICINES_CACHE_KEY);
+    } catch {}
+  }
+};
+
 export const addMedicine = async (medicine: Medicine) => {
+  clearMedicineCache();
   const master = findMasterMedicine(medicine.name);
   const composition = medicine.composition || master?.composition || undefined;
 
@@ -51,7 +63,19 @@ export const addMedicine = async (medicine: Medicine) => {
   return data;
 };
 
-export const getAllMedicines = async (): Promise<Medicine[]> => {
+export const getAllMedicines = async (forceRefresh = false): Promise<Medicine[]> => {
+  if (!forceRefresh && typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(MEDICINES_CACHE_KEY);
+      if (cached) {
+        const { timestamp, data } = JSON.parse(cached);
+        if (Date.now() - timestamp < MEDICINES_CACHE_TTL && Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+      }
+    } catch {}
+  }
+
   const medicineMap = new Map<string, Medicine>();
 
   // 1. Prepopulate with Master Catalog (242 medicines with chemical compositions)
@@ -107,10 +131,17 @@ export const getAllMedicines = async (): Promise<Medicine[]> => {
     console.warn('Convex medicines query error (using master catalog fallback):', err);
   }
 
-  return Array.from(medicineMap.values());
+  const result = Array.from(medicineMap.values());
+  if (typeof window !== 'undefined' && result.length > 0) {
+    try {
+      localStorage.setItem(MEDICINES_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: result }));
+    } catch {}
+  }
+  return result;
 };
 
 export const updateMedicine = async (id: string, updates: Partial<Medicine>) => {
+  clearMedicineCache();
   // If editing an item that originated from master catalog and hasn't been saved to Convex yet
   if (id.startsWith('master_med_')) {
     return addMedicine({
@@ -145,6 +176,7 @@ export const updateMedicine = async (id: string, updates: Partial<Medicine>) => 
 };
 
 export const deleteMedicine = async (id: string) => {
+  clearMedicineCache();
   if (id.startsWith('master_med_')) {
     return true;
   }

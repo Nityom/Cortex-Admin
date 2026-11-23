@@ -101,7 +101,7 @@ export const getPatients = async (forceRefresh = false): Promise<Patient[]> => {
             }
         } catch {}
     }
-    const data = await convex.query(api.patients.list);
+    const data = await convex.query(api.patients.list, {});
     const formatted = data.map(formatPatient);
     if (typeof window !== 'undefined') {
         try {

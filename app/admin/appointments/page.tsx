@@ -89,7 +89,7 @@ export default function AppointmentsPage() {
   // We'll just fetch all appointments for now, assuming the list isn't huge, or we can just fetch list and filter.
   // Let's use the list query and filter it on the client side.
   const allAppointments = useQuery(api.appointments.list);
-  const allPatients = useQuery(api.patients.list);
+  const allPatients = useQuery(api.patients.list, { limit: 100 });
 
   // Debounced Patient Search in Appointment Modal
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
