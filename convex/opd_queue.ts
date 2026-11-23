@@ -5,28 +5,44 @@ export const list = query({
   args: {
     status: v.optional(v.string()),
     doctor: v.optional(v.string()),
+    date: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit || 50;
     let items;
 
-    if (args.status && args.status !== "ALL") {
+    if (args.date) {
+      // Direct indexed lookup using by_registered_at B-tree index
+      const startIso = `${args.date}T00:00:00.000Z`;
+      const endIso = `${args.date}T23:59:59.999Z`;
+      items = await ctx.db
+        .query("opd_queue")
+        .withIndex("by_registered_at", (q) =>
+          q.gte("registeredAt", startIso).lte("registeredAt", endIso)
+        )
+        .collect();
+    } else if (args.status && args.status !== "ALL") {
+      const limit = args.limit || 100;
       items = await ctx.db
         .query("opd_queue")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
         .order("desc")
         .take(limit);
     } else {
+      const limit = args.limit || 100;
       items = await ctx.db.query("opd_queue").order("desc").take(limit);
     }
 
     if (args.doctor && args.doctor !== "ALL") {
-      const qDoc = args.doctor.toLowerCase();
-      items = items.filter((item) => (item.doctor || "").toLowerCase().includes(qDoc));
+      const qDoc = args.doctor.toLowerCase().replace(/l+/g, "l");
+      items = items.filter((item) => (item.doctor || "").toLowerCase().replace(/l+/g, "l").includes(qDoc));
     }
 
-    return items.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    return items.sort((a, b) => {
+      const timeA = new Date(a.registeredAt || a._creationTime || 0).getTime();
+      const timeB = new Date(b.registeredAt || b._creationTime || 0).getTime();
+      return timeB - timeA;
+    });
   },
 });
 

@@ -492,13 +492,14 @@ export default function OPDManagementPage() {
   const allBills = useQuery(api.bills.list, { startDate: todayStr });
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
-  const isPastDateBeforeQueueStart = selectedQueueDate !== todayStr && selectedQueueDate < "2026-11-23";
+  const liveOpdQueue = useQuery(api.opd_queue.list, { date: selectedQueueDate });
+
+  const isPastDateFallbackNeeded =
+    selectedQueueDate !== todayStr && (!liveOpdQueue || liveOpdQueue.length === 0);
   const pastDateBills = useQuery(
     api.bills.list,
-    isPastDateBeforeQueueStart ? { startDate: selectedQueueDate, endDate: selectedQueueDate } : "skip"
+    isPastDateFallbackNeeded ? { startDate: selectedQueueDate, endDate: selectedQueueDate } : "skip"
   );
-
-  const liveOpdQueue = useQuery(api.opd_queue.list, {});
   const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
   const updateOpdQueueStatusMutation = useMutation(api.opd_queue.updateStatus);
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
@@ -1661,7 +1662,7 @@ export default function OPDManagementPage() {
   const filteredQueue = useMemo(() => {
     let sourceQueue = queue;
 
-    if (isPastDateBeforeQueueStart && pastDateBills && Array.isArray(pastDateBills)) {
+    if (queue.length === 0 && pastDateBills && Array.isArray(pastDateBills) && pastDateBills.length > 0) {
       const pastItems: OPDQueueItem[] = pastDateBills.map((b: any, idx: number) => {
         const isGynae =
           b.total_amount === 200 ||
@@ -1701,7 +1702,7 @@ export default function OPDManagementPage() {
     const dedupedList = deduplicateOpdQueue(sourceQueue);
     const list = dedupedList.filter((item) => {
       // 1. Filter by Date (Defaults to Today)
-      if (selectedQueueDate && !isPastDateBeforeQueueStart) {
+      if (selectedQueueDate) {
         const itemDate = getItemLocalDate(item.registeredAt);
         if (itemDate && itemDate !== selectedQueueDate) return false;
       }
@@ -1762,7 +1763,7 @@ export default function OPDManagementPage() {
     selectedStatusFilter,
     queueSearch,
     activeTab,
-    isPastDateBeforeQueueStart,
+    isPastDateFallbackNeeded,
     pastDateBills,
     prescriptionByVisitId,
     prescriptionByUhid,
