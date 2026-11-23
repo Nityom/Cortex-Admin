@@ -27,14 +27,21 @@ export const create = mutation({
 
         // Generate sequential bill number: CRX-INV-{YEAR}-{SEQ}
         const year = new Date().getFullYear();
-        const allBills = await ctx.db.query("bills").collect();
         const yearPrefix = `CRX-INV-${year}-`;
         const legacyPrefix1 = `CH-INV-${year}-`;
         const legacyPrefix2 = `KSD-INV-${year}-`;
-        const yearBills = allBills.filter(
-            (b) => typeof b.bill_number === "string" && (b.bill_number.startsWith(yearPrefix) || b.bill_number.startsWith(legacyPrefix1) || b.bill_number.startsWith(legacyPrefix2))
-        );
-        const seq = (yearBills.length + 1).toString().padStart(3, "0");
+        const recentBills = await ctx.db.query("bills").order("desc").take(25);
+        let maxSeq = 0;
+        for (const b of recentBills) {
+            if (typeof b.bill_number === "string" && (b.bill_number.startsWith(yearPrefix) || b.bill_number.startsWith(legacyPrefix1) || b.bill_number.startsWith(legacyPrefix2))) {
+                const parts = b.bill_number.split("-");
+                const num = parseInt(parts[parts.length - 1], 10);
+                if (!isNaN(num) && num > maxSeq) {
+                    maxSeq = num;
+                }
+            }
+        }
+        const seq = (maxSeq + 1).toString().padStart(3, "0");
         const bill_number = `${yearPrefix}${seq}`;
 
         const newBillId = await ctx.db.insert("bills", {
@@ -137,42 +144,53 @@ export const list = query({
         limit: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
-        const billsQuery = ctx.db.query("bills").order("desc");
-        const bills = args.limit && args.limit > 0 ? await billsQuery.take(args.limit) : await billsQuery.collect();
+        let bills: any[] = [];
+        const hasDateFilter = Boolean(args.startDate || args.endDate);
 
-        // Populate patient names and bill_date
-        const populatedBills = await Promise.all(
-            bills.map(async (bill) => {
-                // Find patient
-                const patient = await ctx.db
+        if (args.limit && args.limit > 0 && !hasDateFilter) {
+            bills = await ctx.db.query("bills").order("desc").take(args.limit);
+        } else {
+            const allBills = await ctx.db.query("bills").order("desc").collect();
+            if (hasDateFilter) {
+                bills = allBills.filter((bill) => {
+                    const istDate = (bill as any).bill_date || (bill as any).created_at || new Intl.DateTimeFormat("en-CA", {
+                        timeZone: "Asia/Kolkata",
+                    }).format(new Date(bill._creationTime));
+                    if (args.startDate && istDate < args.startDate) return false;
+                    if (args.endDate && istDate > args.endDate) return false;
+                    return true;
+                });
+            } else {
+                bills = allBills;
+            }
+        }
+
+        // Optimized Batch Lookup for patients: fetch each unique reference_number only once
+        const uniqueRefs = Array.from(new Set(bills.map((b) => b.reference_number).filter(Boolean)));
+        const patientMap = new Map<string, any>();
+        await Promise.all(
+            uniqueRefs.map(async (ref) => {
+                const p = await ctx.db
                     .query("patients")
-                    .withIndex("by_reference", (q) => q.eq("reference_number", bill.reference_number))
+                    .withIndex("by_reference", (q) => q.eq("reference_number", ref))
                     .first();
-
-                const istDate = new Intl.DateTimeFormat("en-CA", {
-                    timeZone: "Asia/Kolkata",
-                }).format(new Date(bill._creationTime));
-
-                return {
-                    ...bill,
-                    bill_date: (bill as any).bill_date || istDate,
-                    created_at: (bill as any).created_at || istDate,
-                    patient_name: patient?.name,
-                    phone_number: patient?.phone_number,
-                };
+                if (p) patientMap.set(ref, p);
             })
         );
 
-        if (args.startDate || args.endDate) {
-            return populatedBills.filter((b) => {
-                const date = b.bill_date;
-                if (!date) return true;
-                if (args.startDate && date < args.startDate) return false;
-                if (args.endDate && date > args.endDate) return false;
-                return true;
-            });
-        }
+        return bills.map((bill) => {
+            const istDate = (bill as any).bill_date || (bill as any).created_at || new Intl.DateTimeFormat("en-CA", {
+                timeZone: "Asia/Kolkata",
+            }).format(new Date(bill._creationTime));
+            const patient = patientMap.get(bill.reference_number);
 
-        return populatedBills;
+            return {
+                ...bill,
+                bill_date: (bill as any).bill_date || istDate,
+                created_at: (bill as any).created_at || istDate,
+                patient_name: patient?.name,
+                phone_number: patient?.phone_number,
+            };
+        });
     },
 });

@@ -100,15 +100,46 @@ export interface Prescription {
   bills?: Bill[];
 }
 
+const RX_CACHE_KEY = 'cortex_prescriptions_cache_v1';
+const RX_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+export const clearPrescriptionCache = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(RX_CACHE_KEY);
+    } catch {}
+  }
+};
+
 export const addPrescription = async (prescription: Prescription) => {
+  clearPrescriptionCache();
   const data = await convex.mutation(api.prescriptions.create, prescription as any);
   return { ...prescription, id: data } as Prescription;
 };
 
-export const getAllPrescriptions = async (searchTerm?: string) => {
+export const getAllPrescriptions = async (searchTerm?: string, forceRefresh = false) => {
   try {
+    if (!forceRefresh && typeof window !== 'undefined' && !searchTerm) {
+      try {
+        const cached = localStorage.getItem(RX_CACHE_KEY);
+        if (cached) {
+          const { timestamp, data } = JSON.parse(cached);
+          if (Date.now() - timestamp < RX_CACHE_TTL && Array.isArray(data) && data.length > 0) {
+            return data as Prescription[];
+          }
+        }
+      } catch {}
+    }
+
     const data = await convex.query(api.prescriptions.list);
     let results = data.map((item: any) => ({ ...item, id: item._id })) as Prescription[];
+
+    if (typeof window !== 'undefined' && !searchTerm) {
+      try {
+        localStorage.setItem(RX_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: results }));
+      } catch {}
+    }
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(p => p.patient_name.toLowerCase().includes(term));
@@ -131,6 +162,7 @@ export const updatePrescription = async (id: string, updates: Partial<Prescripti
     throw new Error('Cannot update prescription with invalid ID');
   }
 
+  clearPrescriptionCache();
   const cleanUpdates = Object.fromEntries(
     Object.entries(updates).filter(([_, value]) => value !== undefined)
   );
@@ -140,13 +172,14 @@ export const updatePrescription = async (id: string, updates: Partial<Prescripti
 };
 
 export const deletePrescription = async (id: string) => {
+  clearPrescriptionCache();
   // Temporary UI-generated IDs should not be sent to the database
   if (!id || id === 'undefined' || id === 'null' || id.toString().startsWith('TMP-')) {
     return true;
   }
   await convex.mutation(api.prescriptions.remove, { id: id as any });
   return true;
-}
+};
 
 export const getPrescriptionWithBill = async (id: string) => {
   if (!id || id === 'undefined' || id === 'null') return null;
@@ -190,7 +223,7 @@ export const getAllPrescriptionsForPatient = async (
 
     let results: any[] = [];
 
-    // 1. If referenceNumber is provided, fetch direct matches from indexed/query
+    // 1. If referenceNumber is provided, fetch direct matches using index 'by_reference'
     if (targetRef) {
       const byRef = await convex.query(api.prescriptions.listByPatient, { reference_number: targetRef });
       if (Array.isArray(byRef) && byRef.length > 0) {
@@ -198,58 +231,24 @@ export const getAllPrescriptionsForPatient = async (
       }
     }
 
-    // 2. Fetch all to ensure any unindexed or legacy records are caught without leaking other family members
-    if (cleanPhone || targetNormName || targetRef) {
-      const all = await convex.query(api.prescriptions.list);
-      if (Array.isArray(all)) {
-        const matched = all.filter((p: any) => {
-          const pRef = p.reference_number ? p.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
-          const pPhone = (p.phone_number || '').replace(/\D/g, '').slice(-10);
-          const pNormName = normalizePatientName(p.patient_name);
-
-          // If target has a reference number:
-          if (targetRef) {
-            if (pRef) {
-              // Both have reference numbers -> MUST match exactly
-              return pRef === targetRef;
-            }
-            // Prescription has NO reference number: match ONLY if phone AND name both match
-            if (cleanPhone && pPhone && cleanPhone === pPhone) {
-              if (targetNormName && pNormName) {
-                return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
-              }
-            }
-            return false;
-          }
-
-          // If target does NOT have a reference number, but we have both name & phone:
-          if (targetNormName && cleanPhone) {
-            const phoneMatches = pPhone && cleanPhone === pPhone;
-            const nameMatches = pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName));
-            // If prescription has a reference number, ensure it doesn't belong to another patient
-            return Boolean(phoneMatches && nameMatches);
-          }
-
-          // If only name is known:
-          if (targetNormName) {
-            return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
-          }
-
-          // If only phone is known (last resort):
-          if (cleanPhone) {
-            return cleanPhone === pPhone;
-          }
-
-          return false;
-        });
-
-        // Merge without duplicates by _id
+    // 2. If phone is provided, fetch targeted matches using index 'by_phone'
+    if (cleanPhone) {
+      const byPhone = await convex.query(api.prescriptions.listByPhone, { phone_number: cleanPhone });
+      if (Array.isArray(byPhone)) {
         const existingIds = new Set(results.map((r: any) => String(r._id || r.id)));
-        for (const item of matched) {
+        for (const item of byPhone) {
           const id = String(item._id || (item as any).id);
           if (!existingIds.has(id)) {
-            results.push(item);
-            existingIds.add(id);
+            if (targetNormName) {
+              const pNormName = normalizePatientName(item.patient_name);
+              if (pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName))) {
+                results.push(item);
+                existingIds.add(id);
+              }
+            } else {
+              results.push(item);
+              existingIds.add(id);
+            }
           }
         }
       }

@@ -3,12 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, Calendar, ArrowRight, History, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-import { ConvexHttpClient } from 'convex/browser';
-// @ts-ignore
-import { api } from '@/convex/_generated/api';
-
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL || '';
-const convexClient = convexUrl ? new ConvexHttpClient(convexUrl) : null;
+import { getAllPrescriptionsForPatient } from '@/services/prescription';
 
 interface PrescriptionPastVisitsModalProps {
   isOpen: boolean;
@@ -38,54 +33,10 @@ export default function PrescriptionPastVisitsModal({
     const fetchPastVisits = async () => {
       setLoading(true);
       try {
-        if (!convexClient) {
-          setPastVisits([]);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch recent prescriptions list
-        const all = await convexClient.query(api.prescriptions.list);
-        if (Array.isArray(all)) {
-          const targetRef = patientReference ? patientReference.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
-          const cleanPhone = (patientPhone || '').replace(/\D/g, '').slice(-10);
-          const targetNormName = patientName ? patientName.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
-
-          const filtered = all.filter((p: any) => {
-            const pRef = p.reference_number ? p.reference_number.trim().toUpperCase().replace(/^CH/i, 'CRX') : null;
-            const pPhone = (p.phone_number || '').replace(/\D/g, '').slice(-10);
-            const pNormName = p.patient_name ? p.patient_name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, '').replace(/[^a-z0-9]/g, '') : '';
-
-            if (targetRef) {
-              if (pRef) return pRef === targetRef;
-              if (cleanPhone && pPhone && cleanPhone === pPhone) {
-                return Boolean(targetNormName && pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName)));
-              }
-              return false;
-            }
-
-            if (targetNormName && cleanPhone) {
-              const phoneMatches = pPhone && cleanPhone === pPhone;
-              const nameMatches = pNormName && (targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName));
-              return Boolean(phoneMatches && nameMatches);
-            }
-
-            if (targetNormName) return targetNormName === pNormName || targetNormName.includes(pNormName) || pNormName.includes(targetNormName);
-            if (cleanPhone) return cleanPhone === pPhone;
-            return false;
-          });
-
-          // Sort by creation time / prescription date descending
-          filtered.sort((a: any, b: any) => {
-            const tA = a._creationTime || new Date(a.prescription_date || 0).getTime();
-            const tB = b._creationTime || new Date(b.prescription_date || 0).getTime();
-            return tB - tA;
-          });
-
-          setPastVisits(filtered);
-          if (filtered.length > 0) {
-            setSelectedVisitId(String(filtered[0]._id || (filtered[0] as any).id));
-          }
+        const visits = await getAllPrescriptionsForPatient(patientReference, patientPhone, patientName);
+        setPastVisits(visits);
+        if (visits.length > 0) {
+          setSelectedVisitId(String(visits[0].id || (visits[0] as any)._id));
         }
       } catch (err) {
         console.error('Error fetching past prescriptions:', err);

@@ -481,6 +481,16 @@ export const listByPatient = query({
     },
 });
 
+export const listByPhone = query({
+    args: { phone_number: v.string() },
+    handler: async (ctx, args) => {
+        const cleanPhone = args.phone_number.replace(/\D/g, '').slice(-10);
+        if (!cleanPhone) return [];
+        const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", cleanPhone)).collect();
+        return docs.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+    },
+});
+
 export const getQueueVisitTracking = query({
     args: {
         uhids: v.array(v.string()),
@@ -520,11 +530,20 @@ export const getQueueVisitTracking = query({
 
             for (const rx of allRx) {
                 const rxDate = rx.prescription_date || new Date(rx._creationTime).toISOString().split("T")[0];
+                const lightRx = {
+                    _id: rx._id,
+                    id: rx._id,
+                    prescription_date: rxDate,
+                    doctor_name: rx.doctor_name,
+                    diagnosis: rx.diagnosis,
+                    opd_visit_id: rx.opd_visit_id,
+                    reference_number: rx.reference_number,
+                };
                 if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
-                    todayRxByVisitId[rx.opd_visit_id] = rx;
+                    todayRxByVisitId[rx.opd_visit_id] = lightRx;
                 }
                 if (rxDate === today) {
-                    if (!todayRxByUhid[uhid]) todayRxByUhid[uhid] = rx;
+                    if (!todayRxByUhid[uhid]) todayRxByUhid[uhid] = lightRx;
                 } else if (rxDate && rxDate < today) {
                     const diffDays = calcDaysAgo(rxDate);
                     if (diffDays > 0 && !lastVisitByUhid[uhid]) {
@@ -553,13 +572,22 @@ export const getQueueVisitTracking = query({
                 const rxName = (rx.patient_name || "").trim().toLowerCase();
                 const safeName = encodeURIComponent(rxName);
                 const key = rxName ? `${phone}_${safeName}` : phone;
+                const lightRx = {
+                    _id: rx._id,
+                    id: rx._id,
+                    prescription_date: rxDate,
+                    doctor_name: rx.doctor_name,
+                    diagnosis: rx.diagnosis,
+                    opd_visit_id: rx.opd_visit_id,
+                    reference_number: rx.reference_number,
+                };
 
                 if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
-                    todayRxByVisitId[rx.opd_visit_id] = rx;
+                    todayRxByVisitId[rx.opd_visit_id] = lightRx;
                 }
                 if (rxDate === today) {
-                    if (rxName && !todayRxByPhone[key]) todayRxByPhone[key] = rx;
-                    if (!todayRxByPhone[phone]) todayRxByPhone[phone] = rx;
+                    if (rxName && !todayRxByPhone[key]) todayRxByPhone[key] = lightRx;
+                    if (!todayRxByPhone[phone]) todayRxByPhone[phone] = lightRx;
                 } else if (rxDate && rxDate < today) {
                     const diffDays = calcDaysAgo(rxDate);
                     if (diffDays > 0) {
@@ -829,7 +857,10 @@ async function markOpdQueueCompletedForPrescription(ctx: any, rxArgs: any) {
 
         // 3. If there is an appointment for this phone & date, mark it COMPLETED
         if (cleanPhone && cleanPhone.length === 10) {
-            const appts = await ctx.db.query("appointments").collect();
+            const appts = await ctx.db
+                .query("appointments")
+                .withIndex("by_phone", (q: any) => q.eq("phone", cleanPhone))
+                .collect();
             for (const appt of appts) {
                 const aDate = (appt.date || "").split("T")[0];
                 const aPhone = (appt.phone || "").replace(/\D/g, "").slice(-10);
@@ -856,25 +887,18 @@ async function recordDiagnosesToCatalog(ctx: any, diagnosisText?: string) {
 
     try {
         const now = Date.now();
-        const allDiagnoses = await ctx.db.query("diagnoses").collect();
         for (const part of parts) {
-            const existing = allDiagnoses.find(
-                (d: any) => d.name.trim().toLowerCase() === part.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("diagnoses")
+                .withIndex("by_name", (q: any) => q.eq("name", part))
+                .first();
             if (existing) {
                 await ctx.db.patch(existing._id, {
                     count: (existing.count || 1) + 1,
                     last_used_at: now,
                 });
             } else {
-                const newId = await ctx.db.insert("diagnoses", {
-                    name: part,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                });
-                allDiagnoses.push({
-                    _id: newId,
+                await ctx.db.insert("diagnoses", {
                     name: part,
                     count: 1,
                     last_used_at: now,
@@ -900,25 +924,18 @@ async function recordComplaintsToCatalog(ctx: any, complaintText?: string) {
 
     try {
         const now = Date.now();
-        const allComplaints = await ctx.db.query("complaints").collect();
         for (const part of parts) {
-            const existing = allComplaints.find(
-                (c: any) => c.name.trim().toLowerCase() === part.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("complaints")
+                .withIndex("by_name", (q: any) => q.eq("name", part))
+                .first();
             if (existing) {
                 await ctx.db.patch(existing._id, {
                     count: (existing.count || 1) + 1,
                     last_used_at: now,
                 });
             } else {
-                const newId = await ctx.db.insert("complaints", {
-                    name: part,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                });
-                allComplaints.push({
-                    _id: newId,
+                await ctx.db.insert("complaints", {
                     name: part,
                     count: 1,
                     last_used_at: now,
@@ -944,10 +961,10 @@ export const saveDiagnosis = mutation({
         if (!trimmed || trimmed.length < 2) return null;
 
         const now = Date.now();
-        const allDiagnoses = await ctx.db.query("diagnoses").collect();
-        const existing = allDiagnoses.find(
-            (d) => d.name.trim().toLowerCase() === trimmed.toLowerCase()
-        );
+        const existing = await ctx.db
+            .query("diagnoses")
+            .withIndex("by_name", (q) => q.eq("name", trimmed))
+            .first();
 
         if (existing) {
             await ctx.db.patch(existing._id, {
@@ -978,16 +995,16 @@ export const saveMultipleDiagnoses = mutation({
     },
     handler: async (ctx, args) => {
         const now = Date.now();
-        const allDiagnoses = await ctx.db.query("diagnoses").collect();
         const savedIds: any[] = [];
 
         for (const raw of args.names) {
             const trimmed = raw.trim();
             if (!trimmed || trimmed.length < 2) continue;
 
-            const existing = allDiagnoses.find(
-                (d) => d.name.trim().toLowerCase() === trimmed.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("diagnoses")
+                .withIndex("by_name", (q) => q.eq("name", trimmed))
+                .first();
 
             if (existing) {
                 await ctx.db.patch(existing._id, {
@@ -1003,14 +1020,6 @@ export const saveMultipleDiagnoses = mutation({
                     created_at: now,
                     category: args.category,
                 });
-                allDiagnoses.push({
-                    _id: newId,
-                    name: trimmed,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                    category: args.category,
-                } as any);
                 savedIds.push(newId);
             }
         }
@@ -1188,10 +1197,10 @@ export const saveComplaint = mutation({
         if (!trimmed || trimmed.length < 2) return null;
 
         const now = Date.now();
-        const allComplaints = await ctx.db.query("complaints").collect();
-        const existing = allComplaints.find(
-            (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
-        );
+        const existing = await ctx.db
+            .query("complaints")
+            .withIndex("by_name", (q) => q.eq("name", trimmed))
+            .first();
 
         if (existing) {
             await ctx.db.patch(existing._id, {
@@ -1222,16 +1231,16 @@ export const saveMultipleComplaints = mutation({
     },
     handler: async (ctx, args) => {
         const now = Date.now();
-        const allComplaints = await ctx.db.query("complaints").collect();
         const savedIds: any[] = [];
 
         for (const raw of args.names) {
             const trimmed = raw.trim();
             if (!trimmed || trimmed.length < 2) continue;
 
-            const existing = allComplaints.find(
-                (c) => c.name.trim().toLowerCase() === trimmed.toLowerCase()
-            );
+            const existing = await ctx.db
+                .query("complaints")
+                .withIndex("by_name", (q) => q.eq("name", trimmed))
+                .first();
 
             if (existing) {
                 await ctx.db.patch(existing._id, {
@@ -1247,14 +1256,6 @@ export const saveMultipleComplaints = mutation({
                     created_at: now,
                     category: args.category,
                 });
-                allComplaints.push({
-                    _id: newId,
-                    name: trimmed,
-                    count: 1,
-                    last_used_at: now,
-                    created_at: now,
-                    category: args.category,
-                } as any);
                 savedIds.push(newId);
             }
         }

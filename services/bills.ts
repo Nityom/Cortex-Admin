@@ -54,8 +54,20 @@ const validateBillData = (bill: Bill) => {
   return errors;
 };
 
+const BILLS_CACHE_KEY = 'cortex_bills_cache_v1';
+const BILLS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+export const clearBillsCache = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(BILLS_CACHE_KEY);
+    } catch {}
+  }
+};
+
 export const createBill = async (bill: Bill) => {
   try {
+    clearBillsCache();
     const validationErrors = validateBillData(bill);
     if (validationErrors.length > 0) {
       throw new Error(`Invalid bill data: ${validationErrors.join(', ')}`);
@@ -83,6 +95,7 @@ export const createBill = async (bill: Bill) => {
 
 export const updateBill = async (id: string, bill: Partial<Bill>) => {
   try {
+    clearBillsCache();
     // Only pass fields accepted by the Convex bills.update mutation
     const validUpdate: Record<string, any> = { id: id as any };
     if (bill.total_amount !== undefined) validUpdate.total_amount = bill.total_amount;
@@ -166,10 +179,27 @@ export const getPatientByReferenceNumber = async (referenceNumber: string) => {
   }
 };
 
-export const getAll = async () => {
+export const getAll = async (forceRefresh = false) => {
   try {
+    if (!forceRefresh && typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem(BILLS_CACHE_KEY);
+        if (cached) {
+          const { timestamp, data } = JSON.parse(cached);
+          if (Date.now() - timestamp < BILLS_CACHE_TTL && Array.isArray(data) && data.length > 0) {
+            return data as Bill[];
+          }
+        }
+      } catch {}
+    }
     const data = await convex.query(api.bills.list, {});
-    return data.map((b: any) => ({ ...b, id: b._id })) as any as Bill[];
+    const formatted = data.map((b: any) => ({ ...b, id: b._id })) as any as Bill[];
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(BILLS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: formatted }));
+      } catch {}
+    }
+    return formatted;
   } catch (e) {
     console.error('Exception in getAll bills:', e);
     throw e;
