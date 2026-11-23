@@ -491,6 +491,41 @@ export const listByPhone = query({
     },
 });
 
+export const listByPatientName = query({
+    args: { patient_name: v.string() },
+    handler: async (ctx, args) => {
+        const name = args.patient_name.trim();
+        if (!name || name.length < 2) return [];
+
+        // 1. Try exact match on indexed by_patient_name
+        const docs = await ctx.db
+            .query("prescriptions")
+            .withIndex("by_patient_name", (q) => q.eq("patient_name", name))
+            .collect();
+        if (docs.length > 0) {
+            return docs.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+        }
+
+        // 2. Also try lowercase version if casing differed
+        const docsLower = await ctx.db
+            .query("prescriptions")
+            .withIndex("by_patient_name", (q) => q.eq("patient_name", name.toLowerCase()))
+            .collect();
+        if (docsLower.length > 0) {
+            return docsLower.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+        }
+
+        // 3. Fallback normalized fuzzy check over recent 100 prescriptions
+        const recent = await ctx.db.query("prescriptions").order("desc").take(100);
+        const normTarget = name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+        const matched = recent.filter((p) => {
+            const pNorm = (p.patient_name || "").toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
+            return pNorm && (pNorm === normTarget || pNorm.includes(normTarget) || normTarget.includes(pNorm));
+        });
+        return matched.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+    },
+});
+
 export const getQueueVisitTracking = query({
     args: {
         uhids: v.array(v.string()),

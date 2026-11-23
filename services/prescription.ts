@@ -254,6 +254,15 @@ export const getAllPrescriptionsForPatient = async (
       }
     }
 
+    // 3. Fallback: If 0 results found by UHID/Phone, search by Patient Name
+    // (fixes cases where phone had a typo e.g. 9 digits, or patient was given a new UHID like CRX0770 instead of CRX0125)
+    if (results.length === 0 && patientName && targetNormName && targetNormName.length >= 3) {
+      const byName = await convex.query(api.prescriptions.listByPatientName, { patient_name: patientName });
+      if (Array.isArray(byName) && byName.length > 0) {
+        results = [...byName];
+      }
+    }
+
     results.sort((a: any, b: any) => {
       const tA = new Date(a.prescription_date || a._creationTime || 0).getTime();
       const tB = new Date(b.prescription_date || b._creationTime || 0).getTime();
