@@ -515,8 +515,8 @@ export const listByPatientName = query({
             return docsLower.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
         }
 
-        // 3. Fallback normalized fuzzy check over recent 100 prescriptions
-        const recent = await ctx.db.query("prescriptions").order("desc").take(100);
+        // 3. Fallback normalized fuzzy check across all prescriptions
+        const recent = await ctx.db.query("prescriptions").order("desc").collect();
         const normTarget = name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
         const matched = recent.filter((p) => {
             const pNorm = (p.patient_name || "").toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");

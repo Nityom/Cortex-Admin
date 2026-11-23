@@ -252,7 +252,7 @@ export const search = query({
 
         // 4. Substring fallback across patients
         const term = rawTerm.toLowerCase();
-        const allPatients = await ctx.db.query("patients").order("desc").take(150);
+        const allPatients = await ctx.db.query("patients").collect();
         return allPatients
             .filter((p) =>
                 p.name.toLowerCase().includes(term) ||
