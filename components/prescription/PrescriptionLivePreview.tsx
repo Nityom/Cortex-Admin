@@ -110,10 +110,10 @@ const DEFAULT_PRINT_ORDER = [
   'diagnosis',
   'history',
   'findings',
-  'drawing_board',
   'medicines',
   'clinical_notes',
   'next_visit',
+  'drawing_board',
   'signature',
 ];
 

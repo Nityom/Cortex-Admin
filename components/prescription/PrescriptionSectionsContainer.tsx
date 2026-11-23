@@ -41,11 +41,11 @@ export const DEFAULT_RX_SECTION_ORDER: PrescriptionSectionKey[] = [
   'diagnosis',
   'history',
   'findings',
-  'drawing_board',
   'medicines',
   'clinical_notes',
   'next_visit',
   'procedure',
+  'drawing_board',
   'signature',
 ];
 
@@ -135,6 +135,17 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
       sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(allCollapsed));
     } catch {}
   };
+
+  useEffect(() => {
+    const handleExpandCustom = (e: any) => {
+      const key = e.detail;
+      if (key) {
+        setCollapsedSections((prev) => ({ ...prev, [key]: false }));
+      }
+    };
+    window.addEventListener('cortex_expand_section', handleExpandCustom);
+    return () => window.removeEventListener('cortex_expand_section', handleExpandCustom);
+  }, []);
 
   const [activeDragHandleKey, setActiveDragHandleKey] = useState<PrescriptionSectionKey | null>(null);
   const [draggedSection, setDraggedSection] = useState<PrescriptionSectionKey | null>(null);
@@ -551,6 +562,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                 setDragOverSection(null);
                 setActiveDragHandleKey(null);
               }}
+              id={`rx-section-${sectionKey}`}
               className={`relative rounded-2xl transition-all duration-200 ${
                 isBeingDragged ? 'opacity-40 scale-[0.98]' : 'opacity-100'
               } ${

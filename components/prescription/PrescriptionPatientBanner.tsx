@@ -1,7 +1,20 @@
 'use client';
 
-import React from 'react';
-import { PhoneCall, FolderOpen, BookmarkPlus, Mail, FileEdit, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  PhoneCall,
+  FolderOpen,
+  BookmarkPlus,
+  Mail,
+  FileEdit,
+  RotateCcw,
+  Calendar,
+  ChevronDown,
+  PenTool,
+  Edit2,
+  X,
+  Phone,
+} from 'lucide-react';
 
 interface PrescriptionPatientBannerProps {
   formData: {
@@ -58,295 +71,147 @@ export default function PrescriptionPatientBanner({
   onRestoreDraft,
   onDismissDraftBanner,
 }: PrescriptionPatientBannerProps) {
-  const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') ||
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+
+  const isGynae =
+    (selectedDoctorName || '').toLowerCase().includes('shilpa') ||
     (selectedDoctorName || '').toLowerCase().includes('shillpa') ||
     (selectedDoctorName || '').toLowerCase().includes('gynae') ||
     (selectedDoctorName || '').toLowerCase().includes('obs');
 
+  const formatDateDisplay = (dateStr?: string) => {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-');
+      if (y && m && d) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(m, 10) - 1;
+        return `${parseInt(d, 10)} ${months[mIdx] || m} ${y}`;
+      }
+    } catch {}
+    return dateStr;
+  };
+
+  const formatDateNumeric = (dateStr?: string) => {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-');
+      if (y && m && d) {
+        return `${d}/${m}/${y}`;
+      }
+    } catch {}
+    return dateStr;
+  };
+
+  const handleOpenDrawingBoard = () => {
+    window.dispatchEvent(new CustomEvent('cortex_expand_section', { detail: 'drawing_board' }));
+    const el = document.getElementById('rx-section-drawing_board');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const patientInitial = (formData.patientName || 'P').trim().charAt(0).toUpperCase();
+
+  const formattedPhone = formData.phoneNumber
+    ? formData.phoneNumber.startsWith('+')
+      ? formData.phoneNumber
+      : `+91 ${formData.phoneNumber}`
+    : '';
+
   return (
-    <>
-      {/* 0. Top Attending Doctor Status & Quick Switcher (Light Theme) */}
-      <div className="bg-white rounded-xl p-3 sm:p-3.5 shadow-xs border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <div className="space-y-3">
+      {/* 1. Sleek Minimal Unified Header Card (Matching User Image Mockup) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        {/* Left Section: Avatar + Name + Badges + Gender/Date/Age */}
+        <div className="flex items-center gap-3.5 min-w-0">
           <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border shadow-2xs shrink-0 ${
+            className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-base shrink-0 border ${
               isGynae
-                ? 'bg-pink-50 text-pink-700 border-pink-200'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
             }`}
           >
-            ℞
+            {patientInitial}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
-                Current Attending Doctor
-              </span>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight truncate">
+                {formData.patientName || 'Patient Name'}
+              </h2>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shrink-0 ${
                   isGynae
                     ? 'bg-pink-50 text-pink-700 border-pink-200'
                     : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}
               >
-                {isGynae
-                  ? 'Obstetrics & Gynaecology'
-                  : 'Orthopaedics & Joint Replacement'}
+                {isGynae ? 'Obstetrics & Gynaecology' : 'Orthopaedics & Joint Replacement'}
               </span>
-            </div>
-            <div className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2 mt-0.5">
-              <span>{selectedDoctorName}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Doctor Quick Switcher */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0 self-start sm:self-auto">
-          <span className="text-[11px] text-slate-500 font-bold px-2 hidden md:inline">
-            Attending:
-          </span>
-          <button
-            type="button"
-            onClick={() => handleDoctorSelect('Dr. Vipeen Raut')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              !isGynae
-                ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
-            }`}
-          >
-            <span>Dr. Vipeen Raut</span>
-            <span className={`text-[10px] ${!isGynae ? 'text-emerald-100' : 'text-slate-400'}`}>(Ortho)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleDoctorSelect('Dr. Shillpa Raut')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-              isGynae
-                ? 'bg-pink-600 text-white shadow-xs hover:bg-pink-700'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
-            }`}
-          >
-            <span>Dr. Shillpa Raut</span>
-            <span className={`text-[10px] ${isGynae ? 'text-pink-100' : 'text-slate-400'}`}>(Gynae / Obs)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Patient Banner (HealthPlix IMG_0902) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              {formData.patientName || 'Patient Name'}
-            </h2>
-            <span className="text-sm font-semibold text-slate-600">
-              ({formData.age || '—'} Y, {formData.sex || 'Male'})
-            </span>
-            {setRepeatPatient && (
-              <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border cursor-pointer transition select-none bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100">
-                <input
-                  type="checkbox"
-                  checked={!isNewPatient}
-                  onChange={(e) => setRepeatPatient(e.target.checked)}
-                  className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5 cursor-pointer"
-                />
-                <span>Repeat Patient (Follow-up)</span>
-              </label>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                const tag = prompt('Add tag for patient (e.g. Diabetic, VIP, Ortho, ANC):');
-                if (tag) alert('Tag added: ' + tag);
-              }}
-              className="text-xs px-2 py-0.5 border border-slate-300 rounded text-slate-600 hover:bg-slate-50 transition cursor-pointer"
-            >
-              + tag
-            </button>
-            {formData.phoneNumber && (
-              <a
-                href={'tel:' + formData.phoneNumber}
-                className="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded font-semibold hover:bg-emerald-100 flex items-center gap-1 transition"
-              >
-                <PhoneCall className="w-3 h-3" /> Call
-              </a>
-            )}
-            {onOpenDraftModal && (
               <button
                 type="button"
-                onClick={onOpenDraftModal}
-                className={`text-xs px-2.5 py-0.5 rounded font-semibold flex items-center gap-1.5 transition cursor-pointer border shadow-2xs ${
-                  hasDraft
-                    ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                }`}
-                title="View, save, or restore prescription drafts"
+                onClick={() => setIsEditingDetails(!isEditingDetails)}
+                title={isEditingDetails ? 'Hide editable inputs' : 'Edit patient details'}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
               >
-                <FileEdit className="w-3 h-3 text-amber-600" />
-                <span>Draft</span>
-                {hasDraft && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                )}
+                <Edit2 className="w-3.5 h-3.5" />
               </button>
-            )}
-            {onOpenEmailModal && (
-              <button
-                type="button"
-                onClick={onOpenEmailModal}
-                className="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded font-semibold hover:bg-emerald-100 flex items-center gap-1 transition cursor-pointer shadow-2xs"
-                title="Email prescription directly to patient"
-              >
-                <Mail className="w-3 h-3 text-emerald-700" /> Mail Rx
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-500">
-            {formData.token && (
-              <div>
-                Token:{' '}
-                <span className="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  #{formData.token}
-                </span>
-              </div>
-            )}
-            <div>
-              UHID / Ref:{' '}
-              <span className="font-bold text-slate-800">
-                {formData.reference_number || 'Auto-generated on save'}
-              </span>
             </div>
-            <div>
-              Phone: <span className="font-bold text-slate-800">{formData.phoneNumber || '—'}</span>
-            </div>
-            {formData.email && (
-              <div className="hidden md:inline">
-                Email: <span className="font-bold text-slate-800">{formData.email}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Unsaved Draft Banner */}
-        {showDraftBanner && currentDraft && (
-          <div className="mt-3 bg-amber-50/90 border border-amber-300 rounded-xl px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-950 shadow-2xs animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-              <div>
-                <span className="font-bold">
-                  Unsaved draft available for {currentDraft.patientName || 'this patient'}:
-                </span>{' '}
-                <span className="text-amber-800">
-                  {currentDraft.medicines?.length || 0} medicine(s)
-                  {currentDraft.diagnosesList?.length ? ` • ${currentDraft.diagnosesList.length} diagnosis` : ''}
-                  {currentDraft.complaintsList?.length ? ` • ${currentDraft.complaintsList.length} complaint(s)` : ''}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => onRestoreDraft?.(currentDraft)}
-                className="px-3 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-lg transition shadow-2xs cursor-pointer flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Restore Draft</span>
-              </button>
-              {onDismissDraftBanner && (
-                <button
-                  type="button"
-                  onClick={onDismissDraftBanner}
-                  className="text-amber-700 hover:text-amber-900 font-bold p-1 cursor-pointer"
-                  title="Dismiss alert"
-                >
-                  ✕
-                </button>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500 mt-0.5">
+              <span>{formData.sex === 'Female' ? '♀ Female' : formData.sex === 'Male' ? '♂ Male' : (formData.sex || 'Female')}</span>
+              <span>•</span>
+              <span>{formatDateDisplay(formData.date) || 'Today'}</span>
+              <span>•</span>
+              <span className="font-bold text-slate-700">{formData.age ? `${formData.age} Yrs` : '—'}</span>
+              {formData.reference_number && (
+                <>
+                  <span>•</span>
+                  <span className="font-mono text-[11px] text-slate-600 font-bold">{formData.reference_number}</span>
+                </>
               )}
             </div>
           </div>
+        </div>
+
+        {/* Middle Section: Phone & Email metadata icons */}
+        {(formattedPhone || formData.email) && (
+          <div className="flex flex-wrap sm:flex-col justify-center gap-1.5 text-xs text-slate-600 border-t xl:border-t-0 xl:border-l xl:border-r border-slate-100 xl:px-5 py-1 xl:py-0 shrink-0">
+            {formattedPhone && (
+              <div className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="font-medium text-slate-700 tabular-nums">{formattedPhone}</span>
+              </div>
+            )}
+            {formData.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="font-medium text-slate-700 truncate max-w-[200px]">{formData.email}</span>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Editable Patient Details Bar */}
-        <div className="pt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 text-sm">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Name *</label>
-            <input
-              type="text"
-              name="patientName"
-              value={formData.patientName}
-              onChange={handleChange}
-              required
-              placeholder="Patient Name"
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
-            />
+        {/* Right Section: Visit Date, Doctor Switcher & Drawing Board Button */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start xl:self-center">
+          {/* Visit Date Box */}
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs">
+            <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
+            <div>
+              <span className="block text-xs font-extrabold text-slate-900 leading-tight">
+                {formatDateNumeric(formData.date) || '—'}
+              </span>
+              <span className="block text-[10px] text-slate-400 font-semibold leading-none mt-0.5">
+                Visit Date
+              </span>
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Phone Number</label>
-            <input
-              type="text"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handlePhoneNumberChange}
-              placeholder="Phone Number"
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email || ''}
-              onChange={handleChange}
-              placeholder="patient@email.com"
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Age</label>
-            <input
-              type="number"
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              placeholder="Years"
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">
-              Gender {isGynae && <span className="text-[10px] text-pink-600 font-bold ml-1">(Auto: Female)</span>}
-            </label>
-            <select
-              name="sex"
-              value={isGynae ? "Female" : formData.sex}
-              onChange={handleChange}
-              disabled={isGynae}
-              className={`w-full mt-1 p-2 border rounded-lg font-semibold text-sm focus:ring-1 focus:ring-emerald-500 ${
-                isGynae ? "bg-pink-50 border-pink-200 text-pink-900 cursor-not-allowed" : "border-slate-200 text-slate-800"
-              }`}
-            >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Visit Date</label>
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase">Doctor</label>
+
+          {/* Doctor Switcher Dropdown */}
+          <div className="relative">
             <select
               value={selectedDoctorName}
               onChange={(e) => handleDoctorSelect(e.target.value)}
-              className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm bg-white focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+              className="appearance-none bg-white border border-slate-200 rounded-xl px-3.5 py-2 pr-8 text-xs font-bold text-slate-800 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
             >
               {availableDoctors.map((doc) => (
                 <option key={doc.id || doc._id || doc.name} value={doc.name}>
@@ -354,11 +219,179 @@ export default function PrescriptionPatientBanner({
                 </option>
               ))}
             </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
+
+          {/* Open Drawing Board Button (Action matching user mockup image) */}
+          <button
+            type="button"
+            onClick={handleOpenDrawingBoard}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#1b4332] hover:bg-[#153427] transition shadow-xs cursor-pointer shrink-0"
+            title="Jump to Clinical Sketch / Drawing Board at bottom"
+          >
+            <PenTool className="w-3.5 h-3.5" />
+            <span>Open Drawing Board</span>
+          </button>
+
+          {/* Optional Action Pills: Draft & Mail Rx */}
+          {onOpenDraftModal && (
+            <button
+              type="button"
+              onClick={onOpenDraftModal}
+              className={`p-2 rounded-xl border text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs ${
+                hasDraft
+                  ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+              title="Prescription Drafts"
+            >
+              <FileEdit className="w-4 h-4 text-amber-600" />
+              {hasDraft && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+            </button>
+          )}
+
+          {onOpenEmailModal && (
+            <button
+              type="button"
+              onClick={onOpenEmailModal}
+              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition cursor-pointer shadow-2xs"
+              title="Email Prescription to Patient"
+            >
+              <Mail className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Sub-Banner Visit Controls (IMG_0902) */}
+      {/* 2. Optional Collapsible Edit Drawer (Hidden by default to keep screen minimal) */}
+      {isEditingDetails && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 animate-in fade-in slide-in-from-top-1">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Edit Patient Registration Details
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsEditingDetails(false)}
+              className="text-xs text-slate-400 hover:text-slate-700 font-bold"
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-sm">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase">Name *</label>
+              <input
+                type="text"
+                name="patientName"
+                value={formData.patientName}
+                onChange={handleChange}
+                required
+                placeholder="Patient Name"
+                className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase">Phone Number</label>
+              <input
+                type="text"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handlePhoneNumberChange}
+                placeholder="Phone Number"
+                className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase">Email Address</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email || ''}
+                onChange={handleChange}
+                placeholder="patient@email.com"
+                className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase">Age</label>
+              <input
+                type="number"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                placeholder="Years"
+                className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase">
+                Gender {isGynae && <span className="text-[10px] text-pink-600 font-bold ml-1">(Auto: Female)</span>}
+              </label>
+              <select
+                name="sex"
+                value={isGynae ? 'Female' : formData.sex}
+                onChange={handleChange}
+                disabled={isGynae}
+                className={`w-full mt-1 p-2 border rounded-lg font-semibold text-sm focus:ring-1 focus:ring-emerald-500 ${
+                  isGynae ? 'bg-pink-50 border-pink-200 text-pink-900 cursor-not-allowed' : 'border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase">Visit Date</label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                className="w-full mt-1 p-2 border border-slate-200 rounded-lg font-semibold text-slate-800 text-sm focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Unsaved Draft Banner (Clean horizontal strip matching user mockup image) */}
+      {showDraftBanner && currentDraft && (
+        <div className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="font-bold text-slate-800">Unsaved draft available</span>
+            <span className="text-slate-400">•</span>
+            <span className="text-slate-500">
+              {currentDraft.patientName || 'This patient'} ({currentDraft.medicines?.length || 0} medicine(s)
+              {currentDraft.diagnosesList?.length ? ` • ${currentDraft.diagnosesList.length} diagnosis` : ''})
+            </span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => onRestoreDraft?.(currentDraft)}
+              className="text-xs font-bold text-emerald-800 hover:text-emerald-900 flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restore Draft</span>
+            </button>
+            {onDismissDraftBanner && (
+              <button
+                type="button"
+                onClick={onDismissDraftBanner}
+                className="text-slate-400 hover:text-slate-600 font-bold p-0.5 cursor-pointer"
+                title="Dismiss alert"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Sub-Banner Visit Controls & Templates */}
       <div className="bg-slate-100/90 border border-slate-200 rounded-lg p-2 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-1.5">
           <button
@@ -429,6 +462,6 @@ export default function PrescriptionPatientBanner({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
