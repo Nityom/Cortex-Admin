@@ -82,7 +82,7 @@ export default function PrescriptionProcedureSection({
             <span title="Edit Procedure Done" className="inline-flex">
               <Edit2 className="w-4 h-4 text-emerald-700" />
             </span>
-            Procedure done / Treatment Done
+            Procedure done
           </label>
           <SectionTemplatePicker
             sectionKey="procedure_done"
@@ -144,11 +144,10 @@ export default function PrescriptionProcedureSection({
                       e.stopPropagation();
                       setRepeatPatient(false);
                     }}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                      isNewPatient
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${isNewPatient
                         ? 'bg-white text-emerald-800 shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     1st Visit
                   </button>
@@ -158,11 +157,10 @@ export default function PrescriptionProcedureSection({
                       e.stopPropagation();
                       setRepeatPatient(true);
                     }}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                      !isNewPatient
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${!isNewPatient
                         ? 'bg-amber-600 text-white shadow-xs'
                         : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     Repeat Patient
                   </button>

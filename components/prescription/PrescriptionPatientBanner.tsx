@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import {
-  PhoneCall,
   FolderOpen,
   BookmarkPlus,
   Mail,
@@ -10,7 +9,6 @@ import {
   RotateCcw,
   Calendar,
   ChevronDown,
-  PenTool,
   Edit2,
   X,
   Phone,
@@ -101,14 +99,6 @@ export default function PrescriptionPatientBanner({
       }
     } catch {}
     return dateStr;
-  };
-
-  const handleOpenDrawingBoard = () => {
-    window.dispatchEvent(new CustomEvent('cortex_expand_section', { detail: 'drawing_board' }));
-    const el = document.getElementById('rx-section-drawing_board');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
   };
 
   const patientInitial = (formData.patientName || 'P').trim().charAt(0).toUpperCase();
@@ -222,18 +212,57 @@ export default function PrescriptionPatientBanner({
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Open Drawing Board Button (Action matching user mockup image) */}
+          {/* Past Visits Modal Button */}
           <button
             type="button"
-            onClick={handleOpenDrawingBoard}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#1b4332] hover:bg-[#153427] transition shadow-xs cursor-pointer shrink-0"
-            title="Jump to Clinical Sketch / Drawing Board at bottom"
+            onClick={() => setActiveTab('View Past')}
+            className="px-2.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shadow-2xs"
+            title="View past visits and history"
           >
-            <PenTool className="w-3.5 h-3.5" />
-            <span>Open Drawing Board</span>
+            <span>Past Visits</span>
           </button>
 
-          {/* Optional Action Pills: Draft & Mail Rx */}
+          {/* Repeat Patient Toggle Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = isNewPatient;
+              if (setRepeatPatient) setRepeatPatient(next);
+              if (setActiveTab) setActiveTab(next ? 'Repeat Patient' : '1st Visit');
+            }}
+            className={`px-3 py-2 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+              !isNewPatient
+                ? 'bg-amber-500 text-white border-amber-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+            title={!isNewPatient ? 'Repeat Patient (Discounted visit)' : '1st Visit'}
+          >
+            <span>{!isNewPatient ? 'Repeat Patient' : '1st Visit'}</span>
+          </button>
+
+          {/* Quick Action Pills: Load Template, Save Template, Draft & Mail Rx */}
+          {onOpenLoadTemplate && (
+            <button
+              type="button"
+              onClick={onOpenLoadTemplate}
+              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition cursor-pointer shadow-2xs"
+              title="Load master prescription template"
+            >
+              <FolderOpen className="w-4 h-4 text-emerald-600" />
+            </button>
+          )}
+
+          {onOpenSaveTemplate && (
+            <button
+              type="button"
+              onClick={onOpenSaveTemplate}
+              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-purple-50 text-slate-600 hover:text-purple-700 transition cursor-pointer shadow-2xs"
+              title="Save entire prescription as master template"
+            >
+              <BookmarkPlus className="w-4 h-4 text-purple-600" />
+            </button>
+          )}
+
           {onOpenDraftModal && (
             <button
               type="button"
@@ -391,77 +420,6 @@ export default function PrescriptionPatientBanner({
         </div>
       )}
 
-      {/* 4. Sub-Banner Visit Controls & Templates */}
-      <div className="bg-slate-100/90 border border-slate-200 rounded-lg p-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('1st Visit');
-              if (setRepeatPatient) setRepeatPatient(false);
-            }}
-            className={`px-3 py-1 rounded font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-              isNewPatient && activeTab !== 'View Past'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span>1st Visit</span>
-            <span className="text-[10px] text-slate-500 font-normal">
-              (₹{isGynae ? 200 : 400})
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('Repeat Patient');
-              if (setRepeatPatient) setRepeatPatient(true);
-            }}
-            className={`px-3 py-1 rounded font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-              !isNewPatient && activeTab !== 'View Past'
-                ? 'bg-amber-600 text-white shadow-xs font-bold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span>Repeat Patient</span>
-            <span className={`text-[10px] ${!isNewPatient && activeTab !== 'View Past' ? 'text-amber-100' : 'text-slate-500'}`}>
-              (₹{isGynae ? 100 : 200})
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('View Past')}
-            className={`px-3 py-1 rounded font-semibold transition cursor-pointer ${
-              activeTab === 'View Past'
-                ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            View Past
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 text-slate-600">
-          <button
-            type="button"
-            onClick={onOpenLoadTemplate}
-            className="hover:text-emerald-700 flex items-center gap-1.5 font-bold transition text-xs cursor-pointer"
-            title="Load master prescription template"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Load template</span>
-          </button>
-          <button
-            type="button"
-            onClick={onOpenSaveTemplate}
-            className="hover:text-purple-700 flex items-center gap-1.5 font-bold transition text-xs cursor-pointer"
-            title="Save entire prescription as master template"
-          >
-            <BookmarkPlus className="w-3.5 h-3.5 text-purple-600" />
-            <span>Save as template</span>
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

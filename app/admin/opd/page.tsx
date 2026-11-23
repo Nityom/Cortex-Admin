@@ -647,21 +647,33 @@ export default function OPDManagementPage() {
       if (queueVisitTracking.todayRxByUhid) {
         for (const [uhid, rx] of Object.entries(queueVisitTracking.todayRxByUhid)) {
           byUhid.set(uhid, rx);
+          try {
+            byUhid.set(decodeURIComponent(uhid), rx);
+          } catch {}
         }
       }
       if (queueVisitTracking.todayRxByPhone) {
         for (const [phKey, rx] of Object.entries(queueVisitTracking.todayRxByPhone)) {
           byPhone.set(phKey, rx);
+          try {
+            byPhone.set(decodeURIComponent(phKey), rx);
+          } catch {}
         }
       }
       if (queueVisitTracking.lastVisitByUhid) {
         for (const [uhid, info] of Object.entries(queueVisitTracking.lastVisitByUhid)) {
           lastVisit.set(uhid, info);
+          try {
+            lastVisit.set(decodeURIComponent(uhid), info);
+          } catch {}
         }
       }
       if (queueVisitTracking.lastVisitByPhone) {
         for (const [phKey, info] of Object.entries(queueVisitTracking.lastVisitByPhone)) {
           lastVisit.set(phKey, info);
+          try {
+            lastVisit.set(decodeURIComponent(phKey), info);
+          } catch {}
         }
       }
     }

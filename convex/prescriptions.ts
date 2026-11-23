@@ -551,18 +551,19 @@ export const getQueueVisitTracking = query({
             for (const rx of allRx) {
                 const rxDate = rx.prescription_date || new Date(rx._creationTime).toISOString().split("T")[0];
                 const rxName = (rx.patient_name || "").trim().toLowerCase();
-                const key = `${phone}_${rxName}`;
+                const safeName = encodeURIComponent(rxName);
+                const key = rxName ? `${phone}_${safeName}` : phone;
 
                 if (rx.opd_visit_id && !todayRxByVisitId[rx.opd_visit_id]) {
                     todayRxByVisitId[rx.opd_visit_id] = rx;
                 }
                 if (rxDate === today) {
-                    if (!todayRxByPhone[key]) todayRxByPhone[key] = rx;
+                    if (rxName && !todayRxByPhone[key]) todayRxByPhone[key] = rx;
                     if (!todayRxByPhone[phone]) todayRxByPhone[phone] = rx;
                 } else if (rxDate && rxDate < today) {
                     const diffDays = calcDaysAgo(rxDate);
                     if (diffDays > 0) {
-                        if (!lastVisitByPhone[key]) {
+                        if (rxName && !lastVisitByPhone[key]) {
                             lastVisitByPhone[key] = {
                                 date: rxDate,
                                 daysAgo: diffDays,

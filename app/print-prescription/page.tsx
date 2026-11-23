@@ -504,12 +504,11 @@ function PrintPrescriptionContent() {
     'vitals',
     'complaints',
     'diagnosis',
-    'history',
     'findings',
+    'drawing_board',
     'medicines',
     'clinical_notes',
     'next_visit',
-    'drawing_board',
     'signature',
   ];
   const effectiveOrder = prescriptionData.section_order && prescriptionData.section_order.length > 0

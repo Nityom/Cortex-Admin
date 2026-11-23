@@ -121,8 +121,9 @@ export function usePrescriptionForm() {
         localStorage.removeItem('cortex_rx_sections_order_v2');
         localStorage.removeItem('cortex_rx_sections_order_v3');
         localStorage.removeItem('cortex_rx_sections_order_v4');
+        localStorage.removeItem('cortex_rx_sections_order_v5');
 
-        const saved = localStorage.getItem('cortex_rx_sections_order_v5');
+        const saved = localStorage.getItem('cortex_rx_sections_order_v6');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -143,6 +144,7 @@ export function usePrescriptionForm() {
     setRxSectionOrder(DEFAULT_RX_SECTION_ORDER);
     if (typeof window !== 'undefined') {
       try {
+        localStorage.removeItem('cortex_rx_sections_order_v6');
         localStorage.removeItem('cortex_rx_sections_order_v5');
         localStorage.removeItem('cortex_rx_sections_order_v4');
         localStorage.removeItem('cortex_rx_sections_order');
