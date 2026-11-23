@@ -308,6 +308,8 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
             setGestationalWeeks={form.setGestationalWeeks}
             gestationalDays={form.gestationalDays}
             setGestationalDays={form.setGestationalDays}
+            showObstetrics={form.showObstetrics}
+            setShowObstetrics={form.setShowObstetrics}
             isGynae={isGynae}
             onRestorePreviousVitals={form.restorePreviousVitals}
           />

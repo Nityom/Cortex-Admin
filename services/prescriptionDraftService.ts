@@ -52,6 +52,7 @@ export interface PrescriptionDraftData {
   eddDate?: string;
   gestationalWeeks?: string;
   gestationalDays?: string;
+  showObstetrics?: boolean;
 }
 
 export interface PrescriptionDraftSummary {

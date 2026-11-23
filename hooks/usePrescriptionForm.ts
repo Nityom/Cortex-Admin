@@ -334,6 +334,7 @@ export function usePrescriptionForm() {
   const [eddDate, setEddDate] = useState('');
   const [gestationalWeeks, setGestationalWeeks] = useState('');
   const [gestationalDays, setGestationalDays] = useState('');
+  const [showObstetrics, setShowObstetrics] = useState<boolean>(true);
 
   // Auto-calculate BMI
   const displayBmi = useMemo(() => {
@@ -741,6 +742,7 @@ export function usePrescriptionForm() {
       eddDate,
       gestationalWeeks,
       gestationalDays,
+      showObstetrics,
     };
 
     savePrescriptionDraft(draft);
@@ -850,6 +852,7 @@ export function usePrescriptionForm() {
     if (draft.eddDate !== undefined) setEddDate(draft.eddDate);
     if (draft.gestationalWeeks !== undefined) setGestationalWeeks(draft.gestationalWeeks);
     if (draft.gestationalDays !== undefined) setGestationalDays(draft.gestationalDays);
+    if (draft.showObstetrics !== undefined) setShowObstetrics(draft.showObstetrics);
 
     setShowDraftBanner(false);
     showTemplateToast('Prescription draft restored!');
@@ -953,6 +956,7 @@ export function usePrescriptionForm() {
         eddDate,
         gestationalWeeks,
         gestationalDays,
+        showObstetrics,
       };
 
       savePrescriptionDraft(draft);
@@ -2646,6 +2650,8 @@ export function usePrescriptionForm() {
     setGestationalWeeks,
     gestationalDays,
     setGestationalDays,
+    showObstetrics,
+    setShowObstetrics,
 
     // Diagnosis & Procedures
     diagnosesList,
