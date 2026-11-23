@@ -518,16 +518,21 @@ export default function OPDManagementPage() {
     );
   }, [queue]);
 
-  const queueVisitTracking = useQuery(api.prescriptions.getQueueVisitTracking, {
-    uhids: queueUhids,
-    phones: queuePhones,
-    todayDate: todayStr,
-  });
+  const queueVisitTracking = useQuery(
+    api.prescriptions.getQueueVisitTracking,
+    selectedQueueDate === todayStr && (queueUhids.length > 0 || queuePhones.length > 0)
+      ? {
+          uhids: queueUhids,
+          phones: queuePhones,
+          todayDate: todayStr,
+        }
+      : "skip"
+  );
 
   // Keep scheduled appointments visible in the OPD queue even when they were
   // created by an external channel such as the WhatsApp assistant.
   useEffect(() => {
-    if (!allAppointments || !liveOpdQueue) return;
+    if (selectedQueueDate !== todayStr || !allAppointments || !liveOpdQueue) return;
 
     const queuedAppointmentIds = new Set(
       liveOpdQueue
@@ -635,7 +640,7 @@ export default function OPDManagementPage() {
         }
       })
     );
-  }, [allAppointments, liveOpdQueue, todayStr, upsertOpdQueueMutation]);
+  }, [allAppointments, liveOpdQueue, selectedQueueDate, todayStr, upsertOpdQueueMutation]);
 
   // Map of opd_visit_id / reference_number / phone to prescription & last visit tracking
   const { prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, patientLastVisitMap } = useMemo(() => {
@@ -1773,7 +1778,7 @@ export default function OPDManagementPage() {
 
   // Auto-heal queue status in DB when prescription exists for today's visit
   useEffect(() => {
-    if (!queue || queue.length === 0) return;
+    if (selectedQueueDate !== todayStr || !queue || queue.length === 0) return;
     for (const item of queue) {
       if (item.status === "Waiting" || item.status === "Ready") {
         const uhidNorm = (item.uhid || "").trim().toUpperCase();
@@ -1800,7 +1805,7 @@ export default function OPDManagementPage() {
         }
       }
     }
-  }, [queue, prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, todayStr, updateOpdQueueStatusMutation]);
+  }, [queue, selectedQueueDate, prescriptionByVisitId, prescriptionByUhid, prescriptionByPhone, todayStr, updateOpdQueueStatusMutation]);
 
   const displayedQueue = useMemo(() => {
     if (activeTab === "billingQueue") {
