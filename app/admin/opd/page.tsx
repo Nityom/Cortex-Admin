@@ -488,9 +488,15 @@ export default function OPDManagementPage() {
   });
 
   const allAppointments = useQuery(api.appointments.list);
-  const convexPatients = useQuery(api.patients.list);
+  const convexPatients = useQuery(api.patients.list, activeTab === "directory" ? {} : "skip");
   const allBills = useQuery(api.bills.list, { startDate: todayStr });
   const updateAppointmentMutation = useMutation(api.appointments.update);
+
+  const isPastDateBeforeQueueStart = selectedQueueDate !== todayStr && selectedQueueDate < "2026-11-23";
+  const pastDateBills = useQuery(
+    api.bills.list,
+    isPastDateBeforeQueueStart ? { startDate: selectedQueueDate, endDate: selectedQueueDate } : "skip"
+  );
 
   const liveOpdQueue = useQuery(api.opd_queue.list, {});
   const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
@@ -1653,10 +1659,49 @@ export default function OPDManagementPage() {
   // Filtered queue (Filters by selectedQueueDate, doctor, status, search)
   // Ready patients follow active consultations; Waiting and Completed remain below them.
   const filteredQueue = useMemo(() => {
-    const dedupedList = deduplicateOpdQueue(queue);
+    let sourceQueue = queue;
+
+    if (isPastDateBeforeQueueStart && pastDateBills && Array.isArray(pastDateBills)) {
+      const pastItems: OPDQueueItem[] = pastDateBills.map((b: any, idx: number) => {
+        const isGynae =
+          b.total_amount === 200 ||
+          b.total_amount === 100 ||
+          (b.notes || "").toLowerCase().includes("gynae") ||
+          (b.notes || "").toLowerCase().includes("shilpa");
+        const doc = isGynae ? "Dr. Shillpa Raut" : "Dr. Vipeen Raut";
+        const dept = isGynae ? "Obstetrics & Gynaecology" : "Orthopaedics & Joint Replacement";
+        const token = String(pastDateBills.length - idx).padStart(2, "0");
+        const regDate = b._creationTime ? new Date(b._creationTime) : new Date(`${selectedQueueDate}T09:00:00+05:30`);
+        const timeStr = regDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
+        return {
+          id: `bill_${b.id || b._id}`,
+          token,
+          uhid: b.reference_number || "",
+          name: b.patient_name || "Patient",
+          age: "",
+          ageUnit: "years",
+          sex: isGynae ? "Female" : "Male",
+          phone: b.phone_number || "",
+          doctor: doc,
+          department: dept,
+          priority: "Normal" as const,
+          visitType: "Appointment" as const,
+          status: "Completed",
+          vitals: {},
+          consultationFee: b.total_amount,
+          paymentMode: (b.payment_status === "PAID" ? "Cash" : undefined) as "Cash" | "UPI" | "Card" | "Free / Exempt" | undefined,
+          paymentStatus: b.payment_status,
+          registeredAt: regDate.toISOString(),
+          time: timeStr || "09:00",
+        };
+      });
+      sourceQueue = pastItems;
+    }
+
+    const dedupedList = deduplicateOpdQueue(sourceQueue);
     const list = dedupedList.filter((item) => {
       // 1. Filter by Date (Defaults to Today)
-      if (selectedQueueDate) {
+      if (selectedQueueDate && !isPastDateBeforeQueueStart) {
         const itemDate = getItemLocalDate(item.registeredAt);
         if (itemDate && itemDate !== selectedQueueDate) return false;
       }
@@ -1710,7 +1755,20 @@ export default function OPDManagementPage() {
       const tokenB = parseInt(b.token, 10) || 0;
       return tokenB - tokenA;
     });
-  }, [queue, selectedQueueDate, selectedDoctorFilter, selectedStatusFilter, queueSearch, activeTab]);
+  }, [
+    queue,
+    selectedQueueDate,
+    selectedDoctorFilter,
+    selectedStatusFilter,
+    queueSearch,
+    activeTab,
+    isPastDateBeforeQueueStart,
+    pastDateBills,
+    prescriptionByVisitId,
+    prescriptionByUhid,
+    prescriptionByPhone,
+    todayStr,
+  ]);
 
   // Auto-heal queue status in DB when prescription exists for today's visit
   useEffect(() => {

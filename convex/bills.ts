@@ -147,22 +147,23 @@ export const list = query({
         let bills: any[] = [];
         const hasDateFilter = Boolean(args.startDate || args.endDate);
 
-        if (args.limit && args.limit > 0 && !hasDateFilter) {
+        if (hasDateFilter) {
+            const startStr = args.startDate || args.endDate!;
+            const endStr = args.endDate || args.startDate!;
+            const startMs = new Date(`${startStr}T00:00:00+05:30`).getTime();
+            const endMs = new Date(`${endStr}T23:59:59.999+05:30`).getTime();
+            bills = await ctx.db
+                .query("bills")
+                .withIndex("by_creation_time", (q) =>
+                    q.gte("_creationTime", startMs).lte("_creationTime", endMs)
+                )
+                .order("desc")
+                .collect();
+        } else if (args.limit && args.limit > 0) {
             bills = await ctx.db.query("bills").order("desc").take(args.limit);
         } else {
-            const allBills = await ctx.db.query("bills").order("desc").collect();
-            if (hasDateFilter) {
-                bills = allBills.filter((bill) => {
-                    const istDate = (bill as any).bill_date || (bill as any).created_at || new Intl.DateTimeFormat("en-CA", {
-                        timeZone: "Asia/Kolkata",
-                    }).format(new Date(bill._creationTime));
-                    if (args.startDate && istDate < args.startDate) return false;
-                    if (args.endDate && istDate > args.endDate) return false;
-                    return true;
-                });
-            } else {
-                bills = allBills;
-            }
+            // Default to safe limit to avoid unbounded full-table scans
+            bills = await ctx.db.query("bills").order("desc").take(100);
         }
 
         // Optimized Batch Lookup for patients: fetch each unique reference_number only once
