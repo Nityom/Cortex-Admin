@@ -27,7 +27,24 @@ function DischargeContent() {
   const saveIpdMutation = useMutation(api.ipd.save);
   const recordBillTransactionsMutation = useMutation(api.payment_transactions.recordBillTransactions);
 
-  const [admissions, setAdmissions] = useState<IPDAdmission[]>([]);
+  const [admissions, setAdmissions] = useState<IPDAdmission[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((item: any, idx: number) => ({
+              ...item,
+              id: item.id || item.admission_id || item._id || String(100 + idx + 1),
+              ipdNumber: item.ipdNumber || String(100 + idx + 1),
+            }));
+          }
+        }
+      } catch {}
+    }
+    return [];
+  });
   const [activeAdmission, setActiveAdmission] = useState<IPDAdmission | null>(null);
   const [activeModal, setActiveModal] = useState<"none" | "recordPayment" | "printReceipt" | "printDischarge">("none");
   const [recordPaymentAdmission, setRecordPaymentAdmission] = useState<IPDAdmission | null>(null);
@@ -89,20 +106,41 @@ function DischargeContent() {
       if (local) {
         const parsed = JSON.parse(local);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setAdmissions(parsed);
+          const mapped = parsed.map((item: any, idx: number) => ({
+            ...item,
+            id: item.id || item.admission_id || item._id || String(100 + idx + 1),
+            ipdNumber: item.ipdNumber || String(100 + idx + 1),
+          }));
+          setAdmissions(mapped);
         }
       }
     } catch {}
 
     if (Array.isArray(liveAdmissions) && liveAdmissions.length > 0) {
-      setAdmissions(liveAdmissions as unknown as IPDAdmission[]);
+      const mapped: IPDAdmission[] = liveAdmissions.map((item: any, idx: number) => {
+        const fallbackIpdNo =
+          item.ipdNumber && item.ipdNumber.trim() ? item.ipdNumber.trim() : String(100 + (idx + 1));
+        return {
+          ...item,
+          id: item.id || item.admission_id || item._id,
+          ipdNumber: fallbackIpdNo,
+        };
+      });
+      setAdmissions(mapped);
     }
   }, [liveAdmissions]);
 
   // 2. Select the admission corresponding to the URL param
   useEffect(() => {
     if (!admissionId || admissions.length === 0) return;
-    const found = admissions.find((a) => a.id === admissionId || a.ipdNumber === admissionId);
+    const cleanId = admissionId.trim().toLowerCase();
+    const found = admissions.find((a: any) => {
+      const aId = String(a.id || a.admission_id || a._id || "").trim().toLowerCase();
+      const aIpd = String(a.ipdNumber || "").trim().toLowerCase();
+      const aUhid = String(a.uhid || "").trim().toLowerCase();
+      return aId === cleanId || aIpd === cleanId || aUhid === cleanId;
+    });
+
     if (found) {
       setActiveAdmission(found);
       const isDisch = found.status === "Discharged";
@@ -545,6 +583,26 @@ function DischargeContent() {
   }
 
   if (!activeAdmission) {
+    if (liveAdmissions !== undefined && admissions.length > 0) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-amber-500 mb-3" />
+          <h2 className="text-xl font-bold text-slate-900">Admission Record Not Found</h2>
+          <p className="text-sm text-slate-500 mt-1 mb-4">
+            Could not find an IPD record matching:{" "}
+            <span className="font-mono font-bold text-slate-700">{admissionId}</span>.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/ipd")}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to IPD Ward
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
         <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mb-3" />

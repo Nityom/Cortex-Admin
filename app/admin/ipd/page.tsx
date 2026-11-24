@@ -2572,7 +2572,8 @@ export default function IPDManagementPage() {
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischarge={(adm) => {
-            router.push(`/admin/ipd/discharge?id=${adm.id}`);
+            const targetId = adm.id || (adm as any).admission_id || (adm as any)._id || adm.ipdNumber;
+            router.push(`/admin/ipd/discharge?id=${encodeURIComponent(targetId)}`);
           }}
           onOpenPrintTicket={(adm) => {
             setActiveAdmission(adm);
@@ -2623,7 +2624,8 @@ export default function IPDManagementPage() {
           setSearchQuery={setSearchQuery}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischargeModal={(adm) => {
-            router.push(`/admin/ipd/discharge?id=${adm.id}`);
+            const targetId = adm.id || (adm as any).admission_id || (adm as any)._id || adm.ipdNumber;
+            router.push(`/admin/ipd/discharge?id=${encodeURIComponent(targetId)}`);
           }}
           onGenerateFinalBill={(adm) => handleGenerateFinalBill(adm)}
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
