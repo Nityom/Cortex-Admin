@@ -49,12 +49,12 @@ export const DEFAULT_RX_SECTION_ORDER: PrescriptionSectionKey[] = [
   'complaints',
   'diagnosis',
   'findings',
-  'drawing_board',
   'medicines',
   'clinical_notes',
   'next_visit',
   'procedure',
   'history',
+  'drawing_board',
   'signature',
 ];
 
@@ -213,7 +213,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
     updated.splice(toIdx, 0, removed);
     setRxSectionOrder(updated);
     try {
-      localStorage.setItem('cortex_rx_sections_order_v6', JSON.stringify(updated));
+      localStorage.setItem('cortex_rx_sections_order_v7', JSON.stringify(updated));
     } catch { }
   };
 
@@ -224,6 +224,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
       setRxSectionOrder(DEFAULT_RX_SECTION_ORDER);
     }
     try {
+      localStorage.removeItem('cortex_rx_sections_order_v7');
       localStorage.removeItem('cortex_rx_sections_order_v6');
       localStorage.removeItem('cortex_rx_sections_order_v5');
       localStorage.removeItem('cortex_rx_sections_order_v4');
@@ -595,7 +596,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                     </div>
                   </div>
                 ) : (
-                  ['complaints', 'diagnosis', 'findings', 'vitals', 'next_visit', 'procedure'].includes(sectionKey) ? (
+                  ['complaints', 'diagnosis', 'findings'].includes(sectionKey) ? (
                     /* Single-line Horizontal Card: Title on Left, Input Box on Right */
                     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible px-4 py-2.5 flex flex-col md:flex-row md:items-center gap-2.5 md:gap-4">
                       <div className="flex items-center gap-2.5 md:w-56 shrink-0">
