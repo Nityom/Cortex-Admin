@@ -53,13 +53,9 @@ export default function IpdHeaderStats({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-slate-900 tracking-tight">IPD Inpatient Census</h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80">
-                  Live Station
-                </span>
+                
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Ward Bed Allocation • Clinical Charting & MAR • Running Inpatient Billing
-              </p>
+             
             </div>
           </div>
 

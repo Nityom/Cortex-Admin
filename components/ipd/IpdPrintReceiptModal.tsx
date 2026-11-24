@@ -167,116 +167,140 @@ export function IpdPrintReceiptModal({
         </div>
 
         {/* The Bill-Sized Receipt Container */}
+        {/* The Bill-Sized Receipt Container - Clean B&W Normal Hospital Receipt */}
         <div
           id="inpatient-small-receipt"
-          className="border border-slate-300 rounded-xl p-4 bg-white space-y-2.5 text-slate-900 shadow-xs"
+          className="border border-black rounded-lg p-5 bg-white space-y-3 text-black shadow-xs font-sans"
         >
-          {/* Header matching Hospital Bills */}
-          <div className="text-center pb-2 border-b border-slate-300">
+          {/* Header matching Hospital Standard Receipts */}
+          <div className="text-center pb-2.5 border-b border-black">
             <div className="flex items-center justify-center gap-2">
               <img
                 src={hospitalConfig.branding.logoUrl}
                 alt={hospitalConfig.name}
-                className="h-7 w-auto object-contain"
+                className="h-8 w-auto object-contain"
               />
-              <h2 className="text-sm font-black tracking-tight text-slate-900 uppercase">
-                {hospitalConfig.legalName}
+              <h2 className="text-base font-black tracking-tight text-black uppercase">
+                {hospitalConfig.legalName || "CORTEX HOSPITAL"}
               </h2>
             </div>
-            <p className="text-[10px] text-slate-600 mt-0.5">{hospitalConfig.address.fullFormatted}</p>
-            <p className="text-[9px] text-slate-500 font-mono">Cell: +91 {hospitalConfig.contacts.mobile}</p>
+            <p className="text-[11px] text-gray-800 mt-0.5">{hospitalConfig.address.fullFormatted}</p>
+            <p className="text-[10px] text-gray-700 font-mono">Cell: +91 {hospitalConfig.contacts.mobile}</p>
 
-            <div className="inline-block mt-1 px-3 py-0.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider rounded">
-              INPATIENT PAYMENT RECEIPT
+            <div className="inline-block mt-2 px-3 py-0.5 border border-black text-black text-[11px] font-black uppercase tracking-widest">
+              PAYMENT RECEIPT
             </div>
           </div>
 
-          {/* Receipt Meta */}
-          <div className="flex items-center justify-between text-[11px] font-mono border-b border-slate-200 pb-1.5">
+          {/* Receipt Meta (Receipt No & Date) */}
+          <div className="flex items-center justify-between text-xs font-mono border-b border-black pb-2">
             <div>
-              <span className="text-slate-500 text-[10px] block">Receipt No:</span>
-              <strong className="text-slate-900">{adv.receiptNumber || `CRX-REC-${pt.ipdNumber}`}</strong>
+              <span className="text-gray-700 font-semibold mr-1">Receipt No:</span>
+              <strong className="text-black font-bold font-mono">{adv.receiptNumber || `CRX-REC-${pt.ipdNumber}`}</strong>
             </div>
             <div className="text-right">
-              <span className="text-slate-500 text-[10px] block">Date:</span>
-              <strong className="text-slate-900">{adv.date || new Date().toISOString().split("T")[0]}</strong>
+              <span className="text-gray-700 font-semibold mr-1">Date:</span>
+              <strong className="text-black font-bold font-mono">
+                {(() => {
+                  const dStr = adv.date || new Date().toISOString().split("T")[0];
+                  try {
+                    const parts = dStr.split("-");
+                    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    return dStr;
+                  } catch {
+                    return dStr;
+                  }
+                })()}
+              </strong>
             </div>
           </div>
 
-          {/* Patient Information Box */}
-          <div className="text-xs space-y-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-500">Patient Name:</span>
-              <strong className="text-slate-900 font-bold">{pt.name}</strong>
+          {/* Patient Information Grid */}
+          <div className="text-xs border-b border-black pb-2.5 space-y-1.5">
+            <div className="grid grid-cols-12 gap-1">
+              <div className="col-span-3 font-semibold text-gray-700">Patient Name:</div>
+              <div className="col-span-9 font-bold text-black uppercase">{pt.name}</div>
             </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">UHID:</span>
-              <span className="font-mono font-bold text-slate-800">{pt.uhid}</span>
+            <div className="grid grid-cols-12 gap-1 text-[11.5px]">
+              <div className="col-span-3 font-semibold text-gray-700">UHID:</div>
+              <div className="col-span-9 font-mono font-bold text-black">{pt.uhid}</div>
             </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">IPD No:</span>
-              <span className="font-mono font-bold text-emerald-700">{pt.ipdNumber}</span>
+            <div className="grid grid-cols-12 gap-1 text-[11.5px]">
+              <div className="col-span-3 font-semibold text-gray-700">IPD No:</div>
+              <div className="col-span-9 font-mono font-bold text-black">{pt.ipdNumber}</div>
             </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">Ward &amp; Bed:</span>
-              <span className="font-semibold text-slate-800">
-                {pt.ward} (Bed {pt.bedNumber})
-              </span>
+            <div className="grid grid-cols-12 gap-1 text-[11.5px]">
+              <div className="col-span-3 font-semibold text-gray-700">Ward &amp; Bed:</div>
+              <div className="col-span-9 font-medium text-black">
+                {pt.ward} ({pt.bedNumber.replace(/^Bed\s*/i, "Bed ")})
+              </div>
             </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-slate-500">Consultant:</span>
-              <span className="font-semibold text-slate-800">{pt.consultantDoctor}</span>
+            <div className="grid grid-cols-12 gap-1 text-[11.5px]">
+              <div className="col-span-3 font-semibold text-gray-700">Consultant:</div>
+              <div className="col-span-9 font-semibold text-black">{pt.consultantDoctor}</div>
             </div>
           </div>
 
-          {/* Prominent Amount Box */}
-          <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-center">
-            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
-              AMOUNT RECEIVED
+          {/* Clean Normal Particulars & Amount Table */}
+          <table className="w-full border-collapse border border-black text-xs my-2">
+            <thead>
+              <tr className="border-b border-black bg-gray-100 font-bold text-black">
+                <th className="p-2 text-left border-r border-black">Particulars / Description</th>
+                <th className="p-2 text-center w-28 border-r border-black">Payment Mode</th>
+                <th className="p-2 text-right w-32">Amount (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-black">
+                <td className="p-2 text-left border-r border-black">
+                  <div className="font-bold text-black">
+                    {adv.notes?.trim() ? adv.notes : "Inpatient Advance Payment / Deposit"}
+                  </div>
+                  <div className="text-[10.5px] text-gray-600 mt-0.5">
+                    Received towards Inpatient Stay Charges
+                  </div>
+                </td>
+                <td className="p-2 text-center font-bold text-black uppercase border-r border-black font-mono">
+                  {adv.mode || "Cash"}
+                </td>
+                <td className="p-2 text-right font-mono font-bold text-black text-sm">
+                  {Number(adv.amount || 0).toFixed(2)}
+                </td>
+              </tr>
+              <tr className="bg-gray-50/80 font-bold border-t border-black">
+                <td colSpan={2} className="p-2 text-right border-r border-black font-bold">
+                  Total Amount Received:
+                </td>
+                <td className="p-2 text-right font-mono font-bold text-sm">
+                  Rs. {Number(adv.amount || 0).toFixed(2)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Amount in Words */}
+          <div className="text-xs py-1 border-b border-black">
+            <span className="font-semibold text-gray-700">Amount in Words: </span>
+            <span className="font-bold text-black italic">
+              Rupees {amountWords} Only
             </span>
-            <div className="text-2xl font-black font-mono text-emerald-950 my-0.5">
-              ₹{Number(adv.amount || 0).toLocaleString("en-IN")}
-            </div>
-            <p className="text-[10px] font-bold text-emerald-950 italic">{amountWords}</p>
-            <div className="mt-1.5 pt-1.5 border-t border-emerald-200 flex justify-between text-[10px] text-emerald-900 font-semibold">
-              <span>
-                Mode: <strong>{adv.mode || "Cash"}</strong>
-              </span>
-              <span>{adv.notes || "Inpatient Stay Payment"}</span>
-            </div>
           </div>
 
-          {/* Running Account Ledger Status */}
-          <div className="p-2 border border-slate-200 rounded-lg text-[10px] space-y-1 bg-white">
-            <div className="flex justify-between text-slate-600">
-              <span>Total Stay Charges So Far:</span>
-              <span className="font-mono font-bold text-slate-800">₹{ptBill.grossTotal.toLocaleString("en-IN")}</span>
-            </div>
-            <div className="flex justify-between text-emerald-700 font-semibold">
-              <span>Total Advance Receipts Credited:</span>
-              <span className="font-mono font-bold">₹{ptBill.totalAdvances.toLocaleString("en-IN")}</span>
-            </div>
-            <div className="flex justify-between text-slate-900 font-bold pt-1 border-t border-slate-200">
-              <span>Current Net Balance Due:</span>
-              <span className="font-mono text-xs">₹{ptBill.balanceDue.toLocaleString("en-IN")}</span>
-            </div>
-          </div>
-
-          {/* Signatures */}
-          <div className="pt-2 flex justify-between items-end border-t border-slate-300 text-[10px]">
+          {/* Signatures & Footer */}
+          <div className="pt-4 flex justify-between items-end text-xs">
             <div>
-              <span className="text-slate-400 block text-[9px]">Received By:</span>
-              <span className="font-semibold text-slate-800">{adv.receivedBy || "Billing Desk"}</span>
+              <span className="text-gray-500 block text-[10px]">Received By:</span>
+              <span className="font-semibold text-black">{adv.receivedBy || "Billing Desk"}</span>
             </div>
-            <div className="text-right">
-              <img src={docSig} alt="Signature" className="h-7 w-auto object-contain ml-auto mb-0.5" />
-              <div className="border-t border-slate-400 pt-0.5 font-bold text-slate-800">
+            <div className="text-center w-40">
+              <img src={docSig} alt="Signature" className="h-8 w-auto object-contain mx-auto mb-1" />
+              <div className="border-t border-black pt-1 font-bold text-black text-[11px]">
                 Authorized Signatory
               </div>
             </div>
           </div>
 
-          <div className="text-center text-[9px] text-slate-400 pt-0.5">
+          <div className="text-center text-[9px] text-gray-500 pt-1.5 border-t border-gray-300">
             Official computer generated receipt • All disputes subject to Wardha jurisdiction only
           </div>
         </div>
