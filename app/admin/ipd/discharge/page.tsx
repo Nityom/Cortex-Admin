@@ -72,6 +72,8 @@ function DischargeContent() {
   // Discharge Form State
   const [dischargeTab, setDischargeTab] = useState<"settlement" | "clinical">("settlement");
   const [dischargeForm, setDischargeForm] = useState({
+    admissionDate: "",
+    admissionTime: "",
     dischargeDate: new Date().toISOString().split("T")[0],
     dischargeTime: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
     conditionAtDischarge: "Cured / Stable",
@@ -152,6 +154,8 @@ function DischargeContent() {
         : new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
       setDischargeForm({
+        admissionDate: found.admissionDate || new Date().toISOString().split("T")[0],
+        admissionTime: found.admissionTime || "",
         dischargeDate: initialDischargeDate,
         dischargeTime: initialDischargeTime,
         conditionAtDischarge: found.dischargeSummary?.conditionAtDischarge || "Cured / Stable",
@@ -343,7 +347,13 @@ function DischargeContent() {
     const adm = admissions.find((a) => a.id === admId);
     if (!adm) return;
 
-    const billing = calculateRunningBill(adm, dischargeForm.dischargeDate);
+    const effectiveAdm: IPDAdmission = {
+      ...adm,
+      admissionDate: dischargeForm.admissionDate || adm.admissionDate,
+      admissionTime: dischargeForm.admissionTime !== undefined ? dischargeForm.admissionTime : (adm.admissionTime || ""),
+    };
+
+    const billing = calculateRunningBill(effectiveAdm, dischargeForm.dischargeDate);
     const discount = Number(dischargeForm.discount) || 0;
     const netTotal = Math.max(0, billing.grossTotal - discount);
     const finalBalance = netTotal - billing.totalAdvances;
@@ -354,6 +364,8 @@ function DischargeContent() {
       if (item.id === admId) {
         return {
           ...item,
+          admissionDate: effectiveAdm.admissionDate,
+          admissionTime: effectiveAdm.admissionTime,
           status: "Discharged" as const,
           dischargeDate: dischargeForm.dischargeDate,
           dischargeTime: dischargeForm.dischargeTime,
@@ -390,13 +402,19 @@ function DischargeContent() {
 
   const handleGenerateFinalBill = async (admission: IPDAdmission) => {
     try {
-      const billing = calculateRunningBill(admission);
-      const discount = Number(dischargeForm.discount) || admission.finalSettlement?.discount || 0;
+      const effectiveAdmission: IPDAdmission = {
+        ...admission,
+        admissionDate: dischargeForm.admissionDate || admission.admissionDate,
+        admissionTime: dischargeForm.admissionTime !== undefined ? dischargeForm.admissionTime : (admission.admissionTime || ""),
+      };
+
+      const billing = calculateRunningBill(effectiveAdmission, dischargeForm.dischargeDate);
+      const discount = Number(dischargeForm.discount) || effectiveAdmission.finalSettlement?.discount || 0;
       const netTotal = Math.max(0, billing.grossTotal - discount);
       const finalBalance = Math.max(0, netTotal - billing.totalAdvances);
 
-      const dischDateStr = `${dischargeForm.dischargeDate || admission.dischargeDate || new Date().toISOString().split("T")[0]} ${dischargeForm.dischargeTime || admission.dischargeTime || ""}`.trim();
-      const admitDateStr = `${admission.admissionDate} ${admission.admissionTime || ""}`.trim();
+      const dischDateStr = `${dischargeForm.dischargeDate || effectiveAdmission.dischargeDate || new Date().toISOString().split("T")[0]} ${dischargeForm.dischargeTime || effectiveAdmission.dischargeTime || ""}`.trim();
+      const admitDateStr = `${effectiveAdmission.admissionDate} ${effectiveAdmission.admissionTime || ""}`.trim();
       const wardStr = `${admission.ward} ${admission.bedNumber}`.trim();
 
       const billItems: any[] = [];
@@ -496,6 +514,10 @@ function DischargeContent() {
         if (item.id === admission.id) {
           return {
             ...item,
+            admissionDate: effectiveAdmission.admissionDate,
+            admissionTime: effectiveAdmission.admissionTime,
+            dischargeDate: dischargeForm.dischargeDate || item.dischargeDate,
+            dischargeTime: dischargeForm.dischargeTime || item.dischargeTime,
             finalSettlement: {
               billNumber: savedBill?.bill_number || `CRX-IPD-${Date.now().toString().slice(-5)}`,
               billId: String(activeBillId || ""),

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { IPDAdmission, HospitalChargeItem, calculateRunningBill } from "./types";
 import { isShillpaDoctor } from "@/lib/doctorColors";
-import { formatDateDDMMYY } from "@/lib/utils";
+import { formatDateDDMMYY, to24Hour, to12Hour } from "@/lib/utils";
 
 interface IpdDischargeModalProps {
   isOpen: boolean;
@@ -23,6 +23,8 @@ interface IpdDischargeModalProps {
   onClose: () => void;
   procedureCatalog: HospitalChargeItem[];
   dischargeForm: {
+    admissionDate?: string;
+    admissionTime?: string;
     dischargeDate: string;
     dischargeTime: string;
     conditionAtDischarge: string;
@@ -82,7 +84,16 @@ export default function IpdDischargeModal({
 }: IpdDischargeModalProps) {
   if (!isOpen || !admission) return null;
 
-  const bill = calculateRunningBill(admission, dischargeForm.dischargeDate);
+  const effectiveAdmission: IPDAdmission = {
+    ...admission,
+    admissionDate: dischargeForm.admissionDate || admission.admissionDate,
+    admissionTime: dischargeForm.admissionTime !== undefined ? dischargeForm.admissionTime : (admission.admissionTime || ""),
+  };
+
+  const effectiveAdmissionDate = effectiveAdmission.admissionDate;
+  const effectiveAdmissionTime = effectiveAdmission.admissionTime || "";
+
+  const bill = calculateRunningBill(effectiveAdmission, dischargeForm.dischargeDate);
   const discount = Number(dischargeForm.discount) || 0;
   const netTotal = Math.max(0, bill.grossTotal - discount);
   const finalBalance = netTotal - bill.totalAdvances;
@@ -173,18 +184,34 @@ export default function IpdDischargeModal({
             </button>
           </div>
 
-          {/* Admission & Discharge Date/Time Bar (Directly Editable with Live Bill Recalculation) */}
+          {/* Admission & Discharge Date/Time Bar (Directly Editable with Live Bill Recalculation & Inbuilt Clock) */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-            <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
               <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Admission Date & Time
-                </span>
-                <span className="font-bold text-slate-800 font-mono">
-                  {formatDateDDMMYY(admission.admissionDate)} {admission.admissionTime ? `• ${admission.admissionTime}` : ""}
-                </span>
+                <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                  Admission Date <span className="text-emerald-700 font-mono">({formatDateDDMMYY(effectiveAdmissionDate)})</span>
+                </label>
+                <input
+                  type="date"
+                  value={effectiveAdmissionDate}
+                  onChange={(e) => setDischargeForm({ ...dischargeForm, admissionDate: e.target.value })}
+                  className="px-2.5 py-1 border border-slate-300 rounded-lg font-bold text-xs sm:text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+                  Admission Time {effectiveAdmissionTime ? <span className="text-emerald-700 font-mono">({effectiveAdmissionTime})</span> : null}
+                </label>
+                <input
+                  type="time"
+                  value={to24Hour(effectiveAdmissionTime)}
+                  onChange={(e) => setDischargeForm({ ...dischargeForm, admissionTime: to12Hour(e.target.value) })}
+                  className="px-2.5 py-1 border border-slate-300 rounded-lg font-bold text-xs sm:text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                />
+              </div>
+
               <div className="h-7 w-px bg-slate-200 hidden sm:block" />
+
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
                   Discharge Date <span className="text-emerald-700 font-mono">({formatDateDDMMYY(dischargeForm.dischargeDate)})</span>
@@ -198,14 +225,13 @@ export default function IpdDischargeModal({
               </div>
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                  Discharge Time
+                  Discharge Time {dischargeForm.dischargeTime ? <span className="text-emerald-700 font-mono">({dischargeForm.dischargeTime})</span> : null}
                 </label>
                 <input
-                  type="text"
-                  value={dischargeForm.dischargeTime}
-                  onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeTime: e.target.value })}
-                  placeholder="e.g. 02:30 PM"
-                  className="w-28 px-2.5 py-1 border border-slate-300 rounded-lg font-bold text-xs sm:text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                  type="time"
+                  value={to24Hour(dischargeForm.dischargeTime)}
+                  onChange={(e) => setDischargeForm({ ...dischargeForm, dischargeTime: to12Hour(e.target.value) })}
+                  className="px-2.5 py-1 border border-slate-300 rounded-lg font-bold text-xs sm:text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
                 />
               </div>
             </div>
@@ -848,7 +874,7 @@ export default function IpdDischargeModal({
 
             <button
               type="button"
-              onClick={() => onGenerateFinalBill(admission)}
+              onClick={() => onGenerateFinalBill(effectiveAdmission)}
               className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow flex items-center gap-2 transition cursor-pointer"
             >
               <FileText className="w-4 h-4" />
