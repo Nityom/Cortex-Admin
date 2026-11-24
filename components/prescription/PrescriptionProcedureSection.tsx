@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Edit2 } from 'lucide-react';
-import SectionTemplatePicker from '@/components/SectionTemplatePicker';
 
 export interface TreatmentItem {
   id: number;
@@ -76,37 +74,6 @@ export default function PrescriptionProcedureSection({
 
   return (
     <div className="bg-emerald-50/40 border border-emerald-200 rounded-xl p-4 shadow-2xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-emerald-200/80 gap-2">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
-            <span title="Edit Procedure Done" className="inline-flex">
-              <Edit2 className="w-4 h-4 text-emerald-700" />
-            </span>
-            Procedure done
-          </label>
-          <SectionTemplatePicker
-            sectionKey="procedure_done"
-            sectionTitle="Procedure Done"
-            currentValue={dentalProcedures}
-            align="right"
-            onApplyPreset={(val) => {
-              if (val && val.name) {
-                setSelectedTreatmentName(val.name);
-                setSelectedTreatmentPrice(String(val.price || 0));
-                setSelectedTreatmentQty(val.qty || 1);
-                saveProcedureToCatalog(val.name, val.price || 0);
-              }
-            }}
-          />
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-            Optional
-          </span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
-            Forwarded to Billing Only
-          </span>
-        </div>
-      </div>
-
       {/* Registration / Consultation Fee Checkbox */}
       <div className="p-3 bg-white/95 rounded-lg border border-emerald-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs">
         <label className="flex items-start gap-2.5 cursor-pointer select-none">
