@@ -11,9 +11,11 @@ import {
   Check,
   Trash2,
   Receipt,
+  ArrowLeft,
 } from "lucide-react";
 import { IPDAdmission, HospitalChargeItem, calculateRunningBill } from "./types";
 import { isShillpaDoctor } from "@/lib/doctorColors";
+import { formatDateDDMMYY } from "@/lib/utils";
 
 interface IpdDischargeModalProps {
   isOpen: boolean;
@@ -52,6 +54,7 @@ interface IpdDischargeModalProps {
   onOpenRecordPayment: (admission: IPDAdmission, returnTo?: "none" | "discharge" | "billing") => void;
   onFinalizeDischarge: (admissionId: string) => void;
   onGenerateFinalBill: (admission: IPDAdmission) => Promise<void>;
+  isPageMode?: boolean;
 }
 
 export default function IpdDischargeModal({
@@ -75,6 +78,7 @@ export default function IpdDischargeModal({
   onOpenRecordPayment,
   onFinalizeDischarge,
   onGenerateFinalBill,
+  isPageMode = false,
 }: IpdDischargeModalProps) {
   if (!isOpen || !admission) return null;
 
@@ -91,9 +95,14 @@ export default function IpdDischargeModal({
 
   const isAlreadyDischarged = admission.status === "Discharged";
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-2 md:p-3">
-      <div className="bg-white sm:rounded-2xl w-full max-w-6xl h-full sm:h-auto max-h-[88vh] flex flex-col shadow-2xl border border-slate-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+  const mainCard = (
+    <div
+      className={`bg-white w-full flex flex-col overflow-hidden ${
+        isPageMode
+          ? "rounded-2xl shadow-md border border-slate-200"
+          : "sm:rounded-2xl max-w-6xl h-full sm:h-auto max-h-[92vh] shadow-2xl border border-slate-300 animate-in fade-in zoom-in-95 duration-150"
+      }`}
+    >
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex flex-col gap-3 bg-slate-50/80 rounded-t-2xl">
           <div className="flex items-start justify-between gap-3">
@@ -171,14 +180,14 @@ export default function IpdDischargeModal({
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
                   Admission Date & Time
                 </span>
-                <span className="font-bold text-slate-800">
-                  {admission.admissionDate} {admission.admissionTime ? `• ${admission.admissionTime}` : ""}
+                <span className="font-bold text-slate-800 font-mono">
+                  {formatDateDDMMYY(admission.admissionDate)} {admission.admissionTime ? `• ${admission.admissionTime}` : ""}
                 </span>
               </div>
               <div className="h-7 w-px bg-slate-200 hidden sm:block" />
               <div>
                 <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                  Discharge Date
+                  Discharge Date <span className="text-emerald-700 font-mono">({formatDateDDMMYY(dischargeForm.dischargeDate)})</span>
                 </label>
                 <input
                   type="date"
@@ -243,87 +252,9 @@ export default function IpdDischargeModal({
         </div>
 
         {/* Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 text-sm">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 text-sm">
           {dischargeTab === "settlement" ? (
             <>
-              {/* SECTION A: PROMINENT RECOVERY / REFUND STATUS BANNER */}
-              {toRecover > 0 ? (
-                <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow shrink-0">
-                      <AlertCircle className="w-7 h-7" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
-                          Payment Due
-                        </span>
-                      </div>
-                      <h4 className="text-base font-bold text-rose-950 mt-1">
-                        Amount to recover from patient
-                      </h4>
-                      <p className="text-xs sm:text-sm text-rose-700">
-                        Remaining balance dues after adjusting advances. Collect this balance before discharge.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-left sm:text-right sm:border-l sm:border-rose-200 sm:pl-6">
-                    <span className="text-xs font-medium text-rose-600 block">
-                      Balance to recover
-                    </span>
-                    <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-rose-700">
-                      ₹{toRecover.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                </div>
-              ) : toRefund > 0 ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          Excess Deposit
-                        </span>
-                      </div>
-                      <h4 className="text-base font-bold text-emerald-950 mt-1">
-                        Amount to refund to patient
-                      </h4>
-                      <p className="text-xs sm:text-sm text-emerald-700">
-                        Patient deposited more than total charges. Refund this excess amount upon discharge.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-left sm:text-right sm:border-l sm:border-emerald-200 sm:pl-6">
-                    <span className="text-xs font-medium text-emerald-600 block">
-                      Refund to patient
-                    </span>
-                    <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-emerald-700">
-                      ₹{toRefund.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex items-center justify-between gap-4 shadow-2xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-bold text-slate-900">
-                        Account fully settled
-                      </h4>
-                      <p className="text-xs sm:text-sm text-slate-600">
-                        Total charges match patient advances exactly. No recovery or refund required.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-slate-900">₹0</span>
-                </div>
-              )}
-
               {/* SECTION B: 4 NUMERICAL METRIC PILLS */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -762,8 +693,8 @@ export default function IpdDischargeModal({
                         <span className="font-mono font-bold text-emerald-900">
                           #{idx + 1} {adv.receiptNumber}
                         </span>
-                        <span className="text-slate-600">
-                          ({adv.date} • {adv.mode})
+                        <span className="text-slate-600 font-mono">
+                          ({formatDateDDMMYY(adv.date)} • {adv.mode})
                         </span>
                         <span className="font-mono font-bold text-emerald-700">
                           ₹{adv.amount.toLocaleString("en-IN")}
@@ -817,7 +748,9 @@ export default function IpdDischargeModal({
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Discharge Date</label>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Discharge Date <span className="text-emerald-700 font-mono text-xs">({formatDateDDMMYY(dischargeForm.dischargeDate)})</span>
+                  </label>
                   <input
                     type="date"
                     value={dischargeForm.dischargeDate}
@@ -876,7 +809,9 @@ export default function IpdDischargeModal({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Next Follow-up Date</label>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Next Follow-up Date {dischargeForm.followupDate ? <span className="text-emerald-700 font-mono text-xs">({formatDateDDMMYY(dischargeForm.followupDate)})</span> : ""}
+                  </label>
                   <input
                     type="date"
                     value={dischargeForm.followupDate}
@@ -926,9 +861,41 @@ export default function IpdDischargeModal({
             onClick={onClose}
             className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-sm font-semibold cursor-pointer"
           >
-            Cancel
+            {isPageMode ? "Back to IPD" : "Cancel"}
           </button>
         </div>
+      </div>
+  );
+
+  if (isPageMode) {
+    return (
+      <div className="w-full min-h-screen bg-slate-100/70 py-4 px-3 sm:px-6 md:px-8 font-sans" style={{ zoom: "0.9" }}>
+        <div className="max-w-7xl mx-auto flex flex-col gap-3">
+          {/* Top Bar with Back Button */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 text-xs sm:text-sm font-bold rounded-xl border border-slate-300 shadow-2xs transition cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 text-emerald-600" />
+              Back to IPD Ward
+            </button>
+            <div className="text-xs text-slate-500 font-medium">
+              IPD Ward &gt; Inpatient Discharge &amp; Financial Settlement &gt;{" "}
+              <strong className="text-slate-800 font-bold">{admission.name}</strong>
+            </div>
+          </div>
+          {mainCard}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-2 md:p-3">
+      <div className="w-full max-w-6xl flex justify-center" style={{ zoom: "0.9" }}>
+        {mainCard}
       </div>
     </div>
   );

@@ -59,3 +59,27 @@ export const formatDate = (date: Date | string | number | undefined | null): str
 
 export const formatDisplayDate = formatDate;
 export const formatDateDMY = formatDate;
+
+export const formatDateDDMMYY = (date: Date | string | number | undefined | null): string => {
+  if (date === undefined || date === null || date === "") return "";
+  const str = String(date).trim();
+  const datePart = str.split("T")[0].split(" ")[0];
+  const ymdMatch = datePart.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (ymdMatch) {
+    const [, y, m, d] = ymdMatch;
+    return `${d.padStart(2, "0")}-${m.padStart(2, "0")}-${y.slice(-2)}`;
+  }
+  const dmyMatch = datePart.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+  if (dmyMatch) {
+    const [, d, m, y] = dmyMatch;
+    return `${d.padStart(2, "0")}-${m.padStart(2, "0")}-${y.slice(-2)}`;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}-${month}-${year}`;
+  }
+  return str;
+};

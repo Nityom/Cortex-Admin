@@ -2572,9 +2572,7 @@ export default function IPDManagementPage() {
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischarge={(adm) => {
-            setActiveAdmission(adm);
-            initDischargeFormForAdmission(adm);
-            setActiveModal("discharge");
+            router.push(`/admin/ipd/discharge?id=${adm.id}`);
           }}
           onOpenPrintTicket={(adm) => {
             setActiveAdmission(adm);
@@ -2625,9 +2623,7 @@ export default function IPDManagementPage() {
           setSearchQuery={setSearchQuery}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischargeModal={(adm) => {
-            setActiveAdmission(adm);
-            initDischargeFormForAdmission(adm);
-            setActiveModal("discharge");
+            router.push(`/admin/ipd/discharge?id=${adm.id}`);
           }}
           onGenerateFinalBill={(adm) => handleGenerateFinalBill(adm)}
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
