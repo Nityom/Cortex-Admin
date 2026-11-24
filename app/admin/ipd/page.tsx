@@ -128,9 +128,9 @@ export default function IPDManagementPage() {
   // Convex Real-Time Synchronization Hooks
   const liveAdmissions = useQuery(api.ipd.list, {});
   const liveBedConfig = useQuery(api.ipd.getBedConfig, {});
-  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const liveOpdQueue = useQuery(api.opd_queue.list, { limit: 50 });
   const liveAppointments = useQuery(api.appointments.list);
-  const livePatients = useQuery(api.patients.list, {});
+  const livePatients = useQuery(api.patients.list, { limit: 100 });
   const saveIpdMutation = useMutation(api.ipd.save);
   const updateIpdStatusMutation = useMutation(api.ipd.updateStatus);
   const saveBedConfigMutation = useMutation(api.ipd.saveBedConfig);

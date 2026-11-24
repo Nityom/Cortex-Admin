@@ -29,7 +29,7 @@ export const list = query({
         .order("desc")
         .take(limit);
     } else {
-      const limit = args.limit || 100;
+      const limit = args.limit || 50;
       items = await ctx.db.query("opd_queue").order("desc").take(limit);
     }
 

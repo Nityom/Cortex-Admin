@@ -184,7 +184,7 @@ export const getByReference = query({
             .first();
         if (alt2) return alt2;
 
-        const all = await ctx.db.query("patients").collect();
+        const all = await ctx.db.query("patients").order("desc").take(100);
         return all.find((p) => {
             const pRef = (p.reference_number || "").trim().toUpperCase().replace(/^CH/i, 'CRX');
             return pRef === normalized;
@@ -195,10 +195,8 @@ export const getByReference = query({
 export const list = query({
     args: { limit: v.optional(v.number()) },
     handler: async (ctx, args) => {
-        if (args.limit && args.limit > 0) {
-            return await ctx.db.query("patients").order("desc").take(args.limit);
-        }
-        return await ctx.db.query("patients").order("desc").collect();
+        const limit = args.limit && args.limit > 0 ? args.limit : 100;
+        return await ctx.db.query("patients").order("desc").take(limit);
     },
 });
 

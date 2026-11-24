@@ -456,9 +456,10 @@ export const update = mutation({
 });
 
 export const list = query({
-    args: {},
-    handler: async (ctx) => {
-        return await ctx.db.query("prescriptions").order("desc").collect();
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const limit = args.limit || 100;
+        return await ctx.db.query("prescriptions").order("desc").take(limit);
     },
 });
 
@@ -515,8 +516,32 @@ export const listByPatientName = query({
             return docsLower.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
         }
 
-        // 3. Fallback normalized fuzzy check across all prescriptions
-        const recent = await ctx.db.query("prescriptions").order("desc").collect();
+        // 3. Try title-cased version (e.g. "Tanuja Wayse")
+        const titleCased = name.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+        if (titleCased !== name && titleCased !== name.toLowerCase()) {
+            const docsTitle = await ctx.db
+                .query("prescriptions")
+                .withIndex("by_patient_name", (q) => q.eq("patient_name", titleCased))
+                .collect();
+            if (docsTitle.length > 0) {
+                return docsTitle.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+            }
+        }
+
+        // 4. Try without honorific prefix (e.g. "Mr.", "Mrs.", "Dr.", "Smt.")
+        const strippedName = name.replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").trim();
+        if (strippedName && strippedName !== name) {
+            const docsStripped = await ctx.db
+                .query("prescriptions")
+                .withIndex("by_patient_name", (q) => q.eq("patient_name", strippedName))
+                .collect();
+            if (docsStripped.length > 0) {
+                return docsStripped.sort((a, b) => ((b as any).created_at || b._creationTime) - ((a as any).created_at || a._creationTime));
+            }
+        }
+
+        // 5. Capped fallback check across recent 80 prescriptions (never whole-table scan)
+        const recent = await ctx.db.query("prescriptions").order("desc").take(80);
         const normTarget = name.toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
         const matched = recent.filter((p) => {
             const pNorm = (p.patient_name || "").toLowerCase().replace(/^(mr|mrs|ms|miss|dr|smt|shri)\.?\s+/i, "").replace(/[^a-z0-9]/g, "");
@@ -550,13 +575,22 @@ export const getQueueVisitTracking = query({
 
         const uniqueUhids = Array.from(new Set(args.uhids.map((u) => (u || "").trim().toUpperCase()).filter(Boolean)));
         for (const uhid of uniqueUhids) {
-            const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
-            const [docs1, docs2] = await Promise.all([
-                ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", uhid)).order("desc").take(3),
-                altRef !== uhid
-                    ? ctx.db.query("prescriptions").withIndex("by_reference", (q) => q.eq("reference_number", altRef)).order("desc").take(3)
-                    : Promise.resolve([]),
-            ]);
+            const docs1 = await ctx.db
+                .query("prescriptions")
+                .withIndex("by_reference", (q) => q.eq("reference_number", uhid))
+                .order("desc")
+                .take(2);
+            let docs2: any[] = [];
+            if (docs1.length === 0) {
+                const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
+                if (altRef !== uhid) {
+                    docs2 = await ctx.db
+                        .query("prescriptions")
+                        .withIndex("by_reference", (q) => q.eq("reference_number", altRef))
+                        .order("desc")
+                        .take(2);
+                }
+            }
             const allRx = [...docs1, ...docs2].sort(
                 (a, b) =>
                     new Date(b.prescription_date || (b as any).created_at || b._creationTime || 0).getTime() -
@@ -595,7 +629,7 @@ export const getQueueVisitTracking = query({
 
         const cleanPhones = Array.from(new Set(args.phones.map((p) => (p || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10)));
         for (const phone of cleanPhones) {
-            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).order("desc").take(3);
+            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).order("desc").take(2);
             const allRx = docs.sort(
                 (a, b) =>
                     new Date(b.prescription_date || b._creationTime || 0).getTime() -

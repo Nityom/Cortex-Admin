@@ -487,8 +487,13 @@ export default function OPDManagementPage() {
     temperature: "",
   });
 
-  const allAppointments = useQuery(api.appointments.list);
-  const convexPatients = useQuery(api.patients.list, activeTab === "directory" ? {} : "skip");
+  const liveTodayAppointments = useQuery(api.appointments.getByDate, { date: todayStr });
+  const liveSelectedDateAppointments = useQuery(
+    api.appointments.getByDate,
+    selectedApptDate !== todayStr ? { date: selectedApptDate } : "skip"
+  );
+  const allAppointments = liveTodayAppointments;
+  const convexPatients = useQuery(api.patients.list, activeTab === "directory" ? { limit: 100 } : "skip");
   const allBills = useQuery(api.bills.list, { startDate: todayStr });
   const updateAppointmentMutation = useMutation(api.appointments.update);
 
@@ -514,7 +519,12 @@ export default function OPDManagementPage() {
 
   const queuePhones = useMemo(() => {
     return Array.from(
-      new Set(queue.map((q) => (q.phone || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10))
+      new Set(
+        queue
+          .filter((q) => !q.uhid || !q.uhid.trim())
+          .map((q) => (q.phone || "").replace(/\D/g, "").slice(-10))
+          .filter((p) => p.length === 10)
+      )
     );
   }, [queue]);
 
@@ -740,15 +750,16 @@ export default function OPDManagementPage() {
   }, [allBills]);
 
   const todayAppointments = useMemo(() => {
-    if (!allAppointments) return [];
-    return allAppointments
+    if (!liveTodayAppointments) return [];
+    return [...liveTodayAppointments]
       .filter((a) => a.date === todayStr)
       .sort((a, b) => (b.time || "").localeCompare(a.time || "") || (b._creationTime || 0) - (a._creationTime || 0));
-  }, [allAppointments, todayStr]);
+  }, [liveTodayAppointments, todayStr]);
 
   const appointmentsForSelectedDate = useMemo(() => {
-    if (!allAppointments) return [];
-    return allAppointments
+    const list = selectedApptDate === todayStr ? liveTodayAppointments : liveSelectedDateAppointments;
+    if (!list) return [];
+    return list
       .filter((a) => a.date === selectedApptDate)
       .filter((a) => {
         if (apptDoctorFilter === "All") return true;
@@ -763,7 +774,7 @@ export default function OPDManagementPage() {
         );
       })
       .sort((a, b) => (b.time || "").localeCompare(a.time || "") || (b._creationTime || 0) - (a._creationTime || 0));
-  }, [allAppointments, selectedApptDate, apptDoctorFilter, apptSearchQuery]);
+  }, [liveTodayAppointments, liveSelectedDateAppointments, selectedApptDate, todayStr, apptDoctorFilter, apptSearchQuery]);
 
   const isApptInQueue = (appt: any) => {
     return queue.find(

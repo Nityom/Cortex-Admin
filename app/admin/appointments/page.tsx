@@ -88,14 +88,17 @@ export default function AppointmentsPage() {
   // Wait, if we want to show dots on the calendar, we should query all appointments or a specific range.
   // We'll just fetch all appointments for now, assuming the list isn't huge, or we can just fetch list and filter.
   // Let's use the list query and filter it on the client side.
-  const allAppointments = useQuery(api.appointments.list);
-  const allPatients = useQuery(api.patients.list, {});
-
   // Debounced Patient Search in Appointment Modal
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const patientDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const allAppointments = useQuery(api.appointments.list);
+  const allPatients = useQuery(
+    api.patients.search,
+    debouncedSearchQuery.trim().length >= 2 ? { searchTerm: debouncedSearchQuery.trim() } : "skip"
+  );
 
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -250,7 +253,7 @@ export default function AppointmentsPage() {
   const removeAppointment = useMutation(api.appointments.remove);
   const upsertOpdQueueMutation = useMutation(api.opd_queue.upsert);
   const removeOpdQueueMutation = useMutation(api.opd_queue.remove);
-  const liveOpdQueue = useQuery(api.opd_queue.list, {});
+  const liveOpdQueue = useQuery(api.opd_queue.list, { date: selectedDate });
 
   const [lastBookedTime, setLastBookedTime] = useState<string>('');
 

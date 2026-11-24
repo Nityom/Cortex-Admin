@@ -131,7 +131,7 @@ export const getAllPrescriptions = async (searchTerm?: string, forceRefresh = fa
       } catch {}
     }
 
-    const data = await convex.query(api.prescriptions.list);
+    const data = await convex.query(api.prescriptions.list, {});
     let results = data.map((item: any) => ({ ...item, id: item._id })) as Prescription[];
 
     if (typeof window !== 'undefined' && !searchTerm) {
