@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   GripVertical,
+  ChevronUp,
   PenTool,
   Activity,
   User,
@@ -78,6 +79,19 @@ interface PrescriptionSectionsContainerProps {
 export default function PrescriptionSectionsContainer({ form }: PrescriptionSectionsContainerProps) {
   const rxSectionOrder: PrescriptionSectionKey[] = form.rxSectionOrder || DEFAULT_RX_SECTION_ORDER;
   const setRxSectionOrder = form.setRxSectionOrder || (() => { });
+
+  // Only Drawing Board has open/collapse toggle
+  const [isDrawingBoardOpen, setIsDrawingBoardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleExpandCustom = (e: any) => {
+      if (e.detail === 'drawing_board') {
+        setIsDrawingBoardOpen(true);
+      }
+    };
+    window.addEventListener('cortex_expand_section', handleExpandCustom);
+    return () => window.removeEventListener('cortex_expand_section', handleExpandCustom);
+  }, []);
 
   const [activeDragHandleKey, setActiveDragHandleKey] = useState<PrescriptionSectionKey | null>(null);
   const [draggedSection, setDraggedSection] = useState<PrescriptionSectionKey | null>(null);
@@ -475,6 +489,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
           .map((sectionKey, idx) => {
             const isBeingDragged = draggedSection === sectionKey;
             const isOver = dragOverSection === sectionKey && !isBeingDragged;
+            const isCollapsed = sectionKey === 'drawing_board' && !isDrawingBoardOpen;
 
             return (
               <div
@@ -529,37 +544,100 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                   </div>
                 )}
 
-                {/* Always-Open Card with unified clean styling & overflow-visible for dropdowns */}
-                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
-                  <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                    <div className="flex items-center gap-3 min-w-0">
+                {isCollapsed ? (
+                  /* Collapsed Drawing Board Row */
+                  <div
+                    onClick={() => setIsDrawingBoardOpen(true)}
+                    className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150 select-none group"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
                       <button
                         type="button"
-                        onMouseDown={() => setActiveDragHandleKey(sectionKey)}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          setActiveDragHandleKey(sectionKey);
+                        }}
                         onMouseUp={() => setActiveDragHandleKey(null)}
-                        title="Click and drag to reorder section"
-                        className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Click and drag here to move section"
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-slate-600 transition -ml-2 cursor-grab active:cursor-grabbing shrink-0"
                       >
                         <GripVertical className="w-4 h-4" />
                       </button>
+
                       <div className="text-slate-700 shrink-0">
                         {getSectionIcon(sectionKey)}
                       </div>
-                      <span className="text-sm font-bold text-slate-900 tracking-tight">
+
+                      <span className="text-sm font-bold text-slate-800 tracking-tight shrink-0">
                         {RX_SECTION_TITLES[sectionKey]}
                       </span>
-                      {sectionKey === 'drawing_board' && form.drawingDataUrl && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+
+                      {form.drawingDataUrl && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shrink-0 ml-1">
                           ✓ Sketch saved
                         </span>
                       )}
                     </div>
-                  </div>
 
-                  <div className="p-3 sm:p-5">
-                    {renderSectionContent(sectionKey)}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsDrawingBoardOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-emerald-800 bg-emerald-50/80 border border-emerald-300/80 hover:bg-emerald-100 transition cursor-pointer"
+                      >
+                        <PenTool className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Open Drawing Board</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Expanded Card (Always Open for all sections except Drawing Board) */
+                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
+                    <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onMouseDown={() => setActiveDragHandleKey(sectionKey)}
+                          onMouseUp={() => setActiveDragHandleKey(null)}
+                          title="Click and drag to reorder section"
+                          className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </button>
+                        <div className="text-slate-700 shrink-0">
+                          {getSectionIcon(sectionKey)}
+                        </div>
+                        <span className="text-sm font-bold text-slate-900 tracking-tight">
+                          {RX_SECTION_TITLES[sectionKey]}
+                        </span>
+                        {sectionKey === 'drawing_board' && form.drawingDataUrl && (
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                            ✓ Sketch saved
+                          </span>
+                        )}
+                      </div>
+
+                      {sectionKey === 'drawing_board' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsDrawingBoardOpen(false)}
+                          className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                        >
+                          <ChevronUp className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                          <span>Collapse</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="p-3 sm:p-5">
+                      {renderSectionContent(sectionKey)}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
