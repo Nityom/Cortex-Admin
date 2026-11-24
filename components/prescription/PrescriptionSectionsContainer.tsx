@@ -3,8 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   GripVertical,
-  ChevronUp,
-  ChevronDown,
   PenTool,
   Activity,
   User,
@@ -80,82 +78,6 @@ interface PrescriptionSectionsContainerProps {
 export default function PrescriptionSectionsContainer({ form }: PrescriptionSectionsContainerProps) {
   const rxSectionOrder: PrescriptionSectionKey[] = form.rxSectionOrder || DEFAULT_RX_SECTION_ORDER;
   const setRxSectionOrder = form.setRxSectionOrder || (() => { });
-
-  // Collapsed state: support collapse & expand for every section (all closed by default, signature always open)
-  const getAllCollapsedDefault = (): Record<string, boolean> => {
-    const all: Record<string, boolean> = {};
-    DEFAULT_RX_SECTION_ORDER.forEach((key) => {
-      if (key !== 'signature') {
-        all[key] = true;
-      } else {
-        all[key] = false; // Doctor Signature & Print / Save is always open
-      }
-    });
-    return all;
-  };
-
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('cortex_rx_collapsed_sections_v2');
-        localStorage.removeItem('cortex_rx_collapsed_sections');
-        const saved = sessionStorage.getItem('cortex_rx_collapsed_sections');
-        if (saved !== null) {
-          const parsed = JSON.parse(saved);
-          parsed.signature = false;
-          return parsed;
-        }
-      } catch { }
-    }
-    return getAllCollapsedDefault();
-  });
-
-  const toggleSectionCollapse = (key: string) => {
-    if (key === 'signature') return; // no collapse needed for signature
-    setCollapsedSections((prev) => {
-      const isCurrentlyCollapsed = prev[key] !== false;
-      const updated = { ...prev, [key]: !isCurrentlyCollapsed, signature: false };
-      try {
-        sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(updated));
-      } catch { }
-      return updated;
-    });
-  };
-
-  const handleExpandAll = () => {
-    const allExpanded: Record<string, boolean> = {};
-    rxSectionOrder.forEach((k) => { allExpanded[k] = false; });
-    setCollapsedSections(allExpanded);
-    try {
-      sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(allExpanded));
-    } catch { }
-  };
-
-  const handleCollapseAll = () => {
-    const allCollapsed: Record<string, boolean> = {};
-    rxSectionOrder.forEach((k) => {
-      if (k !== 'signature') {
-        allCollapsed[k] = true;
-      } else {
-        allCollapsed[k] = false; // Doctor Signature & Print / Save always stays open
-      }
-    });
-    setCollapsedSections(allCollapsed);
-    try {
-      sessionStorage.setItem('cortex_rx_collapsed_sections', JSON.stringify(allCollapsed));
-    } catch { }
-  };
-
-  useEffect(() => {
-    const handleExpandCustom = (e: any) => {
-      const key = e.detail;
-      if (key) {
-        setCollapsedSections((prev) => ({ ...prev, [key]: false }));
-      }
-    };
-    window.addEventListener('cortex_expand_section', handleExpandCustom);
-    return () => window.removeEventListener('cortex_expand_section', handleExpandCustom);
-  }, []);
 
   const [activeDragHandleKey, setActiveDragHandleKey] = useState<PrescriptionSectionKey | null>(null);
   const [draggedSection, setDraggedSection] = useState<PrescriptionSectionKey | null>(null);
@@ -471,14 +393,6 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                 <span className="text-xs text-slate-400 hidden sm:inline">
                   Sketch clinical diagrams or annotate anatomical regions
                 </span>
-                <button
-                  type="button"
-                  onClick={() => toggleSectionCollapse('drawing_board')}
-                  className="text-[11px] font-bold text-slate-500 hover:text-emerald-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-md transition cursor-pointer"
-                  title="Minimize / Collapse Drawing Board"
-                >
-                  — Collapse
-                </button>
               </div>
             </div>
             <HealthPlixDrawingBoard
@@ -552,64 +466,15 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
     }
   };
 
-  const renderSectionCollapsedSnippet = (key: PrescriptionSectionKey) => {
-    if (key === 'complaints') {
-      const cc =
-        form.formData?.cc ||
-        (Array.isArray(form.complaintsList) && form.complaintsList.length > 0
-          ? form.complaintsList.map((c: any) => (typeof c === 'string' ? c : c?.complaint || '')).filter(Boolean).join(', ')
-          : '');
-      return (
-        <span className="text-xs text-slate-400 font-normal truncate max-w-[200px] sm:max-w-md ml-1">
-          {cc ? cc : 'Add chief complaints...'}
-        </span>
-      );
-    }
-
-    if (key === 'diagnosis') {
-      const diag =
-        form.formData?.de ||
-        (Array.isArray(form.diagnosesList) && form.diagnosesList.length > 0
-          ? form.diagnosesList.map((d: any) => (typeof d === 'string' ? d : d?.diagnosis || '')).filter(Boolean).join(', ')
-          : '');
-      return (
-        <span className="text-xs text-slate-400 font-normal truncate max-w-[200px] sm:max-w-md ml-1">
-          {diag ? diag : 'Add diagnosis...'}
-        </span>
-      );
-    }
-
-    if (key === 'drawing_board') {
-      if (form.drawingDataUrl) {
-        return (
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shrink-0 ml-1">
-            ✓ Sketch saved
-          </span>
-        );
-      }
-    }
-
-    if (key === 'signature') {
-      return null;
-    }
-
-    return (
-      <span className="text-[11px] font-medium text-slate-400 bg-slate-100/90 px-2.5 py-0.5 rounded-full shrink-0 ml-1">
-        Collapsed
-      </span>
-    );
-  };
-
   return (
     <div ref={containerRef} className="space-y-3">
-      {/* Main Clinical Stacked Layout - Ultra-minimal format matching image */}
+      {/* Main Clinical Stacked Layout */}
       <div className="space-y-3">
         {rxSectionOrder
           .filter((sectionKey) => sectionKey !== 'history')
           .map((sectionKey, idx) => {
             const isBeingDragged = draggedSection === sectionKey;
             const isOver = dragOverSection === sectionKey && !isBeingDragged;
-            const isCollapsed = sectionKey === 'signature' ? false : collapsedSections[sectionKey] !== false;
 
             return (
               <div
@@ -664,104 +529,37 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                   </div>
                 )}
 
-                {isCollapsed ? (
-                  /* Single Minimal Row matching user mockup image */
-                  <div
-                    onClick={() => toggleSectionCollapse(sectionKey)}
-                    className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150 select-none group"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      {/* Drag Grip Handle on hover */}
+                {/* Always-Open Card with unified clean styling & overflow-visible for dropdowns */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
+                  <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+                    <div className="flex items-center gap-3 min-w-0">
                       <button
                         type="button"
-                        onMouseDown={(e) => {
-                          e.stopPropagation();
-                          setActiveDragHandleKey(sectionKey);
-                        }}
+                        onMouseDown={() => setActiveDragHandleKey(sectionKey)}
                         onMouseUp={() => setActiveDragHandleKey(null)}
-                        onClick={(e) => e.stopPropagation()}
-                        title="Click and drag here to move section"
-                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-slate-600 transition -ml-2 cursor-grab active:cursor-grabbing shrink-0"
+                        title="Click and drag to reorder section"
+                        className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
                       >
                         <GripVertical className="w-4 h-4" />
                       </button>
-
                       <div className="text-slate-700 shrink-0">
                         {getSectionIcon(sectionKey)}
                       </div>
-
-                      <span className="text-sm font-bold text-slate-800 tracking-tight shrink-0">
+                      <span className="text-sm font-bold text-slate-900 tracking-tight">
                         {RX_SECTION_TITLES[sectionKey]}
                       </span>
-
-                      {renderSectionCollapsedSnippet(sectionKey)}
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {sectionKey === 'drawing_board' ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSectionCollapse('drawing_board');
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-emerald-800 bg-emerald-50/80 border border-emerald-300/80 hover:bg-emerald-100 transition cursor-pointer"
-                        >
-                          <PenTool className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>Open Drawing Board</span>
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition">
-                          <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition" />
-                          <span>Expand</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  /* Expanded Minimal Card with unified clean styling & overflow-visible for dropdowns */
-                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
-                    <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <button
-                          type="button"
-                          onMouseDown={() => setActiveDragHandleKey(sectionKey)}
-                          onMouseUp={() => setActiveDragHandleKey(null)}
-                          title="Click and drag to reorder section"
-                          className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
-                        >
-                          <GripVertical className="w-4 h-4" />
-                        </button>
-                        <div className="text-slate-700 shrink-0">
-                          {getSectionIcon(sectionKey)}
-                        </div>
-                        <span className="text-sm font-bold text-slate-900 tracking-tight">
-                          {RX_SECTION_TITLES[sectionKey]}
+                      {sectionKey === 'drawing_board' && form.drawingDataUrl && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                          ✓ Sketch saved
                         </span>
-                        {sectionKey === 'drawing_board' && form.drawingDataUrl && (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                            ✓ Sketch saved
-                          </span>
-                        )}
-                      </div>
-
-                      {sectionKey !== 'signature' && (
-                        <button
-                          type="button"
-                          onClick={() => toggleSectionCollapse(sectionKey)}
-                          className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                        >
-                          <ChevronUp className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                          <span>Collapse</span>
-                        </button>
                       )}
                     </div>
-
-                    <div className="p-3 sm:p-5">
-                      {renderSectionContent(sectionKey)}
-                    </div>
                   </div>
-                )}
+
+                  <div className="p-3 sm:p-5">
+                    {renderSectionContent(sectionKey)}
+                  </div>
+                </div>
               </div>
             );
           })}

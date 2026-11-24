@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Save, Printer, Mail, ArrowRight, Loader2, BookmarkPlus } from 'lucide-react';
+import { Printer, Mail, ArrowRight, Loader2, BookmarkPlus } from 'lucide-react';
 
 export interface DoctorOption {
   id?: string;
@@ -133,7 +133,7 @@ export default function PrescriptionDoctorSignatureCard({
         </div>
       </div>
 
-      {/* Main Submit & Print Action Buttons */}
+      {/* Main Save & Print Action Button */}
       <div className="flex flex-col items-center gap-3 mt-8 pb-10">
         <div className="flex flex-col sm:flex-row justify-center gap-4 w-full max-w-xl">
           <button
@@ -141,24 +141,14 @@ export default function PrescriptionDoctorSignatureCard({
             disabled={loading || saving}
             className="svasth-action svasth-action-primary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Save className="w-5 h-5" />
+            <Printer className="w-5 h-5" />
             {loading
               ? 'Saving...'
               : saving
               ? 'Saving Prescription...'
               : isEditMode
-              ? 'Update Prescription'
-              : 'Save Prescription'}
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrintablePrescription}
-            disabled={loading || saving}
-            className="svasth-action svasth-action-secondary flex-1 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Printer className="w-5 h-5" />
-            Print Prescription
+              ? 'Update & Print Prescription'
+              : 'Save & Print Prescription'}
           </button>
 
           {onOpenSaveTemplate && (

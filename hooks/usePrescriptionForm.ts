@@ -2107,7 +2107,7 @@ export function usePrescriptionForm() {
     setIsEmailModalOpen(true);
   };
 
-  // Submit Handler
+  // Submit Handler (Save & Print)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -2115,7 +2115,7 @@ export function usePrescriptionForm() {
       const saved = await savePrescriptionToDatabase();
       if (saved) {
         showTemplateToast('Prescription saved successfully!');
-        setEmailSuccessPrompt(true);
+        setIsPrintModalOpen(true);
       }
     } finally {
       setLoading(false);
