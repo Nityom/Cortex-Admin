@@ -914,6 +914,7 @@ export default function IPDManagementPage() {
 
   // Helper to prefill discharge summary from IPD stay details (procedures, active meds, vitals)
   const initDischargeFormForAdmission = (adm: IPDAdmission) => {
+    setActiveAdmission(adm);
     const bill = calculateRunningBill(adm);
     const procSummary = adm.procedures && adm.procedures.length > 0
       ? `Procedures / Surgeries: ${adm.procedures.map((p) => `${p.name} (${p.date}${p.surgeon ? ` by ${p.surgeon}` : ""})`).join("; ")}. `
@@ -2571,6 +2572,7 @@ export default function IPDManagementPage() {
           onOpenPatientReceipt={(adm) => handleOpenPatientReceipt(adm)}
           onOpenEditAdmission={(adm) => handleOpenEditAdmission(adm)}
           onOpenDischarge={(adm) => {
+            setActiveAdmission(adm);
             initDischargeFormForAdmission(adm);
             setActiveModal("discharge");
           }}
@@ -2714,6 +2716,7 @@ export default function IPDManagementPage() {
           onOpenRecordPayment={handleOpenRecordPayment}
           onOpenPatientReceipt={handleOpenPatientReceipt}
           onProceedToDischarge={(adm) => {
+            setActiveAdmission(adm);
             initDischargeFormForAdmission(adm);
             setActiveModal("discharge");
           }}
