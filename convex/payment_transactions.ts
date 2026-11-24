@@ -8,6 +8,7 @@ export const create = mutation({
         amount: v.number(),
         payment_method: v.optional(v.string()),
         payment_date: v.string(),
+        receipt_number: v.optional(v.string()),
         notes: v.optional(v.string()),
         created_by: v.optional(v.string()),
     },
@@ -38,6 +39,48 @@ export const create = mutation({
         }
 
         return transactionId;
+    },
+});
+
+export const recordBillTransactions = mutation({
+    args: {
+        bill_id: v.string(),
+        patient_id: v.string(),
+        transactions: v.array(
+            v.object({
+                amount: v.number(),
+                payment_method: v.optional(v.string()),
+                payment_date: v.string(),
+                receipt_number: v.optional(v.string()),
+                notes: v.optional(v.string()),
+            })
+        ),
+    },
+    handler: async (ctx, args) => {
+        // Delete existing transactions for this bill to prevent duplicates
+        const existing = await ctx.db
+            .query("payment_transactions")
+            .withIndex("by_bill", (q) => q.eq("bill_id", args.bill_id))
+            .collect();
+        for (const item of existing) {
+            await ctx.db.delete(item._id);
+        }
+
+        // Insert fresh transactions
+        const ids = [];
+        for (const txn of args.transactions) {
+            const id = await ctx.db.insert("payment_transactions", {
+                bill_id: args.bill_id,
+                patient_id: args.patient_id,
+                amount: txn.amount,
+                payment_method: txn.payment_method,
+                payment_date: txn.payment_date,
+                receipt_number: txn.receipt_number,
+                notes: txn.notes,
+            });
+            ids.push(id);
+        }
+        return ids;
     },
 });
 

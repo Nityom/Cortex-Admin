@@ -16,10 +16,12 @@ interface BillItem {
   date?: string;
 }
 
-interface PaymentTransaction {
+export interface PaymentTransaction {
   amount: number;
   payment_date: string;
   payment_method?: string;
+  receipt_number?: string;
+  notes?: string;
 }
 
 interface PrintableBillProps {
@@ -842,22 +844,34 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
             </div>
 
             {paymentTransactions.length > 0 ? (
-              paymentTransactions.map((txn, i) => (
-                <div key={i} className="flex justify-between text-xs text-gray-600">
-                  <span>
-                    Received on {(() => {
-                      const d = new Date(txn.payment_date);
-                      if (isNaN(d.getTime())) return txn.payment_date;
-                      const dd = String(d.getDate()).padStart(2, '0');
-                      const mm = String(d.getMonth() + 1).padStart(2, '0');
-                      const yy = String(d.getFullYear()).slice(-2);
-                      return `${dd}-${mm}-${yy}`;
-                    })()}
-                    {txn.payment_method ? ` (${txn.payment_method})` : ''}
+              <div className="border border-gray-300 rounded p-2 bg-gray-50/60 my-1.5 space-y-1">
+                <div className="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex justify-between">
+                  <span>Payment Receipts &amp; Advances Received:</span>
+                  <span className="font-mono text-black font-bold">
+                    Total: {formatCurrency(paymentTransactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0))}
                   </span>
-                  <span className="font-medium text-gray-800">{formatCurrency(txn.amount)}</span>
                 </div>
-              ))
+                {paymentTransactions.map((txn, i) => (
+                  <div key={i} className="flex justify-between text-xs text-gray-800 border-b border-gray-200 last:border-b-0 py-0.5">
+                    <span>
+                      {txn.receipt_number && <strong className="font-mono text-black mr-1">{txn.receipt_number} •</strong>}
+                      {(() => {
+                        const d = new Date(txn.payment_date);
+                        if (isNaN(d.getTime())) return txn.payment_date;
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                        const yyyy = d.getFullYear();
+                        return `${dd}-${mm}-${yyyy}`;
+                      })()}
+                      <span className="font-bold text-black ml-1.5 uppercase bg-white px-1 rounded border border-gray-300 text-[10px]">
+                        {txn.payment_method || 'Cash'}
+                      </span>
+                      {txn.notes && <span className="text-[10px] text-gray-500 ml-1">({txn.notes})</span>}
+                    </span>
+                    <span className="font-bold font-mono text-gray-900">{formatCurrency(txn.amount)}</span>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="flex justify-between text-xs text-gray-700">
                 <span>Received Amount</span>
@@ -1102,23 +1116,93 @@ const PrintableBill: React.FC<PrintableBillProps> = ({
               </tr>
             </tbody>
           </table>
+
+          {/* Advance & Payment Receipts Table */}
+          {paymentTransactions && paymentTransactions.length > 0 && (
+            <div className="my-2.5 border border-black text-xs">
+              <div className="bg-gray-100 px-2 py-1 border-b border-black font-bold text-[11px] uppercase tracking-wider text-black flex justify-between items-center">
+                <span>Payment Receipts &amp; Advances Received ({paymentTransactions.length})</span>
+                <span className="font-mono text-[10.5px]">
+                  Total Received: Rs. {paymentTransactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0).toFixed(2)}
+                </span>
+              </div>
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-black bg-gray-50/60 font-bold text-gray-900 text-[10.5px]">
+                    <th className="py-1 px-2 text-center w-12 border-r border-black">Sr.</th>
+                    <th className="py-1 px-2 text-left border-r border-black">Receipt No.</th>
+                    <th className="py-1 px-2 text-center w-28 border-r border-black">Date</th>
+                    <th className="py-1 px-2 text-center w-36 border-r border-black">Mode of Payment</th>
+                    <th className="py-1 px-2 text-right w-28">Amount (Rs.)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentTransactions.map((txn, idx) => {
+                    const displayDate = (() => {
+                      if (!txn.payment_date) return "—";
+                      try {
+                        const d = new Date(txn.payment_date);
+                        if (isNaN(d.getTime())) return txn.payment_date;
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const yyyy = d.getFullYear();
+                        return `${dd}-${mm}-${yyyy}`;
+                      } catch {
+                        return txn.payment_date;
+                      }
+                    })();
+
+                    return (
+                      <tr key={idx} className="border-b border-black last:border-b-0 text-[11px]">
+                        <td className="py-1 px-2 text-center font-mono border-r border-black">
+                          {idx + 1}
+                        </td>
+                        <td className="py-1 px-2 font-mono font-bold text-black border-r border-black">
+                          {txn.receipt_number || `Receipt #${idx + 1}`}
+                          {txn.notes && txn.notes !== txn.receipt_number && (
+                            <span className="text-[10px] text-gray-600 font-sans font-normal ml-1.5">
+                              ({txn.notes})
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-1 px-2 text-center font-mono border-r border-black">
+                          {displayDate}
+                        </td>
+                        <td className="py-1 px-2 text-center font-bold text-black uppercase border-r border-black">
+                          {txn.payment_method || "Cash"}
+                        </td>
+                        <td className="py-1 px-2 text-right font-mono font-bold text-black">
+                          {Number(txn.amount).toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Financial Summary & Signature (Bottom of page) */}
-        <div className="flex justify-between items-end mt-4 pt-2 text-xs text-black border-t border-gray-300">
+        <div className="flex justify-between items-end mt-3 pt-2 text-xs text-black border-t border-black">
           {/* Left Financial Summary */}
-          <div className="space-y-1 w-7/12">
-            <div className="font-bold text-black">
+          <div className="space-y-0.5 w-7/12">
+            <div className="font-bold text-black text-xs">
               Bill Amount Rs. {Number(total).toFixed(2)}
             </div>
-            <div className="font-bold text-black">
-              Deposit Rs. {Number(depositVal).toFixed(2)}
+            {discount > 0 && (
+              <div className="font-semibold text-gray-800 text-xs">
+                Discount Rs. {Number(discount).toFixed(2)}
+              </div>
+            )}
+            <div className="font-bold text-black text-xs">
+              Deposit / Advances Paid Rs. {Number(depositVal).toFixed(2)}
             </div>
-            <div className="font-bold text-black">
-              Balance Rs. {Number(balanceVal).toFixed(2)}
+            <div className="font-bold text-black text-xs">
+              Balance Due Rs. {Number(balanceVal).toFixed(2)}
             </div>
-            <div className="font-semibold text-black leading-tight pt-1">
-              Received With Thanks Sum of Rupees {Number(depositVal > 0 ? depositVal : total).toFixed(2)} / - Only.
+            <div className="font-semibold text-black leading-tight pt-1 text-[11px]">
+              Received With Thanks Sum of Rupees {numberToWords(Math.round(depositVal > 0 ? depositVal : total))} Only.
             </div>
           </div>
 

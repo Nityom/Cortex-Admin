@@ -180,16 +180,34 @@ function PrintBillContent() {
         setResolvedSignature(sigUrl);
 
         // Fetch payment transactions for this bill
+        let resolvedTxns: any[] = [];
         try {
           const txns = await convex.query(api.payment_transactions.listByBill, { bill_id: billId as string });
-          if (Array.isArray(txns)) {
-            setPaymentTransactions(txns.map((t: any) => ({
+          if (Array.isArray(txns) && txns.length > 0) {
+            resolvedTxns = txns.map((t: any) => ({
               amount: t.amount,
               payment_date: t.payment_date,
               payment_method: t.payment_method,
-            })));
+              receipt_number: t.receipt_number || t.notes,
+              notes: t.notes,
+            }));
           }
         } catch {}
+
+        // Check if receipts were passed directly in searchParams (e.g. from IPD final bill)
+        const receiptsParam = searchParams.get('receipts');
+        if (receiptsParam) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(receiptsParam));
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              resolvedTxns = parsed;
+            }
+          } catch (e) {
+            console.error('Error parsing receipts param from URL:', e);
+          }
+        }
+
+        setPaymentTransactions(resolvedTxns);
       } catch (err) {
         console.error('Error fetching bill:', err);
         setError(err instanceof Error ? err.message : 'Failed to load bill data');

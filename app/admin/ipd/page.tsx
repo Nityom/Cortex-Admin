@@ -135,6 +135,7 @@ export default function IPDManagementPage() {
   const updateIpdStatusMutation = useMutation(api.ipd.updateStatus);
   const saveBedConfigMutation = useMutation(api.ipd.saveBedConfig);
   const syncLocalAdmissionsMutation = useMutation(api.ipd.syncLocalAdmissions);
+  const recordBillTransactionsMutation = useMutation(api.payment_transactions.recordBillTransactions);
 
   // Tab State: 'dashboard' | 'admit' | 'history'
   const [activeTab, setActiveTab] = useState<"dashboard" | "admit" | "history">("dashboard");
@@ -2366,6 +2367,57 @@ export default function IPDManagementPage() {
       saveAdmissions(updated, updatedAdm);
       if (updatedAdm) setActiveAdmission(updatedAdm);
 
+      // Prepare all advance receipts + final settlement receipt
+      const receiptsList: Array<{
+        amount: number;
+        payment_date: string;
+        payment_method: string;
+        receipt_number: string;
+        notes?: string;
+      }> = [];
+
+      (admission.advances || []).forEach((adv, idx) => {
+        if (Number(adv.amount) > 0) {
+          receiptsList.push({
+            receipt_number: adv.receiptNumber || `REC-${idx + 1}`,
+            payment_date: adv.date || admission.admissionDate,
+            amount: Number(adv.amount),
+            payment_method: adv.mode || "Cash",
+            notes: adv.notes || "Advance Deposit",
+          });
+        }
+      });
+
+      // If there is a final settlement payment at discharge
+      const settlementMode = dischargeForm.finalPaymentMode || admission.finalSettlement?.paymentMode || "Cash";
+      const settlementPaid = finalBalance > 0 ? finalBalance : (admission.finalSettlement?.balancePaid || 0);
+      if (settlementPaid > 0) {
+        receiptsList.push({
+          receipt_number: savedBill?.bill_number || admission.finalSettlement?.billNumber || "Final Settlement",
+          payment_date: dischargeForm.dischargeDate || admission.dischargeDate || new Date().toISOString().split("T")[0],
+          amount: settlementPaid,
+          payment_method: settlementMode,
+          notes: "Discharge Settlement",
+        });
+      }
+
+      // Sync receipts to Convex payment_transactions table
+      if (activeBillId && receiptsList.length > 0) {
+        try {
+          await recordBillTransactionsMutation({
+            bill_id: String(activeBillId),
+            patient_id: admission.patientId || "WALKIN",
+            transactions: receiptsList,
+          });
+        } catch (e) {
+          console.warn("Could not sync payment transactions to Convex:", e);
+        }
+      }
+
+      // Calculate total paid across all advances and settlement
+      const totalPaidAmount = receiptsList.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const remainingBalance = Math.max(0, netTotal - totalPaidAmount);
+
       // Directly open print window for the final bill in A4 matching hospital format
       if (activeBillId && typeof window !== "undefined") {
         const isGynoDoc = /shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
@@ -2387,8 +2439,9 @@ export default function IPDManagementPage() {
           dischDate: dischDateStr,
           wardName: wardStr,
           paymentCategory: admission.paymentCategory || "General",
-          deposit: String(billing.totalAdvances),
-          balance: String(finalBalance),
+          deposit: String(totalPaidAmount),
+          balance: String(remainingBalance),
+          receipts: encodeURIComponent(JSON.stringify(receiptsList)),
         });
         window.open(`/print-bill?${queryParams.toString()}`, "_blank");
       }

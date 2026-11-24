@@ -179,6 +179,7 @@ export default defineSchema({
     amount: v.number(),
     payment_method: v.optional(v.string()),
     payment_date: v.string(), // YYYY-MM-DD
+    receipt_number: v.optional(v.string()),
     notes: v.optional(v.string()),
     created_by: v.optional(v.string()),
   })
