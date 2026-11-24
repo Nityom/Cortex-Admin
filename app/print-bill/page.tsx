@@ -45,7 +45,7 @@ interface BillData {
 
 function PrintBillContent() {
   const searchParams = useSearchParams();
-  const billId = searchParams.get('billId');
+  const billId = searchParams.get('billId') || searchParams.get('id');
   const signatureParam = searchParams.get('signature') || 'sign.png';
   const doctorNameParam = searchParams.get('doctorName') || 'Dr. Vipeen Raut';
   const includeSigParam = searchParams.get('includeSignature');

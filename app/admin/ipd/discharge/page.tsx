@@ -539,46 +539,84 @@ function DischargeContent() {
       saveAdmissions(updated, updatedAdm);
       if (updatedAdm) setActiveAdmission(updatedAdm);
 
-      if (activeBillId && Array.isArray(admission.advances) && admission.advances.length > 0) {
+      // Build complete list of receipts (all advance payments + final settlement if any)
+      const receiptsList: Array<{
+        amount: number;
+        payment_date: string;
+        payment_method: string;
+        receipt_number: string;
+        notes?: string;
+      }> = [];
+
+      (admission.advances || []).forEach((adv, idx) => {
+        if (Number(adv.amount) > 0) {
+          receiptsList.push({
+            receipt_number: adv.receiptNumber || `REC-${idx + 1}`,
+            payment_date: adv.date || effectiveAdmission.admissionDate,
+            amount: Number(adv.amount),
+            payment_method: adv.mode || "Cash",
+            notes: adv.notes || "Advance Deposit",
+          });
+        }
+      });
+
+      const settlementMode = dischargeForm.finalPaymentMode || admission.finalSettlement?.paymentMode || "Cash";
+      const settlementPaid = finalBalance > 0 ? finalBalance : (admission.finalSettlement?.balancePaid || 0);
+      if (settlementPaid > 0) {
+        receiptsList.push({
+          receipt_number: savedBill?.bill_number || admission.finalSettlement?.billNumber || "Final Settlement",
+          payment_date: dischargeForm.dischargeDate || admission.dischargeDate || new Date().toISOString().split("T")[0],
+          amount: settlementPaid,
+          payment_method: settlementMode,
+          notes: "Discharge Settlement",
+        });
+      }
+
+      if (activeBillId && receiptsList.length > 0) {
         try {
           await recordBillTransactionsMutation({
             bill_id: String(activeBillId),
-            patient_id: admission.uhid || admission.patientId || "WALKIN",
-            transactions: admission.advances.map((adv) => ({
-              receipt_number: adv.receiptNumber,
-              payment_date: adv.date,
-              amount: adv.amount,
-              payment_method: adv.mode,
-              notes: adv.notes || "Inpatient advance deposit",
-            })),
+            patient_id: admission.patientId || "WALKIN",
+            transactions: receiptsList,
           });
         } catch (txErr) {
           console.warn("Could not record bill transactions:", txErr);
         }
       }
 
-      const win = window.open(
-        `/print-bill?id=${activeBillId || "IPD"}&patientName=${encodeURIComponent(
-          admission.name
-        )}&uhid=${encodeURIComponent(admission.uhid)}&phone=${encodeURIComponent(
-          admission.phone
-        )}&doctor=${encodeURIComponent(admission.consultantDoctor)}&ward=${encodeURIComponent(
-          wardStr
-        )}&admitDate=${encodeURIComponent(admitDateStr)}&dischargeDate=${encodeURIComponent(
-          dischDateStr
-        )}&age=${encodeURIComponent(admission.age)}&gender=${encodeURIComponent(
-          admission.sex
-        )}&address=${encodeURIComponent(admission.address || "")}&diagnosis=${encodeURIComponent(
-          admission.provisionalDiagnosis || ""
-        )}&stayDays=${billing.days}&grossTotal=${billing.grossTotal}&advances=${
-          billing.totalAdvances
-        }&discount=${discount}&balance=${finalBalance}&totalAmount=${netTotal}&billNumber=${encodeURIComponent(
-          savedBill?.bill_number || `CRX-IPD-${Date.now().toString().slice(-5)}`
-        )}&date=${encodeURIComponent(new Date().toISOString().split("T")[0])}`,
-        "_blank"
-      );
-      if (!win) {
-        alert("Pop-up blocked. Please allow pop-ups for this site to view the bill.");
+      const totalPaidAmount = receiptsList.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+      const remainingBalance = Math.max(0, netTotal - totalPaidAmount);
+
+      if (activeBillId && typeof window !== "undefined") {
+        const isGynoDoc = /shillpa|shilpa|gyn/i.test(admission.consultantDoctor || "");
+        const queryParams = new URLSearchParams({
+          billId: String(activeBillId),
+          type: "ipd",
+          pageSize: "A4",
+          autoPrint: "true",
+          signature: isGynoDoc ? "sign1.png" : "sign.png",
+          doctorName: admission.consultantDoctor,
+          patientName: admission.name,
+          patientPhone: admission.phone,
+          patientAge: String(admission.age),
+          patientSex: admission.sex,
+          address: admission.address || "",
+          uhid: admission.uhid,
+          ipdNumber: admission.ipdNumber,
+          admitDate: admitDateStr,
+          dischDate: dischDateStr,
+          wardName: wardStr,
+          paymentCategory: admission.paymentCategory || "General",
+          deposit: String(totalPaidAmount),
+          balance: String(remainingBalance),
+          receipts: encodeURIComponent(JSON.stringify(receiptsList)),
+        });
+        const win = window.open(`/print-bill?${queryParams.toString()}`, "_blank");
+        if (!win) {
+          alert("Pop-up blocked. Please allow pop-ups for this site to view the bill.");
+        }
+      } else {
+        alert("Unable to open bill print preview: No bill ID was returned after saving.");
       }
     } catch (e: any) {
       console.error("Failed to generate final bill:", e);
