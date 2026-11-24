@@ -595,10 +595,10 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                     </div>
                   </div>
                 ) : (
-                  /* Expanded Card (Always Open for all sections except Drawing Board) */
-                  <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
-                    <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                      <div className="flex items-center gap-3 min-w-0">
+                  ['complaints', 'diagnosis', 'findings', 'vitals', 'next_visit', 'procedure'].includes(sectionKey) ? (
+                    /* Single-line Horizontal Card: Title on Left, Input Box on Right */
+                    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible px-4 py-2.5 flex flex-col md:flex-row md:items-center gap-2.5 md:gap-4">
+                      <div className="flex items-center gap-2.5 md:w-56 shrink-0">
                         <button
                           type="button"
                           onMouseDown={() => setActiveDragHandleKey(sectionKey)}
@@ -611,32 +611,59 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                         <div className="text-slate-700 shrink-0">
                           {getSectionIcon(sectionKey)}
                         </div>
-                        <span className="text-sm font-bold text-slate-900 tracking-tight">
+                        <span className="text-sm font-bold text-slate-900 tracking-tight truncate">
                           {RX_SECTION_TITLES[sectionKey]}
                         </span>
-                        {sectionKey === 'drawing_board' && form.drawingDataUrl && (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                            ✓ Sketch saved
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        {renderSectionContent(sectionKey)}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Full-Width Stacked Card (Medicines, Notes, Drawing Board, Signature) */
+                    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
+                      <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            type="button"
+                            onMouseDown={() => setActiveDragHandleKey(sectionKey)}
+                            onMouseUp={() => setActiveDragHandleKey(null)}
+                            title="Click and drag to reorder section"
+                            className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </button>
+                          <div className="text-slate-700 shrink-0">
+                            {getSectionIcon(sectionKey)}
+                          </div>
+                          <span className="text-sm font-bold text-slate-900 tracking-tight">
+                            {RX_SECTION_TITLES[sectionKey]}
                           </span>
+                          {sectionKey === 'drawing_board' && form.drawingDataUrl && (
+                            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                              ✓ Sketch saved
+                            </span>
+                          )}
+                        </div>
+
+                        {sectionKey === 'drawing_board' && (
+                          <button
+                            type="button"
+                            onClick={() => setIsDrawingBoardOpen(false)}
+                            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                          >
+                            <ChevronUp className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                            <span>Collapse</span>
+                          </button>
                         )}
                       </div>
 
-                      {sectionKey === 'drawing_board' && (
-                        <button
-                          type="button"
-                          onClick={() => setIsDrawingBoardOpen(false)}
-                          className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                        >
-                          <ChevronUp className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                          <span>Collapse</span>
-                        </button>
-                      )}
+                      <div className="p-3 sm:p-5">
+                        {renderSectionContent(sectionKey)}
+                      </div>
                     </div>
-
-                    <div className="p-3 sm:p-5">
-                      {renderSectionContent(sectionKey)}
-                    </div>
-                  </div>
+                  )
                 )}
               </div>
             );
