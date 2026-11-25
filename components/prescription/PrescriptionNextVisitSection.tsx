@@ -45,33 +45,26 @@ export default function PrescriptionNextVisitSection({
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-      <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <Calendar className="w-4 h-4 text-emerald-600" />
-          <span>Next Visit / Follow-Up (फेरतपासणी)</span>
-        </label>
-
-        {/* Quick Interval Chips */}
-        <div className="hidden sm:flex items-center gap-1.5 text-xs">
-          <span className="text-slate-400 font-medium mr-1">Quick:</span>
-          {[
-            { label: '3 Days', count: '3', unit: 'Days' as const },
-            { label: '5 Days', count: '5', unit: 'Days' as const },
-            { label: '1 Week', count: '1', unit: 'Weeks' as const },
-            { label: '10 Days', count: '10', unit: 'Days' as const },
-            { label: '15 Days', count: '15', unit: 'Days' as const },
-            { label: '1 Month', count: '1', unit: 'Months' as const },
-          ].map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() => handleApplyPreset(preset.count, preset.unit)}
-              className="px-2 py-0.5 rounded border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 text-[11px] font-semibold transition cursor-pointer"
-            >
-              +{preset.label}
-            </button>
-          ))}
-        </div>
+      {/* Quick Interval Chips */}
+      <div className="hidden sm:flex items-center justify-end gap-1.5 text-xs mb-3">
+        <span className="text-slate-400 font-medium mr-1">Quick:</span>
+        {[
+          { label: '3 Days', count: '3', unit: 'Days' as const },
+          { label: '5 Days', count: '5', unit: 'Days' as const },
+          { label: '1 Week', count: '1', unit: 'Weeks' as const },
+          { label: '10 Days', count: '10', unit: 'Days' as const },
+          { label: '15 Days', count: '15', unit: 'Days' as const },
+          { label: '1 Month', count: '1', unit: 'Months' as const },
+        ].map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            onClick={() => handleApplyPreset(preset.count, preset.unit)}
+            className="px-2 py-0.5 rounded border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 text-[11px] font-semibold transition cursor-pointer"
+          >
+            +{preset.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">

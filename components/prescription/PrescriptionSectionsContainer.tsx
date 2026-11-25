@@ -393,22 +393,17 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
       case 'drawing_board':
         return (
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                Drawing Board
-              </label>
-              <div className="flex items-center gap-2">
-                <SectionTemplatePicker
-                  sectionKey="drawing_board"
-                  sectionTitle="Drawing Board"
-                  currentValue={form.drawingDataUrl}
-                  onApplyPreset={(val) => form.setDrawingDataUrl(val)}
-                  align="right"
-                />
-                <span className="text-xs text-slate-400 hidden sm:inline">
-                  Sketch clinical diagrams or annotate anatomical regions
-                </span>
-              </div>
+            <div className="flex items-center justify-end gap-2 mb-2">
+              <SectionTemplatePicker
+                sectionKey="drawing_board"
+                sectionTitle="Drawing Board"
+                currentValue={form.drawingDataUrl}
+                onApplyPreset={(val) => form.setDrawingDataUrl(val)}
+                align="right"
+              />
+              <span className="text-xs text-slate-400 hidden sm:inline">
+                Sketch clinical diagrams or annotate anatomical regions
+              </span>
             </div>
             <HealthPlixDrawingBoard
               onChange={form.setDrawingDataUrl}
@@ -624,41 +619,43 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                   ) : (
                     /* Full-Width Stacked Card (Medicines, Notes, Drawing Board, Signature) */
                     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-visible">
-                      <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <button
-                            type="button"
-                            onMouseDown={() => setActiveDragHandleKey(sectionKey)}
-                            onMouseUp={() => setActiveDragHandleKey(null)}
-                            title="Click and drag to reorder section"
-                            className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
-                          >
-                            <GripVertical className="w-4 h-4" />
-                          </button>
-                          <div className="text-slate-700 shrink-0">
-                            {getSectionIcon(sectionKey)}
-                          </div>
-                          <span className="text-sm font-bold text-slate-900 tracking-tight">
-                            {RX_SECTION_TITLES[sectionKey]}
-                          </span>
-                          {sectionKey === 'drawing_board' && form.drawingDataUrl && (
-                            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                              ✓ Sketch saved
+                      {sectionKey !== 'clinical_notes' && (
+                        <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <button
+                              type="button"
+                              onMouseDown={() => setActiveDragHandleKey(sectionKey)}
+                              onMouseUp={() => setActiveDragHandleKey(null)}
+                              title="Click and drag to reorder section"
+                              className="p-1 text-slate-400 hover:text-slate-700 transition -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </button>
+                            <div className="text-slate-700 shrink-0">
+                              {getSectionIcon(sectionKey)}
+                            </div>
+                            <span className="text-sm font-bold text-slate-900 tracking-tight">
+                              {RX_SECTION_TITLES[sectionKey]}
                             </span>
+                            {sectionKey === 'drawing_board' && form.drawingDataUrl && (
+                              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                                ✓ Sketch saved
+                              </span>
+                            )}
+                          </div>
+
+                          {sectionKey === 'drawing_board' && (
+                            <button
+                              type="button"
+                              onClick={() => setIsDrawingBoardOpen(false)}
+                              className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                            >
+                              <ChevronUp className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                              <span>Collapse</span>
+                            </button>
                           )}
                         </div>
-
-                        {sectionKey === 'drawing_board' && (
-                          <button
-                            type="button"
-                            onClick={() => setIsDrawingBoardOpen(false)}
-                            className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                          >
-                            <ChevronUp className="w-4 h-4 text-slate-400 hover:text-slate-600" />
-                            <span>Collapse</span>
-                          </button>
-                        )}
-                      </div>
+                      )}
 
                       <div className="p-3 sm:p-5">
                         {renderSectionContent(sectionKey)}
