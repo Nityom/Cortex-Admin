@@ -106,7 +106,16 @@ export function AppTopNav() {
   };
 
   const isCurrentActive = (itemUrl: string) => {
-    if (pathname === itemUrl || pathname.startsWith(`${itemUrl}/`)) return true;
+    if (pathname === itemUrl) return true;
+    if (pathname.startsWith(`${itemUrl}/`)) {
+      const hasMoreSpecificMatch = navItems.some(
+        (other) =>
+          other.url !== itemUrl &&
+          other.url.startsWith(`${itemUrl}/`) &&
+          (pathname === other.url || pathname.startsWith(`${other.url}/`))
+      );
+      return !hasMoreSpecificMatch;
+    }
     return false;
   };
 

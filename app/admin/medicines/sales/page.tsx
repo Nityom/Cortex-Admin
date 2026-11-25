@@ -17,8 +17,35 @@ import {
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import { useIsAdmin } from '@/hooks/use-is-admin';
+import { hospitalConfig } from '@/config/hospital';
+import { getDoctorBadgeStyle } from '@/lib/doctorColors';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+function resolveDoctorName(rawDoctor?: string, notes?: string): string {
+  let candidate = (rawDoctor || '').trim();
+  if (!candidate && typeof notes === 'string') {
+    const match = notes.match(/Doctor:\s*([^•|\n]+)/i);
+    if (match) candidate = match[1].trim();
+  }
+  const lower = candidate.toLowerCase();
+  const matched = hospitalConfig.doctors.find(
+    (d) =>
+      lower === d.name.toLowerCase() ||
+      (lower && d.name.toLowerCase().includes(lower)) ||
+      (lower && lower.includes(d.name.toLowerCase().replace(/^dr\.?\s*/i, '').split(' ')[0]))
+  );
+  if (matched) return matched.name;
+  if (candidate) return candidate;
+  if (typeof notes === 'string') {
+    const noteLower = notes.toLowerCase();
+    const noteMatched = hospitalConfig.doctors.find((d) =>
+      noteLower.includes(d.name.toLowerCase().replace(/^dr\.?\s*/i, '').split(' ')[0])
+    );
+    if (noteMatched) return noteMatched.name;
+  }
+  return 'Unassigned';
+}
 
 interface PatientSalesReport {
   patient_id: string;
@@ -26,6 +53,7 @@ interface PatientSalesReport {
   phone_number: string;
   uhid?: string;
   department: 'OPD' | 'IPD';
+  doctor_name: string;
   ward_bed?: string;
   notes?: string;
   bill_numbers?: string[];
@@ -71,6 +99,7 @@ export default function SalesReportPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<'ALL' | 'OPD' | 'IPD'>('ALL');
+  const [doctorFilter, setDoctorFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [salesData, setSalesData] = useState<PatientSalesReport[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -153,7 +182,8 @@ export default function SalesReportPage() {
 
         const dept: 'OPD' | 'IPD' = isIpdBill ? 'IPD' : 'OPD';
         const uhid = (bill.reference_number || bill.patient_id || 'UNKNOWN').replace(/^CH/i, 'CRX');
-        const key = `${dept}_${uhid}`;
+        const docName = resolveDoctorName(bill.doctor_name, bill.notes);
+        const key = `${dept}_${uhid}_${docName}`;
 
         if (!grouped[key]) {
           grouped[key] = {
@@ -162,6 +192,7 @@ export default function SalesReportPage() {
             phone_number: bill.phone_number || '',
             uhid: uhid,
             department: dept,
+            doctor_name: docName,
             total_bills: 0,
             total_amount: 0,
             paid_amount: 0,
@@ -194,7 +225,8 @@ export default function SalesReportPage() {
                 }
 
                 const uhid = (adm.uhid || adm.id).replace(/^CH/i, 'CRX');
-                const ipdKey = `IPD_${uhid}`;
+                const docName = resolveDoctorName(adm.consultantDoctor);
+                const ipdKey = `IPD_${uhid}_${docName}`;
 
                 // 1. If discharged with final settlement
                 if (adm.status === 'Discharged' && adm.finalSettlement) {
@@ -212,6 +244,7 @@ export default function SalesReportPage() {
                         phone_number: adm.phone || '',
                         uhid: uhid,
                         department: 'IPD',
+                        doctor_name: docName,
                         ward_bed: `${adm.ward || 'Ward'} • Bed ${adm.bedNumber || 'N/A'}`,
                         total_bills: 1,
                         total_amount: net,
@@ -244,6 +277,7 @@ export default function SalesReportPage() {
                       phone_number: adm.phone || '',
                       uhid: uhid,
                       department: 'IPD',
+                      doctor_name: docName,
                       ward_bed: `${adm.ward || 'Ward'} • Bed ${adm.bedNumber || 'N/A'}`,
                       total_bills: periodAdvances.length,
                       total_amount: totalPeriodAdvance,
@@ -286,16 +320,47 @@ export default function SalesReportPage() {
     }
   }, [startDate, endDate, fetchSalesReport]);
 
+  // Filter by selected doctor first for department & summary breakdowns
+  const doctorScopedSales = useMemo(() => {
+    const list = Array.isArray(salesData) ? salesData : [];
+    if (doctorFilter === 'ALL') return list;
+    return list.filter((p) => p.doctor_name === doctorFilter);
+  }, [salesData, doctorFilter]);
+
   // OPD vs IPD Metrics Breakdown
   const opdSalesList = useMemo(() => 
-    (Array.isArray(salesData) ? salesData : []).filter(p => p.department === 'OPD'),
-    [salesData]
+    doctorScopedSales.filter(p => p.department === 'OPD'),
+    [doctorScopedSales]
   );
   
   const ipdSalesList = useMemo(() => 
-    (Array.isArray(salesData) ? salesData : []).filter(p => p.department === 'IPD'),
-    [salesData]
+    doctorScopedSales.filter(p => p.department === 'IPD'),
+    [doctorScopedSales]
   );
+
+  // Per-Doctor Revenue Breakdown (respecting departmentFilter)
+  const doctorStatsList = useMemo(() => {
+    const baseList = (Array.isArray(salesData) ? salesData : []).filter(
+      (p) => departmentFilter === 'ALL' || p.department === departmentFilter
+    );
+    const knownDoctors = hospitalConfig.doctors.map((d) => d.name);
+    const extraDoctors = Array.from(
+      new Set(baseList.map((p) => p.doctor_name).filter((n) => n && !knownDoctors.includes(n)))
+    );
+    const allDocNames = [...knownDoctors, ...extraDoctors];
+
+    return allDocNames.map((docName) => {
+      const rows = baseList.filter((p) => p.doctor_name === docName);
+      return {
+        doctor_name: docName,
+        patients: rows.length,
+        bills: rows.reduce((s, r) => s + Number(r.total_bills || 0), 0),
+        amount: rows.reduce((s, r) => s + Number(r.total_amount || 0), 0),
+        paid: rows.reduce((s, r) => s + Number(r.paid_amount || 0), 0),
+        balance: rows.reduce((s, r) => s + Number(r.balance_amount || 0), 0),
+      };
+    });
+  }, [salesData, departmentFilter]);
 
   const opdStats = useMemo(() => {
     return opdSalesList.reduce(
@@ -331,9 +396,9 @@ export default function SalesReportPage() {
     balanceAmount: opdStats.balance + ipdStats.balance,
   }), [opdStats, ipdStats]);
 
-  // Filtered patients for display according to department and search
+  // Filtered patients for display according to department, doctor, and search
   const displayedSales = useMemo(() => {
-    return (Array.isArray(salesData) ? salesData : []).filter(item => {
+    return doctorScopedSales.filter(item => {
       if (departmentFilter !== 'ALL' && item.department !== departmentFilter) {
         return false;
       }
@@ -343,11 +408,12 @@ export default function SalesReportPage() {
         const matchPhone = (item.phone_number || '').includes(query);
         const matchUhid = (item.uhid || '').toLowerCase().includes(query);
         const matchWard = (item.ward_bed || '').toLowerCase().includes(query);
-        if (!matchName && !matchPhone && !matchUhid && !matchWard) return false;
+        const matchDoc = (item.doctor_name || '').toLowerCase().includes(query);
+        if (!matchName && !matchPhone && !matchUhid && !matchWard && !matchDoc) return false;
       }
       return true;
     });
-  }, [salesData, departmentFilter, searchQuery]);
+  }, [doctorScopedSales, departmentFilter, searchQuery]);
 
   if (isAdminLoading || !isAdmin) {
     return (
@@ -378,8 +444,48 @@ export default function SalesReportPage() {
             <p className="text-xs text-slate-500">Filter OPD outpatient visits and IPD inpatient stay settlements by date</p>
           </div>
 
-          {/* Department Filter Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {/* Doctor Filter Selector */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setDoctorFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  doctorFilter === 'ALL'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All Doctors
+              </button>
+              {doctorStatsList.map((docStat) => {
+                const style = getDoctorBadgeStyle(docStat.doctor_name);
+                const isSelected = doctorFilter === docStat.doctor_name;
+                return (
+                  <button
+                    key={docStat.doctor_name}
+                    type="button"
+                    onClick={() => setDoctorFilter(isSelected ? 'ALL' : docStat.doctor_name)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? style.buttonSelected
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : style.dot}`} />
+                    <span>{docStat.doctor_name}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      isSelected ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {docStat.patients}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Department Filter Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               type="button"
               onClick={() => setDepartmentFilter('ALL')}
@@ -431,6 +537,7 @@ export default function SalesReportPage() {
                 {ipdStats.patients}
               </span>
             </button>
+          </div>
           </div>
         </div>
 
@@ -700,6 +807,56 @@ export default function SalesReportPage() {
         </div>
       </div>
 
+      {/* Doctor-Wise Revenue Breakdown */}
+      {doctorStatsList.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {doctorStatsList.map((docStat) => {
+            const style = getDoctorBadgeStyle(docStat.doctor_name);
+            const isSelected = doctorFilter === docStat.doctor_name;
+            return (
+              <button
+                key={docStat.doctor_name}
+                type="button"
+                onClick={() => setDoctorFilter(isSelected ? 'ALL' : docStat.doctor_name)}
+                className={`text-left rounded-xl p-4 border transition cursor-pointer ${
+                  isSelected
+                    ? `${style.bg} ${style.border} ring-2 ${style.isGyn ? 'ring-pink-400' : 'ring-emerald-400'} shadow-sm`
+                    : doctorFilter === 'ALL'
+                    ? `${style.bg} ${style.border} hover:shadow-xs`
+                    : 'bg-white border-slate-200 opacity-60 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`} />
+                    <span className={`text-sm font-bold truncate ${style.text}`}>
+                      {docStat.doctor_name}
+                    </span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${style.badge}`}>
+                    {docStat.patients} {docStat.patients === 1 ? 'patient' : 'patients'} • {docStat.bills} bills
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-500 uppercase">Total Billed</div>
+                    <div className="font-bold text-slate-900">₹{docStat.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-500 uppercase">Collected</div>
+                    <div className="font-bold text-emerald-700">₹{docStat.paid.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-500 uppercase">Pending</div>
+                    <div className="font-bold text-rose-600">₹{docStat.balance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Patient Sales Table with OPD / IPD Indicators */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 p-6 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -768,6 +925,9 @@ export default function SalesReportPage() {
                     Department
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    Doctor
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
                     Phone Number
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-bold text-slate-600 uppercase tracking-wider">
@@ -823,6 +983,18 @@ export default function SalesReportPage() {
                           )}
                         </div>
                       )}
+                    </td>
+
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      {(() => {
+                        const style = getDoctorBadgeStyle(row.doctor_name);
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${style.badge}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                            {row.doctor_name || 'Unassigned'}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     <td className="px-4 py-3.5 whitespace-nowrap text-xs text-slate-600 font-mono">

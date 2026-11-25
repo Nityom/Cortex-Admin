@@ -126,7 +126,9 @@ export function AppSidebar({ children }: { children?: React.ReactNode }): React.
 
   useEffect(() => {
     if (pathname) {
-      const current = items.find((item) => pathname.startsWith(item.url));
+      const current = [...items]
+        .sort((a, b) => b.url.length - a.url.length)
+        .find((item) => pathname === item.url || pathname.startsWith(`${item.url}/`));
       if (current) {
         setActiveItem(current.id);
       }

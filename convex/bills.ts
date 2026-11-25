@@ -179,11 +179,42 @@ export const list = query({
             })
         );
 
+        // Optimized Batch Lookup for linked prescriptions to resolve doctor_name
+        const uniqueRxIds = Array.from(
+            new Set(
+                bills
+                    .map((b) => b.prescription_id)
+                    .filter((id) => typeof id === "string" && id.length > 10 && id !== "DIRECT_BILL" && id !== "IPD_DIRECT")
+            )
+        );
+        const rxDoctorMap = new Map<string, string>();
+        await Promise.all(
+            uniqueRxIds.map(async (rxId) => {
+                try {
+                    const normalizedId = ctx.db.normalizeId("prescriptions", rxId);
+                    if (normalizedId) {
+                        const rx = await ctx.db.get(normalizedId);
+                        if (rx && (rx as any).doctor_name) {
+                            rxDoctorMap.set(rxId, (rx as any).doctor_name);
+                        }
+                    }
+                } catch {
+                    // Ignore non-Convex IDs
+                }
+            })
+        );
+
         return bills.map((bill) => {
             const istDate = (bill as any).bill_date || (bill as any).created_at || new Intl.DateTimeFormat("en-CA", {
                 timeZone: "Asia/Kolkata",
             }).format(new Date(bill._creationTime));
             const patient = patientMap.get(bill.reference_number);
+
+            let resolvedDoctor: string | undefined = (bill as any).doctor_name || rxDoctorMap.get(bill.prescription_id);
+            if (!resolvedDoctor && typeof bill.notes === "string") {
+                const match = bill.notes.match(/Doctor:\s*([^•|\n]+)/i);
+                if (match) resolvedDoctor = match[1].trim();
+            }
 
             return {
                 ...bill,
@@ -191,6 +222,7 @@ export const list = query({
                 created_at: (bill as any).created_at || istDate,
                 patient_name: patient?.name,
                 phone_number: patient?.phone_number,
+                doctor_name: resolvedDoctor,
             };
         });
     },
