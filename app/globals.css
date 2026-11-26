@@ -101,9 +101,15 @@
 
 body {
   font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  text-rendering: auto;
+}
+
+@media (min-resolution: 2dppx) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }
 
 .dark {
@@ -315,3 +321,49 @@ body { background: #f3f7f3; font-family: var(--font-dm-sans), sans-serif; }
 /* Hide scroll tracks while preserving wheel, touch, and keyboard scrolling. */
 .admin-app-frame, .admin-app-frame * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
 .admin-app-frame::-webkit-scrollbar, .admin-app-frame *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* Standard / 1x DPI & Older Monitor Readability & Contrast Polish */
+@media (max-resolution: 1.5dppx) {
+  body {
+    -webkit-font-smoothing: subpixel-antialiased;
+    color: #0f172a;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+  }
+
+  .text-slate-400 {
+    color: #64748b !important;
+  }
+
+  .text-slate-500 {
+    color: #475569 !important;
+  }
+
+  .border-slate-100 {
+    border-color: #dbe3ec !important;
+  }
+
+  .border-slate-200,
+  .border-slate-200\/90,
+  .border-slate-200\/70,
+  .border-gray-200 {
+    border-color: #cbd5e1 !important;
+  }
+
+  .shadow-2xs,
+  .shadow-xs {
+    box-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.08), 0 1px 2px -1px rgb(15 23 42 / 0.06) !important;
+  }
+}
+
+@media (max-width: 1400px) and (min-width: 768px) {
+  .admin-app-frame {
+    height: calc(100dvh - 20px);
+    margin: 10px;
+    border-radius: 18px;
+  }
+}

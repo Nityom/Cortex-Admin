@@ -63,7 +63,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased text-slate-900">
+      <body className="font-sans text-slate-900">
         <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
