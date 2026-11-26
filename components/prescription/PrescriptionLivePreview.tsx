@@ -352,70 +352,92 @@ export default function PrescriptionLivePreview({
               <tr className="border-b-2 border-slate-400 text-xs font-bold text-slate-700">
                 <th className="py-2 px-1 text-left w-[36%]">Medicine</th>
                 <th className="py-2 px-1 text-center w-[14%]">Dosage</th>
-                <th className="py-2 px-2 text-left w-[38%]">Timing - Freq. - Duration</th>
-                <th className="py-2 px-1 text-center w-[12%]">Qty</th>
+                <th className={`py-2 px-2 text-left ${isGyno ? 'w-[38%]' : 'w-[24%]'}`}>
+                  {isGyno ? 'Timing - Freq. - Duration' : 'Timing'}
+                </th>
+                <th className={`py-2 px-1 ${isGyno ? 'text-center w-[12%]' : 'text-left px-2 w-[26%]'}`}>
+                  {isGyno ? 'Qty' : 'Freq. - Duration'}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
               {medicines.length > 0 ? (
-                medicines.map((med, index) => (
-                  <tr key={index} className="align-top">
-                    {/* Medicine Details */}
-                    <td className="py-2 px-1">
-                      <div className="font-extrabold text-sm text-black tracking-wide uppercase">
-                        {index + 1}) &nbsp;{med.name || 'Not specified'}
-                      </div>
-                    </td>
+                medicines.map((med, index) => {
+                  const schedules: DosageSchedule[] = med.schedules?.length ? med.schedules : [{
+                    dosage: med.dosage,
+                    time: med.time,
+                    when: med.when,
+                    frequency: med.frequency,
+                    duration: med.duration,
+                    notes: med.note,
+                  }];
 
-                    {/* Dosage */}
-                    <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
-                      {(med.schedules?.length ? med.schedules : [{ dosage: med.dosage }]).map((schedule, scheduleIndex) => (
-                        <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/\s*[-–—]\s*/g, '-').trim() : '—'}</div>
-                      ))}
-                    </td>
+                  const scheduleItems = schedules.map((schedule) => {
+                    const isBefore = (schedule.when || med.when || '').toLowerCase().includes('before') || (schedule.when || med.when || '').includes('आधी') || (schedule.when || med.when || '').includes('पूर्वी');
+                    let timing = schedule.notes || [schedule.time, schedule.when].filter(Boolean).join(' • ') || med.timing || getTimingFromDosage(schedule.dosage || med.dosage, schedule.when || med.when);
+                    if (isBefore && timing) {
+                      timing = timing
+                        .replace(/जेवणानंतर/g, 'जेवणाआधी')
+                        .replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी')
+                        .replace(/जेवणापूर्वी/g, 'जेवणाआधी')
+                        .replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
+                    }
+                    const freqDur = [schedule.frequency, schedule.duration].filter(Boolean).join(' • ');
+                    return { timing, freqDur };
+                  });
 
-                    {/* Timing - Frequency - Duration */}
-                    <td className="py-2 px-2 text-xs font-semibold text-slate-900">
-                      {(() => {
-                        const schedules: DosageSchedule[] = med.schedules?.length ? med.schedules : [{
-                          dosage: med.dosage,
-                          time: med.time,
-                          when: med.when,
-                          frequency: med.frequency,
-                          duration: med.duration,
-                          notes: med.note,
-                        }];
-                        return <div className="space-y-1">{schedules.map((schedule, scheduleIndex) => {
-                          const isBefore = (schedule.when || med.when || '').toLowerCase().includes('before') || (schedule.when || med.when || '').includes('आधी') || (schedule.when || med.when || '').includes('पूर्वी');
-                          let timing = schedule.notes || [schedule.time, schedule.when].filter(Boolean).join(' • ') || med.timing || getTimingFromDosage(schedule.dosage || med.dosage, schedule.when || med.when);
-                          if (isBefore && timing) {
-                            timing = timing
-                              .replace(/जेवणानंतर/g, 'जेवणाआधी')
-                              .replace(/नाश्त्यानंतर/g, 'नाश्त्याआधी')
-                              .replace(/जेवणापूर्वी/g, 'जेवणाआधी')
-                              .replace(/नाश्त्यापूर्वी/g, 'नाश्त्याआधी');
-                          }
-                          const frequency = schedule.frequency;
-                          const duration = schedule.duration;
-                          return <div key={scheduleIndex}>
-                            {timing && <span>{timing}</span>}
-                            {(frequency || duration) && <span className={timing ? 'block text-slate-700' : ''}>{[frequency, duration].filter(Boolean).join(' - ')}</span>}
-                          </div>;
-                        })}</div>;
-                      })()}
-                    </td>
+                  return (
+                    <tr key={index} className="align-top">
+                      {/* Medicine Details */}
+                      <td className="py-2 px-1">
+                        <div className="font-extrabold text-sm text-black tracking-wide uppercase">
+                          {index + 1}) &nbsp;{med.name || 'Not specified'}
+                        </div>
+                      </td>
 
-                    {/* Quantity */}
-                    <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
-                      {(() => {
-                        const qty = typeof med.quantity === 'number' && med.quantity > 0
-                          ? med.quantity
-                          : calculateMedicineQuantity(med);
-                        return qty !== undefined && qty !== null && !isNaN(Number(qty)) ? qty : '—';
-                      })()}
-                    </td>
-                  </tr>
-                ))
+                      {/* Dosage */}
+                      <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
+                        {(med.schedules?.length ? med.schedules : [{ dosage: med.dosage }]).map((schedule, scheduleIndex) => (
+                          <div key={scheduleIndex}>{schedule.dosage ? schedule.dosage.replace(/\s*[-–—]\s*/g, '-').trim() : '—'}</div>
+                        ))}
+                      </td>
+
+                      {/* Timing (or Timing - Frequency - Duration for Gynae) */}
+                      <td className="py-2 px-2 text-xs font-semibold text-slate-900">
+                        <div className="space-y-1">
+                          {scheduleItems.map((item, scheduleIndex) => (
+                            <div key={scheduleIndex}>
+                              {item.timing ? <span>{item.timing}</span> : (!isGyno && <span>—</span>)}
+                              {isGyno && item.freqDur && (
+                                <span className={item.timing ? 'block text-slate-700' : ''}>{item.freqDur}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+
+                      {/* Quantity (Gynae) or Freq. - Duration (Ortho) */}
+                      {isGyno ? (
+                        <td className="py-2 px-1 text-center font-bold text-xs text-slate-900">
+                          {(() => {
+                            const qty = typeof med.quantity === 'number' && med.quantity > 0
+                              ? med.quantity
+                              : calculateMedicineQuantity(med);
+                            return qty !== undefined && qty !== null && !isNaN(Number(qty)) ? qty : '—';
+                          })()}
+                        </td>
+                      ) : (
+                        <td className="py-2 px-2 text-left font-semibold text-xs text-slate-800">
+                          <div className="space-y-1">
+                            {scheduleItems.map((item, scheduleIndex) => (
+                              <div key={scheduleIndex}>{item.freqDur || '—'}</div>
+                            ))}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={4} className="text-center py-6 text-slate-400 italic">
