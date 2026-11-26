@@ -131,8 +131,8 @@ export const hospitalConfig: HospitalConfig = {
       signatureUrl: "/sign.png",
       consultationFee: {
         firstVisit: 400,
-        followupVisit: 200,
-        followupValidityDays: 10,
+        followupVisit: 300,
+        followupValidityDays: 30,
       },
     },
     {
@@ -182,10 +182,49 @@ export function getDoctorProfile(doctorName?: string): DoctorProfile | undefined
   );
 }
 
-/** Helper to calculate consultation charge based on previous visits within validity days */
-export function calculateDoctorConsultationFee(doctorName?: string, isFollowupWithinValidity: boolean = false): number {
+export interface LiveDoctorFeeRecord {
+  name: string;
+  first_visit_fee?: number;
+  followup_fee?: number;
+  followup_validity_days?: number;
+}
+
+/** Resolve live fee settings from Convex doctors list, falling back to hospitalConfig defaults */
+export function resolveDoctorFeeConfig(
+  doctorName?: string,
+  liveDoctors?: LiveDoctorFeeRecord[]
+): { firstVisit: number; followupVisit: number; followupValidityDays: number } {
   const doc = getDoctorProfile(doctorName);
-  if (!doc) return 400;
-  return isFollowupWithinValidity ? doc.consultationFee.followupVisit : doc.consultationFee.firstVisit;
+  const fallback = doc?.consultationFee ?? {
+    firstVisit: 400,
+    followupVisit: 300,
+    followupValidityDays: 30,
+  };
+
+  if (!liveDoctors || liveDoctors.length === 0) return fallback;
+
+  const targetName = (doctorName || doc?.name || '').toLowerCase().trim();
+  const matched = liveDoctors.find((d) => {
+    const candidate = (d.name || '').toLowerCase().trim();
+    return candidate === targetName || candidate.includes(targetName) || targetName.includes(candidate);
+  });
+
+  if (!matched) return fallback;
+
+  return {
+    firstVisit: matched.first_visit_fee ?? fallback.firstVisit,
+    followupVisit: matched.followup_fee ?? fallback.followupVisit,
+    followupValidityDays: matched.followup_validity_days ?? fallback.followupValidityDays,
+  };
+}
+
+/** Helper to calculate consultation charge based on previous visits within validity days */
+export function calculateDoctorConsultationFee(
+  doctorName?: string,
+  isFollowupWithinValidity: boolean = false,
+  liveDoctors?: LiveDoctorFeeRecord[]
+): number {
+  const fees = resolveDoctorFeeConfig(doctorName, liveDoctors);
+  return isFollowupWithinValidity ? fees.followupVisit : fees.firstVisit;
 }
 

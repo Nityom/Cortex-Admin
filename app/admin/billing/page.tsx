@@ -40,7 +40,9 @@ import { paymentTransactionService } from "@/services/payment-transactions";
 import { getPatients, getPatientByPhoneNumber } from "@/services/patients";
 import { getPrescriptionsByPatient } from "@/services/prescription";
 import { Patient } from "@/types/patient";
-import { hospitalConfig, calculateDoctorConsultationFee } from "@/config/hospital";
+import { hospitalConfig, calculateDoctorConsultationFee, resolveDoctorFeeConfig } from "@/config/hospital";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { formatDate } from "@/lib/utils";
 import { isShillpaDoctor } from "@/lib/doctorColors";
 
@@ -86,6 +88,7 @@ const DEFAULT_OPD_PROCEDURES: { name: string; category: "Registration" | "Consul
 
 export default function HospitalBillingPage() {
   const router = useRouter();
+  const liveDoctors = useQuery(api.doctors.list, {});
 
   // Active Billing Tab: 'opd' | 'history' (IPD Billing is exclusively managed under /admin/ipd)
   const [activeTab, setActiveTab] = useState<"opd" | "history">("opd");
@@ -217,7 +220,7 @@ export default function HospitalBillingPage() {
           ? Number(qConsultFee)
           : (qVisitId || qRxId)
             ? 0
-            : getDoctorConsultationFee(effectiveDoc, isFollowUp);
+            : calculateDoctorConsultationFee(effectiveDoc, isFollowUp, liveDoctors);
 
       // Check if draft charges exist for this UHID, or globally
       let restoredCharges: ChargeItem[] | null = null;
@@ -315,7 +318,7 @@ export default function HospitalBillingPage() {
     if (linkedPrescriptionId) return;
     // Update consultation charge to match this doctor's fee
     const isFollowUp = opdPatient.visitNumber.toLowerCase().includes("follow");
-    const fee = getDoctorConsultationFee(doc, isFollowUp);
+    const fee = calculateDoctorConsultationFee(doc, isFollowUp, liveDoctors);
     setOpdCharges((prev) => {
       const hasConsult = prev.some((c) => c.name.toLowerCase().includes("consultation"));
       if (hasConsult) {
@@ -398,7 +401,7 @@ export default function HospitalBillingPage() {
         // Ensure consultation fee is present if no consultation item was in nonMedicineItems
         const hasConsult = charges.some((c) => c.category === "Consultation" || c.name.toLowerCase().includes("consultation"));
         const isFollowUp = opdPatient.visitNumber.toLowerCase().includes("follow");
-        const defaultFee = getDoctorConsultationFee(activeDoctor, isFollowUp);
+        const defaultFee = calculateDoctorConsultationFee(activeDoctor, isFollowUp, liveDoctors);
         if (!hasConsult && defaultFee > 0) {
           charges.unshift({
             id: "consultation",
@@ -483,6 +486,7 @@ export default function HospitalBillingPage() {
         const found = await getPatientByPhoneNumber(phoneStr.trim(), opdPatient.name?.trim());
         if (found) {
           const uhidClean = (found.reference_number || "CRX0001").replace(/^CH/i, "CRX");
+          const feeConfig = resolveDoctorFeeConfig(activeDoctor, liveDoctors);
           let isFollowUp = false;
           try {
             const pastRx = await getPrescriptionsByPatient(uhidClean);
@@ -497,14 +501,14 @@ export default function HospitalBillingPage() {
                 const diffDays = Math.round(
                   (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24)
                 );
-                if (diffDays <= 10) {
+                if (diffDays >= 0 && diffDays <= feeConfig.followupValidityDays) {
                   isFollowUp = true;
                 }
               }
             }
           } catch (_) {}
 
-          const visitLabel = isFollowUp ? "Follow-up Visit (≤10 days)" : "OPD Visit 1";
+          const visitLabel = isFollowUp ? `Follow-up Visit (≤${feeConfig.followupValidityDays} days)` : "OPD Visit 1";
           setOpdPatient({
             patientId: String(found.id || ""),
             name: found.name,
@@ -518,8 +522,8 @@ export default function HospitalBillingPage() {
           // For a linked prescription, keep its saved consultation fee unchanged.
           if (linkedPrescriptionId) return;
 
-          // Manual billing lookup: use the configured doctor & 10-day follow-up fee.
-          const fee = getDoctorConsultationFee(activeDoctor, isFollowUp);
+          // Manual billing lookup: use the configured doctor & follow-up validity fee.
+          const fee = isFollowUp ? feeConfig.followupVisit : feeConfig.firstVisit;
           setOpdCharges((prev) => {
             const hasConsult = prev.some((c) => c.name.toLowerCase().includes("consultation"));
             if (hasConsult) {

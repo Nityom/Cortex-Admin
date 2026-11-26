@@ -18,6 +18,7 @@ import {
   X,
   ChevronDown,
   Building2,
+  Settings,
 } from 'lucide-react';
 import { hospitalConfig } from '@/config/hospital';
 import { useIsAdmin } from '@/hooks/use-is-admin';
@@ -93,6 +94,9 @@ export function AppTopNav() {
       : []),
     ...(isAdmin && hospitalConfig.modules.salesReport
       ? [{ id: 'sales-report', title: 'Sales Report', url: '/admin/medicines/sales', icon: TrendingUp }]
+      : []),
+    ...(isAdmin
+      ? [{ id: 'settings', title: 'Settings', url: '/admin/settings', icon: Settings }]
       : []),
   ];
 

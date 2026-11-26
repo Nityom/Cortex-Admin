@@ -989,7 +989,7 @@ export default function AppointmentsPage() {
                       placeholder="Patient full name"
                       value={formData.name}
                       onChange={e => {
-                        const val = e.target.value;
+                        const val = e.target.value.replace(/(^|\s)\S/g, (c) => c.toUpperCase());
                         setFormData({ ...formData, name: val });
                         setPatientSearchQuery(val);
                         setShowPatientDropdown(true);

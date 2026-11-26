@@ -466,6 +466,9 @@ export default defineSchema({
     joining_date: v.optional(v.string()), // YYYY-MM-DD
     notes: v.optional(v.string()),
     signature_url: v.optional(v.string()),
+    first_visit_fee: v.optional(v.number()),
+    followup_fee: v.optional(v.number()),
+    followup_validity_days: v.optional(v.number()),
     created_at: v.optional(v.number()),
     updated_at: v.optional(v.number()),
   })

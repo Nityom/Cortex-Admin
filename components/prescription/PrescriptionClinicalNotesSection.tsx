@@ -170,7 +170,7 @@ export default function PrescriptionClinicalNotesSection({
 
   const testInputRef = useRef<HTMLInputElement>(null);
   const suggestionsBoxRef = useRef<HTMLDivElement>(null);
-  const adviceInputRef = useRef<HTMLInputElement>(null);
+  const adviceInputRef = useRef<HTMLTextAreaElement>(null);
   const adviceSuggestionsBoxRef = useRef<HTMLDivElement>(null);
 
   const loadSavedCustomTests = useCallback(() => {
@@ -502,9 +502,9 @@ export default function PrescriptionClinicalNotesSection({
             <div className="w-px h-4 bg-slate-200 shrink-0 mx-0.5" />
 
             <div className="relative flex-1 flex items-center min-w-0">
-              <input
+              <textarea
                 ref={adviceInputRef}
-                type="text"
+                rows={Math.max(1, (advice || '').split('\n').length)}
                 value={advice}
                 onFocus={() => {
                   setShowAdviceSuggestions(true);
@@ -528,11 +528,7 @@ export default function PrescriptionClinicalNotesSection({
                       return;
                     }
                     if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const item = adviceSuggestions[highlightedAdviceIdx];
-                      if (item) {
-                        handleSelectAdviceSuggestion(item);
-                      }
+                      setShowAdviceSuggestions(false);
                       return;
                     }
                     if (e.key === 'Escape') {
@@ -542,7 +538,7 @@ export default function PrescriptionClinicalNotesSection({
                   }
                 }}
                 placeholder="General advice for patient (e.g. warm saline rinses, bed rest)..."
-                className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400"
+                className="w-full bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-medium placeholder:text-slate-400 resize-none leading-relaxed py-0.5"
               />
 
               {/* Advice Suggestions Dropdown */}

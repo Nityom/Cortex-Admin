@@ -59,7 +59,8 @@ import { PrescriptionEmailModalData } from '@/components/prescription/Prescripti
 import { updateBill } from '@/services/bills';
 import { paymentTransactionService } from '@/services/payment-transactions';
 import { calculateMedicineQuantity } from '@/lib/medicineQuantity';
-import { getDoctorProfile } from '@/config/hospital';
+import { getDoctorProfile, resolveDoctorFeeConfig } from '@/config/hospital';
+import { useQuery } from 'convex/react';
 import { opdQueueService } from '@/services/opdQueue';
 import { sendPrescriptionOnWhatsApp } from '@/services/whatsappNotification';
 
@@ -217,6 +218,9 @@ export function usePrescriptionForm() {
     },
     []
   );
+
+  // Live doctor fee settings from Convex (synced with /admin/settings)
+  const liveDoctors = useQuery(api.doctors.list, {});
 
   // Print Modal with section checkboxes and live preview
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -1029,16 +1033,14 @@ export function usePrescriptionForm() {
   // Switch Doctor Handler
   const handleDoctorSelect = (docName: string) => {
     setSelectedDoctorName(docName);
-    const docProfile = getDoctorProfile(docName);
+    const feeConfig = resolveDoctorFeeConfig(docName, liveDoctors);
     const isDocGyn = docName.toLowerCase().includes('shilpa') || docName.toLowerCase().includes('shillpa');
     if (isDocGyn) {
       setFormData((prev: any) => ({ ...prev, sex: 'Female' }));
     }
     setTemplateCategoryInput(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
     setTemplateCategoryFilter(isDocGyn ? 'Gynaecology' : 'Orthopaedics');
-    const fee = isNewPatient
-      ? (docProfile?.consultationFee?.firstVisit ?? 400)
-      : (docProfile?.consultationFee?.followupVisit ?? 200);
+    const fee = isNewPatient ? feeConfig.firstVisit : feeConfig.followupVisit;
     setConsultationCharge(fee);
     try {
       localStorage.setItem('cortex_active_doctor', docName);
@@ -1115,22 +1117,22 @@ export function usePrescriptionForm() {
   // Set Repeat Patient Mode Helper
   const setRepeatPatient = useCallback(
     (isRepeat: boolean) => {
-      const docProfile = getDoctorProfile(selectedDoctorName);
+      const feeConfig = resolveDoctorFeeConfig(selectedDoctorName, liveDoctors);
       if (isRepeat) {
         setIsNewPatient(false);
         setActiveTab('Repeat Patient');
-        const fee = docProfile?.consultationFee?.followupVisit ?? 200;
+        const fee = feeConfig.followupVisit;
         setConsultationCharge(fee);
         showTemplateToast(`Repeat Patient Mode: Follow-up fee set to ₹${fee}`);
       } else {
         setIsNewPatient(true);
         setActiveTab('1st Visit');
-        const fee = docProfile?.consultationFee?.firstVisit ?? 400;
+        const fee = feeConfig.firstVisit;
         setConsultationCharge(fee);
         showTemplateToast(`1st Visit Mode: Consultation fee set to ₹${fee}`);
       }
     },
-    [selectedDoctorName]
+    [selectedDoctorName, liveDoctors]
   );
 
   // Handle Tab Click (1st Visit vs Repeat Patient vs View Past)
@@ -1682,9 +1684,10 @@ export function usePrescriptionForm() {
           setIsNewPatient(false);
 
           const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
+          const feeConfig = resolveDoctorFeeConfig(selectedDoctorName, liveDoctors);
 
-          // Check if patient visited within 10 days
-          let isWithin10Days = false;
+          // Check if patient visited within doctor's followup validity days
+          let isWithinValidity = false;
           if (existingPatient.reference_number) {
             try {
               const pastRx = await getPrescriptionsByPatient(existingPatient.reference_number);
@@ -1693,7 +1696,7 @@ export function usePrescriptionForm() {
                 setPreviousPrescription(sorted[0]);
                 const lastDate = sorted[0].prescription_date;
                 const diffDays = (new Date().getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24);
-                isWithin10Days = diffDays >= 0 && diffDays <= 10;
+                isWithinValidity = diffDays >= 0 && diffDays <= feeConfig.followupValidityDays;
 
                 if (sorted[0] && !isEditMode && !prescriptionId) {
                   // Auto-fill entire previous prescription for repeat patient (both Ortho & Gynae)
@@ -1734,16 +1737,14 @@ export function usePrescriptionForm() {
             console.warn('Error fetching all past Rx in phone change:', e);
           }
 
-          const fee = isGynae
-            ? (isWithin10Days ? 100 : 200)
-            : (isWithin10Days ? 200 : 400);
+          const fee = isWithinValidity ? feeConfig.followupVisit : feeConfig.firstVisit;
 
           setConsultationCharge(fee);
-          showTemplateToast(`Patient Found: ${existingPatient.name} (${isWithin10Days ? 'Follow-up within 10 days' : 'Re-visit'}: ₹${fee})`);
+          showTemplateToast(`Patient Found: ${existingPatient.name} (${isWithinValidity ? `Follow-up within ${feeConfig.followupValidityDays} days` : 'Re-visit'}: ₹${fee})`);
         } else {
           setIsNewPatient(true);
-          const isGynae = (selectedDoctorName || '').toLowerCase().includes('shilpa') || (selectedDoctorName || '').toLowerCase().includes('shillpa');
-          setConsultationCharge(isGynae ? 200 : 400);
+          const feeConfig = resolveDoctorFeeConfig(selectedDoctorName, liveDoctors);
+          setConsultationCharge(feeConfig.firstVisit);
         }
       } catch (err) {
         console.error('Error fetching patient by phone:', err);

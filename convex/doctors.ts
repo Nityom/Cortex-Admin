@@ -13,7 +13,10 @@ const DEFAULT_MAIN_DOCTORS = [
     status: "ACTIVE" as const,
     joining_date: "2024-01-01",
     signature_url: "/sign.png",
-    notes: "Chief Dental Surgeon & Founder",
+    notes: "Consulting Orthopaedic and Joint Replacement Surgeon",
+    first_visit_fee: 400,
+    followup_fee: 300,
+    followup_validity_days: 30,
   },
   {
     name: "Dr. Shillpa Raut",
@@ -22,9 +25,20 @@ const DEFAULT_MAIN_DOCTORS = [
     status: "ACTIVE" as const,
     joining_date: "2024-01-01",
     signature_url: "/sign1.png",
-    notes: "Main Doctor & Dental Surgeon",
+    notes: "Consulting Gynecologist & Obstetrician",
+    first_visit_fee: 200,
+    followup_fee: 100,
+    followup_validity_days: 10,
   },
 ];
+
+function getDefaultDoctorFees(name: string) {
+  const lower = (name || "").toLowerCase();
+  if (/gyne|swati|shillpa|shilpa|obs|maternity/i.test(lower)) {
+    return { first_visit_fee: 200, followup_fee: 100, followup_validity_days: 10 };
+  }
+  return { first_visit_fee: 400, followup_fee: 300, followup_validity_days: 30 };
+}
 
 /* =========================================================================
    1. DOCTOR CRUD & LISTING
@@ -64,7 +78,76 @@ export const list = query({
       );
     }
 
-    return doctors;
+    return doctors.map((d) => {
+      const defaults = getDefaultDoctorFees(d.name);
+      return {
+        ...d,
+        first_visit_fee: (d as any).first_visit_fee ?? defaults.first_visit_fee,
+        followup_fee: (d as any).followup_fee ?? defaults.followup_fee,
+        followup_validity_days: (d as any).followup_validity_days ?? defaults.followup_validity_days,
+      };
+    });
+  },
+});
+
+export const updateFeeSettings = mutation({
+  args: {
+    id: v.optional(v.string()),
+    name: v.string(),
+    first_visit_fee: v.number(),
+    followup_fee: v.number(),
+    followup_validity_days: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let existing = await ctx.db.query("doctors").collect();
+    if (existing.length === 0) {
+      for (const doc of DEFAULT_MAIN_DOCTORS) {
+        await ctx.db.insert("doctors", {
+          ...doc,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      existing = await ctx.db.query("doctors").collect();
+    }
+
+    let target: any = null;
+    if (args.id && !args.id.startsWith("default_")) {
+      try {
+        const normalized = ctx.db.normalizeId("doctors", args.id);
+        if (normalized) target = await ctx.db.get(normalized);
+      } catch {
+        // Fallback to name lookup
+      }
+    }
+    if (!target) {
+      const cleanName = args.name.trim().toLowerCase();
+      target = existing.find((d) => d.name.trim().toLowerCase() === cleanName);
+    }
+
+    if (target) {
+      await ctx.db.patch(target._id, {
+        first_visit_fee: Math.max(0, args.first_visit_fee),
+        followup_fee: Math.max(0, args.followup_fee),
+        followup_validity_days: Math.max(0, args.followup_validity_days),
+        updated_at: now,
+      });
+      return { success: true, id: target._id };
+    }
+
+    const insertedId = await ctx.db.insert("doctors", {
+      name: args.name.trim(),
+      doctor_type: "MAIN",
+      status: "ACTIVE",
+      joining_date: new Date().toISOString().slice(0, 10),
+      first_visit_fee: Math.max(0, args.first_visit_fee),
+      followup_fee: Math.max(0, args.followup_fee),
+      followup_validity_days: Math.max(0, args.followup_validity_days),
+      created_at: now,
+      updated_at: now,
+    });
+    return { success: true, id: insertedId };
   },
 });
 
