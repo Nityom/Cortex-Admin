@@ -189,9 +189,9 @@ export function AppTopNav() {
       </div>
 
       {/* Second Row: Desktop Horizontal Navigation Bar */}
-      <div className="hidden md:block bg-slate-50 border-t border-slate-200 overflow-x-auto">
-        <div className="w-full px-3 sm:px-5 lg:px-8">
-          <nav className="flex flex-wrap items-center gap-1 py-1.5">
+      <div className="hidden md:block bg-slate-50/80 border-t border-slate-200/70 overflow-x-auto">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
+          <nav className="flex items-center gap-1.5 py-2">
             {navItems.map((item) => {
               const active = isCurrentActive(item.url);
               const Icon = item.icon;
@@ -200,10 +200,10 @@ export function AppTopNav() {
                   key={item.id}
                   type="button"
                   onClick={() => router.push(item.url)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                     active
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-200/80'
+                      ? 'bg-emerald-700 text-white shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
                   }`}
                 >
                   <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-slate-500'}`} />

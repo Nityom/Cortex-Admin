@@ -19,8 +19,8 @@ export default function PrescriptionFindingsSection({
   category,
 }: PrescriptionFindingsSectionProps) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs">
-      <div className="flex items-center justify-between mb-2">
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1 text-slate-400">
           <button
             type="button"
@@ -62,7 +62,7 @@ export default function PrescriptionFindingsSection({
         }}
         minRows={1}
         placeholder="Clinical findings, general examination, range of motion, swelling, tenderness, systemic signs..."
-        className="w-full p-2.5 text-sm sm:text-base border border-slate-200 rounded-lg text-slate-800 bg-white focus:ring-1 focus:ring-emerald-500 outline-none leading-relaxed"
+        className="w-full p-0 text-sm sm:text-base border-none text-slate-800 bg-transparent focus:ring-0 outline-none leading-relaxed"
       />
     </div>
   );

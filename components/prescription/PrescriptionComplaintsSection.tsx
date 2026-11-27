@@ -408,8 +408,8 @@ export default function PrescriptionComplaintsSection({
   ).replace(/^[\s,]+/, '');
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-2xl p-2 sm:p-2.5 shadow-2xs">
-      <div className="relative min-h-[42px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 shadow-2xs focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
+    <div className="w-full">
+      <div className="relative min-h-[42px] px-3 py-1.5 rounded-xl border border-slate-200 bg-white flex items-center gap-2 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition">
         {/* Action Icons: Stethoscope, Folder (Templates), Undo */}
         <div className="flex items-center gap-1 text-slate-400 shrink-0">
           <button
