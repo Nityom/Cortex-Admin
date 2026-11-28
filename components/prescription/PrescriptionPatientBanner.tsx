@@ -110,9 +110,10 @@ export default function PrescriptionPatientBanner({
     : '';
 
   return (
-    <div className="space-y-3">
-      {/* 1. Sleek Minimal Unified Header Card (Matching User Image Mockup) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <>
+      {/* 1. Sleek Minimal Unified Header Card (Sticky below AppTopNav) */}
+      <div className="sticky top-[var(--app-topnav-height,65px)] md:top-[var(--app-topnav-height,112px)] z-30 bg-slate-50/95 backdrop-blur-xs pt-2 pb-2 -mt-2 -mx-1 px-1">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-3.5 sm:p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         {/* Left Section: Avatar + Name + Badges + Gender/Date/Age */}
         <div className="flex items-center gap-3.5 min-w-0">
           <div
@@ -290,6 +291,7 @@ export default function PrescriptionPatientBanner({
             </button>
           )}
         </div>
+        </div>
       </div>
 
       {/* 2. Optional Collapsible Edit Drawer (Hidden by default to keep screen minimal) */}
@@ -420,6 +422,6 @@ export default function PrescriptionPatientBanner({
         </div>
       )}
 
-    </div>
+    </>
   );
 }

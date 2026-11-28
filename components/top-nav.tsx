@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Calendar,
@@ -39,6 +39,23 @@ export function AppTopNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [profileInitials, setProfileInitials] = useState('CH');
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof document === 'undefined') return;
+    const updateHeight = () => {
+      document.documentElement.style.setProperty('--app-topnav-height', `${el.offsetHeight}px`);
+    };
+    updateHeight();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateHeight) : null;
+    observer?.observe(el);
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -124,7 +141,7 @@ export function AppTopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200/90 shadow-2xs">
+    <header ref={headerRef} className="sticky top-0 z-40 w-full bg-white border-b border-slate-200/90 shadow-2xs">
       {/* Top Main Row: Branding + User Profile */}
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
         <div className="flex items-center justify-between h-16 gap-4">

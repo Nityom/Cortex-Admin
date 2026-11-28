@@ -528,7 +528,7 @@ export default function PrescriptionSectionsContainer({ form }: PrescriptionSect
                   setDragOverSection(null);
                   setActiveDragHandleKey(null);
                 }}
-                style={{ zIndex: 40 - idx }}
+                style={{ zIndex: Math.max(1, 20 - idx) }}
                 className={`relative rounded-2xl transition-all duration-150 ${isBeingDragged ? 'opacity-40 scale-[0.98]' : 'opacity-100'
                   } ${isOver ? 'ring-2 ring-emerald-500 shadow-md translate-y-0.5' : ''
                   }`}

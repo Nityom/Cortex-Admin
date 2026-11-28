@@ -727,7 +727,7 @@ export default function AppointmentsPage() {
         </div>
 
         {/* Selected Date Appointments list */}
-        <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col max-h-[500px] lg:sticky lg:top-6 lg:max-h-[calc(100vh-8rem)] overflow-hidden">
+        <div className="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col max-h-[500px] lg:sticky lg:top-[calc(var(--app-topnav-height,112px)+1.5rem)] lg:max-h-[calc(100vh-8rem)] overflow-hidden">
           {/* Panel header */}
           <div className="px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
             {isSearchOpen ? (

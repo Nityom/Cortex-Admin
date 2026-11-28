@@ -204,7 +204,7 @@ export default function AddMedicinePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Add Medicine Form */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 sticky top-6">
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 sticky top-[calc(var(--app-topnav-height,112px)+1.5rem)]">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-gray-800 flex items-center">
                   <Pill className="mr-2 text-emerald-600" size={22} />
