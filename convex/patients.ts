@@ -1,6 +1,19 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Store every normalized substring as a search token. This lets the full-text
+// index serve legacy "contains" searches without scanning the patients table.
+const buildSearchTerms = (name: string, phone: string, reference: string) => {
+    const source = `${name}${phone}${reference}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const terms = new Set<string>();
+    for (let start = 0; start < source.length; start++) {
+        for (let end = start + 1; end <= source.length; end++) {
+            terms.add(source.slice(start, end));
+        }
+    }
+    return Array.from(terms).join(" ");
+};
+
 // Create a new patient
 export const create = mutation({
     args: {
@@ -26,6 +39,13 @@ export const create = mutation({
 
         if (existingPatient) {
             const patches: Record<string, any> = {};
+            if (!existingPatient.search_terms) {
+                patches.search_terms = buildSearchTerms(
+                    existingPatient.name,
+                    existingPatient.phone_number,
+                    existingPatient.reference_number || ""
+                );
+            }
             if (args.email && args.email.trim() && args.email.trim() !== existingPatient.email) {
                 patches.email = args.email.trim();
             }
@@ -75,6 +95,7 @@ export const create = mutation({
             address: args.address,
             email: args.email,
             whatsapp_number: args.whatsapp_number,
+            search_terms: buildSearchTerms(args.name, args.phone_number, reference_number),
         });
         return newPatientId;
     },
@@ -83,25 +104,22 @@ export const create = mutation({
 export const getNextReferenceNumber = query({
     args: {},
     handler: async (ctx) => {
-        const allPatients = await ctx.db.query("patients").collect();
-        let maxExisting = 2; // Base minimum since CRX0001 and CRX0002 already exist
-        for (const p of allPatients) {
-            if (p.reference_number) {
-                const match = p.reference_number.match(/\d+/);
-                if (match) {
-                    const num = parseInt(match[0], 10);
-                    if (num > maxExisting) maxExisting = num;
-                }
-            }
-        }
-        let counter = await ctx.db
+        const counter = await ctx.db
             .query("reference_counter")
             .withIndex("by_counter_id", (q) => q.eq("counter_id", 1))
             .first();
-        let next = maxExisting + 1;
-        if (counter && counter.current_number >= next) {
-            next = counter.current_number + 1;
+
+        // The counter is the source of truth once initialized. Keep the legacy
+        // fallback bounded for databases created before the counter existed.
+        let maxExisting = 2;
+        if (!counter || typeof counter.current_number !== "number") {
+            const recentPatients = await ctx.db.query("patients").order("desc").take(50);
+            for (const patient of recentPatients) {
+                const match = patient.reference_number?.match(/\d+/);
+                if (match) maxExisting = Math.max(maxExisting, Number.parseInt(match[0], 10));
+            }
         }
+        const next = Math.max(maxExisting, counter?.current_number ?? 0) + 1;
         return `CRX${String(next).padStart(4, "0")}`;
     },
 });
@@ -113,10 +131,35 @@ export const migratePrefixToCRX = mutation({
         for (const p of patients) {
             if (p.reference_number && p.reference_number.startsWith("CH")) {
                 const newRef = p.reference_number.replace(/^CH/i, "CRX");
-                await ctx.db.patch(p._id, { reference_number: newRef });
+                await ctx.db.patch(p._id, {
+                    reference_number: newRef,
+                    search_terms: buildSearchTerms(p.name, p.phone_number, newRef),
+                });
             }
         }
         return true;
+    },
+});
+
+// Run repeatedly with the returned cursor until done is true to backfill the
+// substring index for existing patients in bounded batches.
+export const backfillSearchTerms = mutation({
+    args: { cursor: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        const page = await ctx.db.query("patients").order("asc").paginate({
+            numItems: 100,
+            cursor: args.cursor ?? null,
+        });
+        for (const patient of page.page) {
+            await ctx.db.patch(patient._id, {
+                search_terms: buildSearchTerms(
+                    patient.name,
+                    patient.phone_number,
+                    patient.reference_number || ""
+                ),
+            });
+        }
+        return { done: page.isDone, cursor: page.continueCursor, updated: page.page.length };
     },
 });
 
@@ -235,29 +278,29 @@ export const search = query({
             if (byPhone.length > 0) return byPhone;
         }
 
-        // 3. Convex Search Index lookup (zero table scan)
+        // 3. Indexed normalized-substring lookup. Existing documents without
+        // the backfilled field can still match through the legacy name index.
+        const normalizedTerm = rawTerm.toLowerCase().replace(/[^a-z0-9]/g, "");
         try {
-            const indexed = await ctx.db
-                .query("patients")
-                .withSearchIndex("search_name", (q) => q.search("name", rawTerm))
-                .take(30);
-            if (indexed.length > 0) {
-                return indexed;
+            if (normalizedTerm) {
+                const indexedSubstrings = await ctx.db
+                    .query("patients")
+                    .withSearchIndex("search_substrings", (q) => q.search("search_terms", normalizedTerm))
+                    .take(50);
+                if (indexedSubstrings.length > 0) return indexedSubstrings;
             }
         } catch {
-            // Search index building or fallback
+            // The legacy index below remains available during index rollout.
         }
 
-        // 4. Substring fallback across patients
-        const term = rawTerm.toLowerCase();
-        const allPatients = await ctx.db.query("patients").collect();
-        return allPatients
-            .filter((p) =>
-                p.name.toLowerCase().includes(term) ||
-                p.phone_number.includes(term) ||
-                (p.reference_number || "").toLowerCase().includes(term)
-            )
-            .slice(0, 50);
+        try {
+            return await ctx.db
+                .query("patients")
+                .withSearchIndex("search_name", (q) => q.search("name", rawTerm))
+                .take(50);
+        } catch {
+            return [];
+        }
     },
 });
 
@@ -274,7 +317,14 @@ export const update = mutation({
     },
     handler: async (ctx, args) => {
         const { id, ...updates } = args;
-        await ctx.db.patch(id, updates);
+        const current = await ctx.db.get(id);
+        if (!current) return null;
+        const nextName = updates.name ?? current.name;
+        const nextPhone = updates.phone_number ?? current.phone_number;
+        await ctx.db.patch(id, {
+            ...updates,
+            search_terms: buildSearchTerms(nextName, nextPhone, current.reference_number || ""),
+        });
         return await ctx.db.get(id);
     },
 });

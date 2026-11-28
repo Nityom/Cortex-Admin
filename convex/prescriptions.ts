@@ -575,26 +575,22 @@ export const getQueueVisitTracking = query({
 
         const uniqueUhids = Array.from(new Set(args.uhids.map((u) => (u || "").trim().toUpperCase()).filter(Boolean)));
         for (const uhid of uniqueUhids) {
-            const docs1 = await ctx.db
-                .query("prescriptions")
-                .withIndex("by_reference", (q) => q.eq("reference_number", uhid))
-                .order("desc")
-                .take(2);
-            let docs2: any[] = [];
-            if (docs1.length === 0) {
-                const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
-                if (altRef !== uhid) {
-                    docs2 = await ctx.db
-                        .query("prescriptions")
-                        .withIndex("by_reference", (q) => q.eq("reference_number", altRef))
-                        .order("desc")
-                        .take(2);
-                }
-            }
-            const allRx = [...docs1, ...docs2].sort(
-                (a, b) =>
-                    new Date(b.prescription_date || (b as any).created_at || b._creationTime || 0).getTime() -
-                    new Date(a.prescription_date || (a as any).created_at || a._creationTime || 0).getTime()
+            const altRef = uhid.startsWith("CH") ? uhid.replace(/^CH/i, "CRX") : uhid.replace(/^CRX/i, "CH");
+            const refs = altRef === uhid ? [uhid] : [uhid, altRef];
+            const [todayDocs, previousDocs] = await Promise.all([
+                Promise.all(refs.map((ref) => ctx.db
+                    .query("prescriptions")
+                    .withIndex("by_reference_date", (q) => q.eq("reference_number", ref).eq("prescription_date", today))
+                    .order("desc")
+                    .take(1))),
+                Promise.all(refs.map((ref) => ctx.db
+                    .query("prescriptions")
+                    .withIndex("by_reference_date", (q) => q.eq("reference_number", ref).lt("prescription_date", today))
+                    .order("desc")
+                    .take(1))),
+            ]);
+            const allRx = [...todayDocs.flat(), ...previousDocs.flat()].sort(
+                (a, b) => (b.prescription_date || "").localeCompare(a.prescription_date || "")
             );
 
             for (const rx of allRx) {
@@ -629,11 +625,16 @@ export const getQueueVisitTracking = query({
 
         const cleanPhones = Array.from(new Set(args.phones.map((p) => (p || "").replace(/\D/g, "").slice(-10)).filter((p) => p.length === 10)));
         for (const phone of cleanPhones) {
-            const docs = await ctx.db.query("prescriptions").withIndex("by_phone", (q) => q.eq("phone_number", phone)).order("desc").take(2);
-            const allRx = docs.sort(
-                (a, b) =>
-                    new Date(b.prescription_date || b._creationTime || 0).getTime() -
-                    new Date(a.prescription_date || a._creationTime || 0).getTime()
+            const [todayRx, previousRx] = await Promise.all([
+                ctx.db.query("prescriptions")
+                    .withIndex("by_phone_date", (q) => q.eq("phone_number", phone).eq("prescription_date", today))
+                    .order("desc").take(1),
+                ctx.db.query("prescriptions")
+                    .withIndex("by_phone_date", (q) => q.eq("phone_number", phone).lt("prescription_date", today))
+                    .order("desc").take(1),
+            ]);
+            const allRx = [...todayRx, ...previousRx].sort(
+                (a, b) => (b.prescription_date || "").localeCompare(a.prescription_date || "")
             );
 
             for (const rx of allRx) {

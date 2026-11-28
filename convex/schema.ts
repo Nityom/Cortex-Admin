@@ -59,11 +59,15 @@ export default defineSchema({
     address: v.optional(v.string()),
     email: v.optional(v.string()),
     whatsapp_number: v.optional(v.string()),
+    search_terms: v.optional(v.string()),
   })
     .index("by_phone", ["phone_number"])
     .index("by_reference", ["reference_number"])
     .searchIndex("search_name", {
       searchField: "name",
+    })
+    .searchIndex("search_substrings", {
+      searchField: "search_terms",
     }),
 
   prescriptions: defineTable({
@@ -94,7 +98,9 @@ export default defineSchema({
     .index("by_phone", ["phone_number"])
     .index("by_date", ["prescription_date"])
     .index("by_patient_name", ["patient_name"])
-    .index("by_reference", ["reference_number"]),
+    .index("by_reference", ["reference_number"])
+    .index("by_reference_date", ["reference_number", "prescription_date"])
+    .index("by_phone_date", ["phone_number", "prescription_date"]),
 
   bills: defineTable({
     prescription_id: v.string(),
